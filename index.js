@@ -3,6 +3,7 @@ const app = express();
 const http = require("http").Server(app);
 const connectDB = require("./config/database");
 const checkApiKey = require("./config/checkapikey");
+const firebase = require("./config/firebase");
 const userRoutes = require("./routes/user_routes");
 const productRoutes = require("./routes/product_routes");
 const brandRoutes = require("./routes/brand_routes");
@@ -41,3 +42,9 @@ const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// const PORT = 3000;
+
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });

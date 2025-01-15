@@ -1,5 +1,5 @@
 // controllers/authController.js
-const admin = require("../config/firebase");
+const { admin } = require("../config/firebase");
 const User = require("../models/user_models");
 
 // Verify Firebase ID Token
