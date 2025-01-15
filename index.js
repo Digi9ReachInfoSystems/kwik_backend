@@ -13,6 +13,7 @@ const authRoutes = require("./routes/auth_Routes");
 
 // MongoDB Connection
 connectDB();
+// test
 
 // Middleware to log requests
 app.use((req, res, next) => {
@@ -35,7 +36,8 @@ app.use("/subcategory", subcategoryRoutes);
 app.use("/warehouse", warehouseRoutes);
 app.use("/auth", authRoutes);
 
-// Start the server
-http.listen(3000, function () {
-  console.log("Server running on http://localhost:3000");
+const PORT = 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
