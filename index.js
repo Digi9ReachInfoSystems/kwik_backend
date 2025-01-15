@@ -13,6 +13,7 @@ const authRoutes = require("./routes/auth_Routes");
 
 // MongoDB Connection
 connectDB();
+// test
 
 // Middleware to log requests
 app.use((req, res, next) => {
