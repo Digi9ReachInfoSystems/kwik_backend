@@ -36,6 +36,7 @@ app.use("/subcategory", subcategoryRoutes);
 app.use("/warehouse", warehouseRoutes);
 app.use("/auth", authRoutes);
 
+// Start the server
 const PORT = 3000;
 
 app.listen(PORT, () => {
