@@ -37,10 +37,7 @@ app.use("/subcategory", subcategoryRoutes);
 app.use("/warehouse", warehouseRoutes);
 app.use("/auth", authRoutes);
 
-// Start the server
-// http.listen(3000, function () {
-//   console.log("Server running on http://localhost:3000");
-// });
+
 
 const PORT = 3000;
 
