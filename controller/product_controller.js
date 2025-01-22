@@ -8,7 +8,16 @@ exports.createProduct = async (req, res) => {
 
     // Validate required fields
     if (!productData.product_name || !productData.sku) {
-      return res.status(400).json({ message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ message: "Product name and SKU are required" });
+    }
+
+    // Validate product name length
+    if (productData.product_name.length < 3) {
+      return res
+        .status(400)
+        .json({ message: "Product name must be at least 3 characters long" });
     }
 
     // Create a new product
@@ -19,6 +28,11 @@ exports.createProduct = async (req, res) => {
       .status(201)
       .json({ message: "Product created successfully", data: savedProduct });
   } catch (error) {
+    if (error.name === "ValidationError") {
+      return res
+        .status(400)
+        .json({ message: "Validation failed", errors: error.errors });
+    }
     res
       .status(500)
       .json({ message: "Error creating product", error: error.message });
@@ -69,13 +83,7 @@ exports.updateProduct = async (req, res) => {
   const productId = req.params.productId;
   const updatedData = req.body;
 
-  //   if (!mongoose.Types.ObjectId.isValid(productId)) {
-  //     return res.status(400).json({ message: "Invalid product ID" });
-  //   }
-
   try {
-    console.log("Product ID:", productId); // Debugging log
-
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
       updatedData,
@@ -93,6 +101,11 @@ exports.updateProduct = async (req, res) => {
       .status(200)
       .json({ message: "Product updated successfully", data: updatedProduct });
   } catch (error) {
+    if (error.name === "ValidationError") {
+      return res
+        .status(400)
+        .json({ message: "Validation failed", errors: error.errors });
+    }
     res
       .status(500)
       .json({ message: "Error updating product", error: error.message });
@@ -123,7 +136,7 @@ exports.deleteProduct = async (req, res) => {
 // Update product stock
 exports.updateStock = async (req, res) => {
   try {
-    const { id } = req.params; // Product ID
+    const { id } = req.params;
     const { stock } = req.body;
 
     if (stock === undefined) {
@@ -152,8 +165,8 @@ exports.updateStock = async (req, res) => {
 // Add a review to a product
 exports.addReview = async (req, res) => {
   try {
-    const { id } = req.params; // Product ID
-    const { review } = req.body; // Review data
+    const { id } = req.params;
+    const { review } = req.body;
 
     if (!review) {
       return res.status(400).json({ message: "Review data is required" });
@@ -165,7 +178,7 @@ exports.addReview = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    product.review.push(review); // Add review to the reviews array
+    product.review.push(review);
     const updatedProduct = await product.save();
 
     res
