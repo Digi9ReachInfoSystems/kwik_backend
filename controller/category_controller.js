@@ -11,9 +11,7 @@ const isValidUrl = (url) => {
 exports.getAllCategories = async (req, res) => {
   try {
     const categories = await Category.find(); // Fetch all categories from the database
-    res
-      .status(200)
-      .json({ message: "Categories retrieved successfully", data: categories });
+    res.status(200).json(categories); // Send only the categories array
   } catch (error) {
     res
       .status(500)
@@ -113,12 +111,10 @@ exports.editCategory = async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Category updated successfully",
-        data: updatedCategory,
-      });
+    res.status(200).json({
+      message: "Category updated successfully",
+      data: updatedCategory,
+    });
   } catch (error) {
     res
       .status(500)
@@ -136,11 +132,9 @@ exports.deleteCategory = async (req, res) => {
       category_ref: categoryId,
     });
     if (productWithCategory) {
-      return res
-        .status(400)
-        .json({
-          message: "Category is being used in a product and cannot be deleted",
-        });
+      return res.status(400).json({
+        message: "Category is being used in a product and cannot be deleted",
+      });
     }
 
     const deletedCategory = await Category.findByIdAndDelete(categoryId);
@@ -149,12 +143,10 @@ exports.deleteCategory = async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Category deleted successfully",
-        data: deletedCategory,
-      });
+    res.status(200).json({
+      message: "Category deleted successfully",
+      data: deletedCategory,
+    });
   } catch (error) {
     res
       .status(500)

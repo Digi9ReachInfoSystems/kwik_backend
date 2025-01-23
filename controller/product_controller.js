@@ -46,16 +46,11 @@ exports.getAllProducts = async (req, res) => {
       .populate("Brand category_ref sub_category_ref warehouse_ref")
       .exec();
 
-    res
-      .status(200)
-      .json({ message: "Products retrieved successfully", data: products });
+    res.status(200).json(products); // Send only the products array
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error retrieving products", error: error.message });
+    res.status(500).json({ error: error.message }); // Simplified error response
   }
 };
-
 // Get a product by ID
 exports.getProductById = async (req, res) => {
   try {
