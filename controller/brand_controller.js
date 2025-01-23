@@ -5,13 +5,9 @@ const Product = require("../models/product_model"); // Assuming you have a Produ
 exports.getAllBrands = async (req, res) => {
   try {
     const brands = await Brand.find(); // Fetch all brands from the database
-    res
-      .status(200)
-      .json({ message: "Brands retrieved successfully", data: brands });
+    res.status(200).json(brands); // Send only the brands array
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching brands", error: error.message });
+    res.status(500).json({ error: error.message }); // Simplified error response
   }
 };
 
@@ -104,11 +100,9 @@ exports.deleteBrand = async (req, res) => {
     // Check if the brand is being used in any product
     const productUsingBrand = await Product.findOne({ brand_ref: brandId });
     if (productUsingBrand) {
-      return res
-        .status(400)
-        .json({
-          message: "Brand is being used in a product and cannot be deleted",
-        });
+      return res.status(400).json({
+        message: "Brand is being used in a product and cannot be deleted",
+      });
     }
 
     const deletedBrand = await Brand.findByIdAndDelete(brandId);

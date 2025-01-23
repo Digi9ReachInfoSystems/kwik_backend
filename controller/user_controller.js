@@ -148,15 +148,11 @@ exports.unblockUser = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const filters = req.query;
-    const users = await User.find(filters); // Fetch all users
-
-    res.status(200).json({
-      message: "All users fetched successfully",
-      users: users,
-    });
+    const users = await User.find(filters); // Fetch all users based on filters
+    res.status(200).json(users); // Send only the users array
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error fetching users", error });
+    res.status(500).json({ error: error.message }); // Simplified error response
   }
 };
 

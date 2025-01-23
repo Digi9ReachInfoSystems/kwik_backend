@@ -6,13 +6,7 @@ const Product = require("../models/product_model"); // Import product model to c
 exports.getAllSubCategories = async (req, res) => {
   try {
     const subCategories = await SubCategory.find(); // Fetch all sub-categories from the database
-
-    res
-      .status(200)
-      .json({
-        message: "Sub-categories retrieved successfully",
-        data: subCategories,
-      });
+    res.status(200).json(subCategories); // Send only the subcategories array
   } catch (error) {
     console.error("Error fetching sub-categories:", error.message); // Log error for debugging
     res
@@ -46,12 +40,10 @@ exports.addSubCategory = async (req, res) => {
     // Check if the category_ref exists in the Category collection
     const categoryExists = await Category.findById(category_ref);
     if (!categoryExists) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Invalid category_ref. The referenced category does not exist.",
-        });
+      return res.status(400).json({
+        message:
+          "Invalid category_ref. The referenced category does not exist.",
+      });
     }
 
     // Create and save the new sub-category
@@ -65,12 +57,10 @@ exports.addSubCategory = async (req, res) => {
 
     const savedSubCategory = await newSubCategory.save();
 
-    res
-      .status(201)
-      .json({
-        message: "Sub-category added successfully",
-        data: savedSubCategory,
-      });
+    res.status(201).json({
+      message: "Sub-category added successfully",
+      data: savedSubCategory,
+    });
   } catch (error) {
     console.error("Error adding sub-category:", error.message); // Log error for debugging
     res
@@ -98,12 +88,10 @@ exports.editSubCategory = async (req, res) => {
       { new: true }
     );
 
-    res
-      .status(200)
-      .json({
-        message: "Sub-category updated successfully",
-        data: updatedSubCategory,
-      });
+    res.status(200).json({
+      message: "Sub-category updated successfully",
+      data: updatedSubCategory,
+    });
   } catch (error) {
     console.error("Error updating sub-category:", error.message); // Log error for debugging
     res
