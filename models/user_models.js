@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
   Address: [{ type: Address, required: false }],
   selected_Address: { type: Address, required: false },
   cart_products: [{ type: CartProduct, required: false }],
+  cart_added_date: { type: Date, required: false },
   saved_cart_products: [{ type: CartProduct, required: false }],
   is_deliveryboy: { type: Boolean, required: false },
   is_blocked: { type: Boolean, required: false, default: false },

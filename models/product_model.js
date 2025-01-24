@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const variationSchema = require("./variation_model");
 const reviewSchema = require("./review_model");
+const zoneRackSchema = require("./zoneRack_model");
 
 // Product Schema
 const productSchema = new mongoose.Schema({
@@ -20,7 +21,7 @@ const productSchema = new mongoose.Schema({
       required: [true, "Product image is required"],
       validate: {
         validator: function (v) {
-          return /^https?:\/\/.*\.(jpg|jpeg|png|gif)$/.test(v); // Ensure valid image URL
+          return /^(ftp|http|https):\/\/[^ "]+$/.test(v);// Ensure valid image URL
         },
         message: "Invalid image URL format",
       },
@@ -35,11 +36,31 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
     required: [true, "Category reference is required"],
+    validate: {
+      // Ensure the category reference exists in the Category collection
+      validator: async (v) => {
+        const categoryExists = await mongoose
+          .model("Category")
+          .exists({ _id: v });
+        return categoryExists;
+      },
+      message: "Invalid category reference",
+    },
   },
   sub_category_ref: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "SubCategory",
     required: [true, "Sub-category reference is required"],
+    validate: {
+      // Ensure the sub-category reference exists in the SubCategory collection
+      validator: async (v) => {
+        const subCategoryExists = await mongoose
+          .model("SubCategory")
+          .exists({ _id: v });
+        return subCategoryExists;
+      },
+      message: "Invalid sub-category reference",
+    },
   },
   variations: {
     type: [variationSchema],
@@ -62,7 +83,7 @@ const productSchema = new mongoose.Schema({
     required: [true, "Product video URL is required"],
     validate: {
       validator: function (v) {
-        return /^https?:\/\/.*\.(mp4|avi|mov|webm)$/.test(v); // Validate video URL
+        return /^(ftp|http|https):\/\/[^ "]+$/.test(v); // Validate video URL
       },
       message: "Invalid video URL format",
     },
@@ -75,14 +96,19 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     required: [true, "Draft status is required"],
   },
-  zone: {
-    type: String,
-    required: [true, "Zone is required"],
-  },
-  rack: {
-    type: String,
-    required: [true, "Rack is required"],
-  },
+  // zone: {
+  //   type: String,
+  //   required: [true, "Zone is required"],
+  // },
+  // rack: {
+  //   type: String,
+  //   required: [true, "Rack is required"],
+  // },
+  zoneRack: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ZoneRack",
+    required: [true, "Zone rack reference is required"]
+  }],
   created_time: {
     type: Date,
     required: [true, "Creation time is required"],
