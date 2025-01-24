@@ -20,10 +20,25 @@ const cartProductSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  total_price: {
+  selling_price: {
     type: Number,
     required: true,
   },
+  mrp: {
+    type: Number,
+    required: true,
+  },
+  // price: {
+  //   type: Number,
+  //   required: true,
+  // },
+  //selling price
+  // MRp
+  // Buying price
+  // total_price: {
+  //   type: Number,
+  //   required: true,
+  // },
 });
 
 // Create and export the CartProduct model

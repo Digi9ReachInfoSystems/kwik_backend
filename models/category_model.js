@@ -11,6 +11,13 @@ const categorySchema = new mongoose.Schema({
     type: String,
     required: [true, "Color is required"],
     trim: true, // Trim spaces
+    validate: {
+      validator: function (v) {
+        // Regex to validate hex color code (either 3 or 6 characters after #)
+        return /^#([0-9A-Fa-f]{3}){1,2}$/.test(v);
+      },
+      message: "Invalid color format. It must be a valid hexadecimal color code.",
+    },
   },
   category_name: {
     type: String,
@@ -35,6 +42,10 @@ const categorySchema = new mongoose.Schema({
       },
       message: "Invalid URL format for category image",
     },
+  },
+  visibility: {
+    type: Boolean,
+    required: [true, "Category visibility is required"],
   },
   created_time: {
     type: Date,

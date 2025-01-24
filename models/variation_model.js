@@ -9,6 +9,7 @@ const variationSchema = new mongoose.Schema({
     stock: [{
         warehouse_ref: { type: mongoose.Schema.Types.ObjectId, ref: 'Warehouse', required: true },  // Reference to the Warehouse model
         stock_qty: { type: Number, required: true },  // Quantity of the product available in the warehouse
+        visibility: { type: Boolean, required: true }
     }],
     created_time: { type: Date, required: true, default: Date.now },  // Timestamp for when the variation was created
 });

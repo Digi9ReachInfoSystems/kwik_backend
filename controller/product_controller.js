@@ -1,10 +1,13 @@
 const mongoose = require("mongoose");
 const Product = require("../models/product_model");
+const Category = require("../models/category_model")
+const ZoneRack = require("../models/zoneRack_model");
+const SubCategory = require("../models/sub_category_model");
 
 // Create a new product
 exports.createProduct = async (req, res) => {
   try {
-    const productData = req.body;
+    let productData = req.body;
 
     // Validate required fields
     if (!productData.product_name || !productData.sku) {
@@ -12,13 +15,36 @@ exports.createProduct = async (req, res) => {
         .status(400)
         .json({ message: "Product name and SKU are required" });
     }
-
     // Validate product name length
     if (productData.product_name.length < 3) {
       return res
         .status(400)
         .json({ message: "Product name must be at least 3 characters long" });
     }
+    const category = await Category.findOne({category_name:productData.category_ref});
+    if (!category) {
+      return res
+        .status(400)
+        .json({ message: "Category not found" });
+    }
+    productData.category_ref = category._id
+    const subCategory = await SubCategory.findOne({sub_category_name:productData.sub_category_ref});
+    if (!subCategory) {
+      return res
+        .status(400)
+        .json({ message: "SubCategory not found" });
+    }
+    productData.sub_category_ref = subCategory._id
+    // create new zone rack
+    const zoneRackData = await Promise.all( productData.zoneRack.map(async(zoneRack) => {
+      const zoneRackData = await new ZoneRack(zoneRack || {});
+      const savedZoneRack = await zoneRackData.save();
+      return savedZoneRack._id;
+    }
+    ));
+
+
+   productData.zoneRack = zoneRackData;
 
     // Create a new product
     const newProduct = new Product(productData);
