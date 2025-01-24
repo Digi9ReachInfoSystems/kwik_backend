@@ -14,4 +14,8 @@ router.put('/edit/:id', subCategoryController.editSubCategory);
 // Delete a sub-category
 router.delete('/delete/:id', subCategoryController.deleteSubCategory);
 
+//api to get subcategory by category name
+
+router.get('/getSubCategoriesByCategoryName/:categoryName', subCategoryController.getSubCategoriesByCategoryName);
+
 module.exports = router;
