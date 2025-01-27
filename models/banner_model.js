@@ -44,19 +44,13 @@ const bannerSchema = new mongoose.Schema({
   sub_category_ref: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "SubCategory",
-    required: [true, "Sub-category reference is required"],
-    validate: {
-      // Ensure the sub-category reference exists in the SubCategory collection
-      validator: async (v) => {
-        const subCategoryExists = await mongoose
-          .model("SubCategory")
-          .exists({ _id: v });
-        return subCategoryExists;
-      },
-      message: "Invalid sub-category reference",
-    },
+    required: false,
   }, // Reference to the SubCategory model
-
+  order_id: {
+    type: Number,
+    required: true,
+    default: 1,
+  },
   created_time: {
     type: Date,
     required: [true, "Creation time is required"],
