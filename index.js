@@ -11,6 +11,8 @@ const categoryRoutes = require("./routes/category_routes");
 const subcategoryRoutes = require("./routes/sub_category_routes");
 const warehouseRoutes = require("./routes/warehouse_routes");
 const authRoutes = require("./routes/auth_Routes");
+const homeUiRoutes = require("./routes/homepage_ui_controller_Routes");
+const bannerRoutes = require("./routes/banner_Routes");
 
 // MongoDB Connection
 connectDB();
@@ -36,8 +38,8 @@ app.use("/category", categoryRoutes);
 app.use("/subcategory", subcategoryRoutes);
 app.use("/warehouse", warehouseRoutes);
 app.use("/auth", authRoutes);
-
-
+app.use("/ui", homeUiRoutes);
+app.use("/banner", bannerRoutes);
 
 const PORT = 3000;
 
