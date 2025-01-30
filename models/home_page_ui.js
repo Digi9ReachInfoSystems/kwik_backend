@@ -17,16 +17,8 @@ const homepageWidgetSchema = new mongoose.Schema({
     ui_order_number: { type: String, required: true },
     show_Category: { type: Boolean, required: true },
   },
-  templateBanner3: {
-    category_ref: [{ type: mongoose.Schema.Types.ObjectId, ref: "Banner" }],
-    background_color: { type: String, required: true },
-    title_color: { type: String, required: true },
-    subcategory_color: { type: String, required: true },
-    ui_order_number: { type: String, required: true },
-    show_Category: { type: Boolean, required: true },
-  },
   template3: {
-    category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
+    category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Banner" },
     background_color: { type: String, required: true },
     title_color: { type: String, required: true },
     subcategory_color: { type: String, required: true },
@@ -49,7 +41,15 @@ const homepageWidgetSchema = new mongoose.Schema({
     ui_order_number: { type: String, required: true },
     show_Category: { type: Boolean, required: true },
   },
-  template6Brand1: {
+  template6: {
+    category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
+    background_color: { type: String, required: true },
+    title_color: { type: String, required: true },
+    subcategory_color: { type: String, required: true },
+    ui_order_number: { type: String, required: true },
+    show_Category: { type: Boolean, required: true },
+  },
+  template7: {
     category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     background_color: { type: String, required: true },
     title_color: { type: String, required: true },
@@ -59,14 +59,6 @@ const homepageWidgetSchema = new mongoose.Schema({
     title: { type: String, required: true },
     des: { type: String, required: true },
     image: { type: String, required: true },
-  },
-  template7: {
-    category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
-    background_color: { type: String, required: true },
-    title_color: { type: String, required: true },
-    subcategory_color: { type: String, required: true },
-    ui_order_number: { type: String, required: true },
-    show_Category: { type: Boolean, required: true },
   },
   template8: {
     category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
@@ -108,7 +100,15 @@ const homepageWidgetSchema = new mongoose.Schema({
     ui_order_number: { type: String, required: true },
     show_Category: { type: Boolean, required: true },
   },
-  template13Brand2: {
+  template13: {
+    category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
+    background_color: { type: String, required: true },
+    title_color: { type: String, required: true },
+    subcategory_color: { type: String, required: true },
+    ui_order_number: { type: String, required: true },
+    show_Category: { type: Boolean, required: true },
+  },
+  template14: {
     category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     background_color: { type: String, required: true },
     title_color: { type: String, required: true },
@@ -119,24 +119,8 @@ const homepageWidgetSchema = new mongoose.Schema({
     des: { type: String, required: true },
     image: { type: String, required: true },
   },
-  template14: {
-    category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
-    background_color: { type: String, required: true },
-    title_color: { type: String, required: true },
-    subcategory_color: { type: String, required: true },
-    ui_order_number: { type: String, required: true },
-    show_Category: { type: Boolean, required: true },
-  },
   template15: {
     category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
-    background_color: { type: String, required: true },
-    title_color: { type: String, required: true },
-    subcategory_color: { type: String, required: true },
-    ui_order_number: { type: String, required: true },
-    show_Category: { type: Boolean, required: true },
-  },
-  templateBanner3: {
-    category_ref: [{ type: mongoose.Schema.Types.ObjectId, ref: "Banner" }],
     background_color: { type: String, required: true },
     title_color: { type: String, required: true },
     subcategory_color: { type: String, required: true },
@@ -152,7 +136,7 @@ const homepageWidgetSchema = new mongoose.Schema({
     show_Category: { type: Boolean, required: true },
   },
   template17: {
-    category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
+    category_ref: [{ type: mongoose.Schema.Types.ObjectId, ref: "Banner" }],
     background_color: { type: String, required: true },
     title_color: { type: String, required: true },
     subcategory_color: { type: String, required: true },
@@ -167,27 +151,16 @@ const homepageWidgetSchema = new mongoose.Schema({
     ui_order_number: { type: String, required: true },
     show_Category: { type: Boolean, required: true },
   },
-  template19Brand3: {
+  template19: {
     category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     background_color: { type: String, required: true },
     title_color: { type: String, required: true },
     subcategory_color: { type: String, required: true },
     ui_order_number: { type: String, required: true },
     show_Category: { type: Boolean, required: true },
-    title: { type: String, required: true },
-    des: { type: String, required: true },
-    image: { type: String, required: true },
   },
   template20: {
     category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
-    background_color: { type: String, required: true },
-    title_color: { type: String, required: true },
-    subcategory_color: { type: String, required: true },
-    ui_order_number: { type: String, required: true },
-    show_Category: { type: Boolean, required: true },
-  },
-  templateBanner3: {
-    category_ref: [{ type: mongoose.Schema.Types.ObjectId, ref: "Banner" }],
     background_color: { type: String, required: true },
     title_color: { type: String, required: true },
     subcategory_color: { type: String, required: true },
@@ -201,6 +174,9 @@ const homepageWidgetSchema = new mongoose.Schema({
     subcategory_color: { type: String, required: true },
     ui_order_number: { type: String, required: true },
     show_Category: { type: Boolean, required: true },
+    title: { type: String, required: true },
+    des: { type: String, required: true },
+    image: { type: String, required: true },
   },
   template22: {
     category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
@@ -211,7 +187,7 @@ const homepageWidgetSchema = new mongoose.Schema({
     show_Category: { type: Boolean, required: true },
   },
   template23: {
-    category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
+    category_ref: [{ type: mongoose.Schema.Types.ObjectId, ref: "Banner" }],
     background_color: { type: String, required: true },
     title_color: { type: String, required: true },
     subcategory_color: { type: String, required: true },
@@ -228,14 +204,6 @@ const homepageWidgetSchema = new mongoose.Schema({
   },
   template25: {
     category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
-    background_color: { type: String, required: true },
-    title_color: { type: String, required: true },
-    subcategory_color: { type: String, required: true },
-    ui_order_number: { type: String, required: true },
-    show_Category: { type: Boolean, required: true },
-  },
-  templateBanner4: {
-    category_ref: [{ type: mongoose.Schema.Types.ObjectId, ref: "Banner" }],
     background_color: { type: String, required: true },
     title_color: { type: String, required: true },
     subcategory_color: { type: String, required: true },
