@@ -131,3 +131,29 @@ exports.deleteSubCategory = async (req, res) => {
       .json({ message: "Error deleting sub-category", error: error.message });
   }
 };
+
+exports.getSubCategoriesByCategoryName = async (req, res) => {
+  try {
+    const categoryName = req.params.categoryName;
+
+    // Find the category by name
+    const category = await Category.findOne({ category_name: categoryName });
+
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    // Find subcategories related to this category
+    const subCategories = await SubCategory.find({ category_ref: category._id });
+
+    if (!subCategories || subCategories.length === 0) {
+      return res.status(404).json({ message: "No subcategories found for this category" });
+    }
+
+    // Return the found subcategories
+    return res.status(200).json({ message: "Subcategories fetched successfully", data: subCategories });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
