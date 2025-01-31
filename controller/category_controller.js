@@ -25,7 +25,7 @@ exports.getCategoryById = async (req, res) => {
     const categoryId = req.params.id; // The category_id to search for
 
     // Find category by category_id
-    const category = await Category.findOne({ category_id: categoryId });
+    const category = await Category.findOne({ _id: categoryId });
 
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
