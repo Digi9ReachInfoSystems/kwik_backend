@@ -22,7 +22,7 @@ exports.getBannerById = async (req, res) => {
 
   try {
     // Find the banner by its banner_id
-    const banner = await Banner.findOne({ banner_id })
+    const banner = await Banner.findOne({ banner_id:banner_id })
       .populate("category_ref")
       .populate("sub_category_ref");
     if (!banner) {
