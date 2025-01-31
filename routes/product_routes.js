@@ -9,4 +9,5 @@ router.put("/update/:productId", ProductController.updateProduct);
 router.delete("/:productId", ProductController.deleteProduct);
 router.put("/updateStock/:productId", ProductController.updateStock);
 router.post("/addReview/:productId", ProductController.addReview);
+router.get("/get/Drafts", ProductController.getDrafts);
 module.exports = router;

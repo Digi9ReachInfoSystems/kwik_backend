@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 // Import the CartProduct and Address models
 const CartProduct = require("./cart_product_model");
 const Address = require("./address_model");
+const SearchHistory = require("./searchHistory_model");
 
 const userSchema = new mongoose.Schema({
   phone: { type: String, required: false },
@@ -25,6 +26,7 @@ const userSchema = new mongoose.Schema({
   deliveryboy_account_ifsc: { type: String, required: false },
   deliveryboy_bike_number: { type: String, required: false },
   deliveryboy_bike_image: { type: String, required: false }, // URL for Bike image
+  search_history: [{ type: SearchHistory, required: false }],
   assigned_warehouse: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Warehouse",

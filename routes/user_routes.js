@@ -27,4 +27,7 @@ router.post("/create", userController.createUser);
 // Edit user details
 router.put("/:userId", userController.editUser);
 
+// add a product Carts
+router.post("/addtocart", userController.addProductToCart);
+
 module.exports = router;

@@ -8,7 +8,7 @@ const checkApiKey = (req, res, next) => {
     return res.status(400).json({ error: "API key and secret are required" });
   }
 
-  if (apiKey !== "arjun" || apiSecret !== "digi9") {
+  if (apiKey !== process.env.APIKEY || apiSecret !== process.env.APISECRET) {
     return res.status(403).json({ error: "Invalid API key or secret" });
   }
 

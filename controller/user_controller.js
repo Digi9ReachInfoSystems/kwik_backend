@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const User = require("../models/user_models"); // Assuming User model is in this path
 const express = require("express");
 const router = express.Router();
+const Product = require("../models/product_model");
+const Warehouse = require("../models/warehouse_model");
 // Create a new user
 exports.createUser = async (req, res) => {
   try {
@@ -79,7 +81,7 @@ exports.editUser = async (req, res) => {
     const updates = req.body;
 
     // Find the user and update their details
-    const user = await User.findByIdAndUpdate(userId, updates, { new: true });
+    const user = await User.findOneAndUpdate({ UID: userId }, updates, { new: true });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -100,8 +102,8 @@ exports.blockUser = async (req, res) => {
     const { userId } = req.params;
 
     // Find the user and block them
-    const user = await User.findByIdAndUpdate(
-      userId,
+    const user = await User.findOneAndUpdate(
+      { UID: userId },
       { is_blocked: true },
       { new: true }
     );
@@ -125,8 +127,8 @@ exports.unblockUser = async (req, res) => {
     const { userId } = req.params;
 
     // Find the user and unblock them
-    const user = await User.findByIdAndUpdate(
-      userId,
+    const user = await User.findOneAndUpdate(
+      { UID: userId },
       { is_blocked: false },
       { new: true }
     );
@@ -207,3 +209,157 @@ exports.getUserById = async (req, res) => {
     res.status(500).json({ message: "Error fetching user", error });
   }
 };
+
+
+// Add product to cart and update stock in the warehouse
+exports.addProductToCart = async (req, res) => {
+  try {
+    const { userId, product_ref, variant, quantity, pincode } = req.body;
+
+    // Validate required fields
+    if (!product_ref || !variant || !quantity || !pincode || !userId) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Check if the product exists
+    const product = await Product.findById(product_ref);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    // Check if the warehouse exists for the given variant
+    const warehouse = await Warehouse.findOne({ picode: pincode });
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found for this variant" });
+    }
+
+    const variation = product.variations.find((item) => item._id == variant);
+    if (!variation) {
+      return res.status(404).json({ message: "variation not found for this product" });
+    }
+
+    variation.stock.map((item) => {
+      if ((item.warehouse_ref.equals(warehouse._id))) {
+        const stockQty = item.stock_qty;
+        if (stockQty < quantity) {
+          return res.status(400).json({ message: "Insufficient stock" });
+        } else {
+          item.stock_qty -= quantity;
+          if (item.stock_qty == 0) {
+            item.visibility = false;
+          }
+        }
+      }
+    })
+
+    product.variations = product.variations.map((item) => {
+      if (item._id == variant) {
+        item.variation = variation;
+        return item;
+      } else {
+        return item;
+      }
+    })
+
+    await product.save();
+
+
+
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prepare cart product data
+    const cartProductData = {
+      product_ref,
+      variant: variation,
+      quantity,
+      pincode,
+      selling_price: variation.selling_price,
+      mrp: variation.MRP,
+      buying_price: variation.buying_price,
+      inStock: true,
+      final_price: variation.selling_price * quantity
+    };
+
+    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref && item.pincode == pincode);
+
+    // // Check if the product already exists in the cart
+    if (cartProduct) {
+      // If the product is already in the cart, update the quantity
+      user.cart_products.map((item) => {
+        if (item.product_ref.equals(product_ref) && item.pincode == pincode) {
+          item.quantity += Number(quantity);
+          console.log("item", item);
+        }
+      })
+    } else {
+      user.cart_products.push(cartProductData);
+    }
+    user.cart_added_date=new Date();
+    const savedUser = await user.save();
+    return res.status(201).json({ message: "Product added to cart", data: savedUser });
+
+  } catch (error) {
+    console.error("Error adding product to cart:", error);
+    return res.status(500).json({ message: "Error adding product to cart", error: error.message });
+  }
+};
+
+// exports.increseCartProductQuantity = async (req, res) => {
+//   try {
+//     const { userId, product_ref,   } = req.body;
+
+//     // Validate required fields
+//     if (!product_ref  || !userId) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     // Check if the product exists
+//     const product = await Product.findById(product_ref);
+//     if (!product) {
+//       return res.status(404).json({ message: "Product not found" });
+//     }
+
+    
+
+//     const user = await User.findOne({ UID: userId });
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     // Prepare cart product data  
+//     const cartProductData = {
+//       product_ref,
+//       variant: variation,
+//       quantity,
+//       pincode,
+//       selling_price: variation.selling_price,
+//       mrp: variation.MRP,
+//       buying_price: variation.buying_price,
+//       inStock: true,
+//       final_price: variation.selling_price * quantity
+//     };
+
+//     const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref && item.pincode == pincode);
+
+//     // // Check if the product already exists in the cart
+//     if (cartProduct) {
+//       // If the product is already in the cart, update the quantity
+//       user.cart_products.map((item) => {
+//         if (item.product_ref.equals(product_ref) && item.pincode == pincode) {
+//           item.quantity += Number(quantity);
+//           console.log("item", item);
+//         }
+//       })
+//     } else {
+//       user.cart_products.push(cartProductData);
+//     }
+//     console.log("user", user);
+//     const savedUser = await user.save();
+//     return res.status(201).json({ message: "Product added to cart", data: savedUser });
+
+//   } catch (error) {
+//     console.error("Error adding product to cart:", error);
+//   }
+// }
