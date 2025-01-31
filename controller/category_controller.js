@@ -19,13 +19,45 @@ exports.getAllCategories = async (req, res) => {
   }
 };
 
+// Get a category by category_id
+exports.getCategoryById = async (req, res) => {
+  try {
+    const categoryId = req.params.id; // The category_id to search for
+
+    // Find category by category_id
+    const category = await Category.findOne({ category_id: categoryId });
+
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    res.status(200).json({ message: "Category found", data: category });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching category by id", error: error.message });
+  }
+};
+
 // Add a new category
 exports.addCategory = async (req, res) => {
   try {
-    const { category_id, category_name, category_des, category_image,visibility,color } =
-      req.body;
+    const {
+      category_id,
+      category_name,
+      category_des,
+      category_image,
+      visibility,
+      color,
+    } = req.body;
     // Validate required fields
-    if (!category_id || !category_name || !category_des || !category_image||!visibility) {
+    if (
+      !category_id ||
+      !category_name ||
+      !category_des ||
+      !category_image ||
+      !visibility
+    ) {
       return res.status(400).json({ message: "Missing required fields" });
     }
     // Validate data types and URLs
@@ -33,7 +65,7 @@ exports.addCategory = async (req, res) => {
       typeof category_id !== "string" ||
       typeof category_name !== "string" ||
       typeof category_des !== "string" ||
-      typeof visibility!== "boolean"
+      typeof visibility !== "boolean"
     ) {
       return res
         .status(400)
@@ -56,7 +88,7 @@ exports.addCategory = async (req, res) => {
       category_des,
       category_image,
       visibility,
-      color
+      color,
     });
 
     const savedCategory = await newCategory.save();
