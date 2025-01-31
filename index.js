@@ -14,6 +14,9 @@ const authRoutes = require("./routes/auth_Routes");
 require("dotenv").config();
 const  searchRoutes = require('./routes/search_routes');
 const searchHistoryRoutes = require('./routes/searchHistoryRoutes');
+const homeUiRoutes = require("./routes/homepage_ui_controller_Routes");
+const bannerRoutes = require("./routes/banner_Routes");
+
 // MongoDB Connection
 connectDB();
 // test
@@ -42,6 +45,8 @@ app.use("/search", searchRoutes);
 app.use("/searchhistory", searchHistoryRoutes);
 
 
+app.use("/ui", homeUiRoutes);
+app.use("/banner", bannerRoutes);
 
 const PORT = 3000;
 

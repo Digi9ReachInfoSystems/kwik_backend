@@ -4,15 +4,9 @@ const { Schema } = mongoose;
 // Define the Banner schema
 const bannerSchema = new mongoose.Schema({
   banner_id: {
-    type: String,
+    type: Number,
     required: [true, "Banner ID is required"],
-    trim: true, // Trim spaces
-    unique: true, // Ensure banner_id is unique
-    validate: {
-      validator: (v) => /^[a-zA-Z0-9-_]+$/.test(v), // Only allow alphanumeric characters, hyphen, and underscore
-      message:
-        "Banner ID can only contain alphanumeric characters, hyphen, and underscore",
-    },
+    enum: [1, 2, 3, 4], // Restrict banner_id to 1, 2, 3, or 4
   },
 
   banner_image: {
@@ -44,19 +38,13 @@ const bannerSchema = new mongoose.Schema({
   sub_category_ref: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "SubCategory",
-    required: [true, "Sub-category reference is required"],
-    validate: {
-      // Ensure the sub-category reference exists in the SubCategory collection
-      validator: async (v) => {
-        const subCategoryExists = await mongoose
-          .model("SubCategory")
-          .exists({ _id: v });
-        return subCategoryExists;
-      },
-      message: "Invalid sub-category reference",
-    },
+    required: false,
   }, // Reference to the SubCategory model
-
+  order_id: {
+    type: Number,
+    required: true,
+    default: 1,
+  },
   created_time: {
     type: Date,
     required: [true, "Creation time is required"],
