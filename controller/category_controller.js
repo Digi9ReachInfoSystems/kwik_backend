@@ -28,14 +28,14 @@ exports.getCategoryById = async (req, res) => {
     const category = await Category.findOne({ _id: categoryId });
 
     if (!category) {
-      return res.status(404).json({ message: "Category not found" });
+      return res.status(404).json({ error: "Category not found" });
     }
 
-    res.status(200).json({ message: "Category found", data: category });
+    res.status(200).json(category); // Directly return the category data
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Error fetching category by id", error: error.message });
+      .json({ error: "Error fetching category by id", message: error.message });
   }
 };
 
