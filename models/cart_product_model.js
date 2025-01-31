@@ -16,8 +16,8 @@ const cartProductSchema = new mongoose.Schema({
     required: true,
     default: 1,
   },
-  price: {
-    type: Number,
+  pincode: {
+    type: String,
     required: true,
   },
   selling_price: {
@@ -28,17 +28,19 @@ const cartProductSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  // price: {
-  //   type: Number,
-  //   required: true,
-  // },
-  //selling price
-  // MRp
-  // Buying price
-  // total_price: {
-  //   type: Number,
-  //   required: true,
-  // },
+  buying_price: {
+    type: Number,
+    required: true,
+  },
+  inStock:{
+    type:Boolean,
+    required:true
+  },
+  final_price: {
+    type: Number,
+    required: true,
+  },
+
 });
 
 // Create and export the CartProduct model

@@ -11,7 +11,9 @@ const categoryRoutes = require("./routes/category_routes");
 const subcategoryRoutes = require("./routes/sub_category_routes");
 const warehouseRoutes = require("./routes/warehouse_routes");
 const authRoutes = require("./routes/auth_Routes");
-
+require("dotenv").config();
+const  searchRoutes = require('./routes/search_routes');
+const searchHistoryRoutes = require('./routes/searchHistoryRoutes');
 // MongoDB Connection
 connectDB();
 // test
@@ -36,6 +38,8 @@ app.use("/category", categoryRoutes);
 app.use("/subcategory", subcategoryRoutes);
 app.use("/warehouse", warehouseRoutes);
 app.use("/auth", authRoutes);
+app.use("/search", searchRoutes);
+app.use("/searchhistory", searchHistoryRoutes);
 
 
 

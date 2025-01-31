@@ -211,3 +211,12 @@ exports.addReview = async (req, res) => {
       .json({ message: "Error adding review", error: error.message });
   }
 };
+
+exports.getDrafts = async (req, res) => {
+  try {
+    const drafts = await Product.find({ draft: "true" });
+    res.status(200).json(drafts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
