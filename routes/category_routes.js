@@ -5,7 +5,7 @@ const categoryController = require("../controller/category_controller"); // Adju
 // Get all category
 router.get("/allcategories", categoryController.getAllCategories);
 // get category by id
-router.get("/categories/:id", categoryController.getCategoryById);
+router.get("/:id", categoryController.getCategoryById);
 // Add a new category
 router.post("/add", categoryController.addCategory);
 
