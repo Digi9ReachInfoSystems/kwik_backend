@@ -6,7 +6,7 @@ const bannerSchema = new mongoose.Schema({
   banner_id: {
     type: Number,
     required: [true, "Banner ID is required"],
-    enum: [1, 2, 3, 4], // Restrict banner_id to 1, 2, 3, or 4
+    enum: [1, 2, 3, 4],
   },
 
   banner_image: {

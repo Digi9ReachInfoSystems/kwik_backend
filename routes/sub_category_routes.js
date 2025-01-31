@@ -1,21 +1,28 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const subCategoryController = require('../controller/sub_category_controller'); // Adjust path as needed
+const subCategoryController = require("../controller/sub_category_controller"); // Adjust path as needed
 
 // Get all sub-category
-router.get('/allsubcategories', subCategoryController.getAllSubCategories);
-
+router.get("/allsubcategories", subCategoryController.getAllSubCategories);
+//all sub-categoryby caregory_id
+router.get(
+  "/allsubcategories/:categoryRef",
+  subCategoryController.getSubCategoriesByCategoryRef
+);
 // Add a new sub-category
-router.post('/add', subCategoryController.addSubCategory);
+router.post("/add", subCategoryController.addSubCategory);
 
 // Edit an existing sub-category
-router.put('/edit/:id', subCategoryController.editSubCategory);
+router.put("/edit/:id", subCategoryController.editSubCategory);
 
 // Delete a sub-category
-router.delete('/delete/:id', subCategoryController.deleteSubCategory);
+router.delete("/delete/:id", subCategoryController.deleteSubCategory);
 
 //api to get subcategory by category name
 
-router.get('/getSubCategoriesByCategoryName/:categoryName', subCategoryController.getSubCategoriesByCategoryName);
+router.get(
+  "/getSubCategoriesByCategoryName/:categoryName",
+  subCategoryController.getSubCategoriesByCategoryName
+);
 
 module.exports = router;
