@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     ref: "Warehouse",
     required: false,
   },
-
+  fcm_token: { type: String, required: false },
   created_time: { type: Date, required: true, default: Date.now },
 });
 

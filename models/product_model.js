@@ -114,6 +114,10 @@ const productSchema = new mongoose.Schema({
     required: [true, "Creation time is required"],
     default: Date.now,
   },
+  sensible_product: {
+    type: Boolean,
+    required: [true, "Sensible product status is required"],
+  },
 });
 
 // Create and export the Product model

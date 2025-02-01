@@ -29,5 +29,10 @@ router.put("/:userId", userController.editUser);
 
 // add a product Carts
 router.post("/addtocart", userController.addProductToCart);
+router.post("/increseqty", userController.increseCartProductQuantity);
+router.post("/decreseqty", userController.decreaseCartProductQuantity);
+
+router.put("/addAddress/:userId", userController.addAddress);
+router.put("/select/address/change", userController.userSelectedAddressChange);
 
 module.exports = router;

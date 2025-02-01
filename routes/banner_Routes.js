@@ -6,7 +6,7 @@ const brandController = require("../controller/banner_controller");
 router.get("/allbanners", brandController.getAllBanners);
 
 // Edit an existing brand
-router.get("/:id", brandController.getBannerById);
+router.get("/:banner_id", brandController.getBannerById);
 // Add a new brand
 router.post("/add", brandController.addBanner);
 

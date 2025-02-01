@@ -45,6 +45,17 @@ const addressSchema = new mongoose.Schema({
       message: "Invalid phone number format",
     }
   }, // Phone number associated with the address
+  pincode: {
+    type: String,
+    required: [true, "Pincode is required"],
+    trim: true, // Trim spaces
+    validate: {
+      validator: function (value) {
+        return /^\d{6}$/.test(value);
+      },
+      message: "Invalid pincode format",
+    }
+  }
 });
 
 // Create and export the Address model

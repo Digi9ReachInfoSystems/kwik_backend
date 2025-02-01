@@ -32,12 +32,20 @@ const cartProductSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  inStock:{
-    type:Boolean,
-    required:true
+  inStock: {
+    type: Boolean,
+    required: true
+  },
+  variation_visibility: {
+    type: Boolean,
+    required: true
   },
   final_price: {
     type: Number,
+    required: true,
+  },
+  cart_added_date: {
+    type: Date,
     required: true,
   },
 
