@@ -15,6 +15,41 @@ exports.getAllSubCategories = async (req, res) => {
   }
 };
 
+// Get all sub-categories by category_ref
+exports.getSubCategoriesByCategoryRef = async (req, res) => {
+  try {
+    const categoryRef = req.params.categoryRef; // Get the category_ref from the request parameters
+
+    // Check if the category_ref exists in the Category collection
+    const categoryExists = await Category.findById(categoryRef);
+    if (!categoryExists) {
+      return res.status(400).json({
+        error: "Invalid category_ref. The referenced category does not exist.",
+      });
+    }
+
+    // Fetch all sub-categories associated with this category_ref
+    const subCategories = await SubCategory.find({ category_ref: categoryRef });
+
+    if (!subCategories || subCategories.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No subcategories found for this category" });
+    }
+
+    // Return the found subcategories directly without custom message
+    return res.status(200).json(subCategories);
+  } catch (error) {
+    console.error(
+      "Error fetching sub-categories by category_ref:",
+      error.message
+    ); // Log error for debugging
+    res
+      .status(500)
+      .json({ error: "Error fetching sub-categories", message: error.message });
+  }
+};
+
 // Add a new sub-category with category_ref validation
 exports.addSubCategory = async (req, res) => {
   try {
@@ -144,16 +179,27 @@ exports.getSubCategoriesByCategoryName = async (req, res) => {
     }
 
     // Find subcategories related to this category
-    const subCategories = await SubCategory.find({ category_ref: category._id });
+    const subCategories = await SubCategory.find({
+      category_ref: category._id,
+    });
 
     if (!subCategories || subCategories.length === 0) {
-      return res.status(404).json({ message: "No subcategories found for this category" });
+      return res
+        .status(404)
+        .json({ message: "No subcategories found for this category" });
     }
 
     // Return the found subcategories
-    return res.status(200).json({ message: "Subcategories fetched successfully", data: subCategories });
+    return res
+      .status(200)
+      .json({
+        message: "Subcategories fetched successfully",
+        data: subCategories,
+      });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
