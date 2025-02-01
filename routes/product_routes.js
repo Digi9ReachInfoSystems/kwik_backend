@@ -10,4 +10,5 @@ router.delete("/:productId", ProductController.deleteProduct);
 router.put("/updateStock/:productId", ProductController.updateStock);
 router.post("/addReview/:productId", ProductController.addReview);
 router.get("/get/Drafts", ProductController.getDrafts);
+router.get("/get/lowStockProduct", ProductController.getLowStockProducts);
 module.exports = router;

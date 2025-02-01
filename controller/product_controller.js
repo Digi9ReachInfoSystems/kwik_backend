@@ -3,7 +3,7 @@ const Product = require("../models/product_model");
 const Category = require("../models/category_model")
 const ZoneRack = require("../models/zoneRack_model");
 const SubCategory = require("../models/sub_category_model");
-
+const Warehouse = require("../models/warehouse_model");
 // Create a new product
 exports.createProduct = async (req, res) => {
   try {
@@ -218,5 +218,58 @@ exports.getDrafts = async (req, res) => {
     res.status(200).json(drafts);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getLowStockProducts = async (req, res) => {
+  try {
+    const { warehouse_ref } = req.query; // Get warehouse_ref from the query string
+
+    // If warehouse_ref is provided, filter based on that warehouse
+    let filter = {};
+    let populateQuery = [];
+
+    if (warehouse_ref) {
+      filter = {
+        "variations.stock": {
+          $elemMatch: {
+            warehouse_ref:  new mongoose.Types.ObjectId(warehouse_ref), // Match the warehouse reference
+            stock_qty: { $lt: 10 }, // Check if stock quantity is less than 10
+          },
+        },
+      };
+
+      populateQuery = [
+        {
+          path: "variations.stock.warehouse_ref", // Populate warehouse reference
+          model: "Warehouse", // The model to populate (should match your Warehouse model)
+        },
+      ];
+    } else {
+      filter = {
+        "variations.stock.stock_qty": { $lt: 10 }, // No warehouse filter, just quantity < 10
+      };
+
+      populateQuery = [
+        {
+          path: "variations.stock.warehouse_ref", // Populate warehouse reference
+          model: "Warehouse", // The model to populate (should match your Warehouse model)
+        },
+      ];
+    }
+
+    // Query products with the filter and populate warehouse_ref
+    const products = await Product.find(filter).populate(populateQuery);
+
+    // If no products are found, return a 404 error
+    if (!products || products.length === 0) {
+      return res.status(404).json({ message: "No low stock products found" });
+    }
+
+    // Return the result
+    return res.status(200).json({ data: products });
+  } catch (error) {
+    console.error("Error fetching low stock products:", error);
+    return res.status(500).json({ message: "Error fetching low stock products", error: error.message });
   }
 };
