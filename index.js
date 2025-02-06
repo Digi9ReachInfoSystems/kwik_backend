@@ -16,7 +16,7 @@ const  searchRoutes = require('./routes/search_routes');
 const searchHistoryRoutes = require('./routes/searchHistoryRoutes');
 const homeUiRoutes = require("./routes/homepage_ui_controller_Routes");
 const bannerRoutes = require("./routes/banner_Routes");
-
+const couonRoutes = require("./routes/couponRoutes");
 // MongoDB Connection
 connectDB();
 // test
@@ -47,6 +47,7 @@ app.use("/searchhistory", searchHistoryRoutes);
 
 app.use("/ui", homeUiRoutes);
 app.use("/banner", bannerRoutes);
+app.use("/coupon", couonRoutes);
 
 const PORT = 3000;
 

@@ -1,5 +1,6 @@
 const Category = require("../models/category_model"); // Adjust path as per your file structure
 const Product = require("../models/product_model"); // Assuming there is a Product model where category_ref is used
+const mongoose = require("mongoose");
 
 // Helper function to validate URLs
 const isValidUrl = (url) => {
@@ -105,7 +106,7 @@ exports.addCategory = async (req, res) => {
 // Edit an existing category
 exports.editCategory = async (req, res) => {
   try {
-    const categoryId = req.params.id; // MongoDB Object ID of the category to edit
+    const categoryId = new mongoose.Types.ObjectId(req.params.id); // MongoDB Object ID of the category to edit
     const updatedData = req.body;
 
     // Validate data types and URLs
