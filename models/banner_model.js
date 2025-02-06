@@ -14,7 +14,7 @@ const bannerSchema = new mongoose.Schema({
     required: [true, "Banner image URL is required"],
     validate: {
       validator: (v) =>
-        /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|bmp|svg))$/i.test(v), // Ensure it's a valid image URL (basic regex)
+       /^(ftp|http|https):\/\/[^ "]+$/.test(v), // Ensure it's a valid image URL (basic regex)
       message: "Please provide a valid image URL",
     },
   }, // URL for the banner image

@@ -517,7 +517,7 @@ exports.userSelectedAddressChange = async (req, res) => {
 //functon to handle cart address change
 const cartUpdateOnAddressChange = async (pincode, userId) => {
   try {
-    const user = await User.findOne({ UID: userId });
+    const user = await User.findOne({ UID: userId })
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -606,4 +606,57 @@ const cartUpdateOnAddressChange = async (pincode, userId) => {
     console.log(error)
   }
 
+}
+exports.getUserCartById = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findOne({ UID: userId })
+      .populate({ path: "cart_products.product_ref", });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const cartProducts = await Promise.all(user.cart_products.map(async (prodItem) => {
+      const product = await Product.findById(prodItem.product_ref._id);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      console.log("product", product);
+      const warehouse = await Warehouse.findOne({ picode: prodItem.pincode });
+      console.log("warehouse", warehouse);
+      if (!warehouse) {
+        return res.status(404).json({ message: "Warehouse not found for this variant" });
+      }
+      const variation = product.variations.find((item) => item._id.equals(prodItem.variant._id));
+      console.log("variation", variation);
+      if (!variation) {
+        return res.status(404).json({ message: "variation not found for this product" });
+      }
+      console.log("prodItem", prodItem);
+      let warehouseFound = false;
+      variation.stock.map((item) => {
+        if ((item.warehouse_ref.equals(warehouse._id))) {
+          warehouseFound = true;
+          prodItem.selling_price = variation.selling_price * Number(prodItem.quantity);
+          prodItem.mrp = variation.MRP * Number(prodItem.quantity);
+          prodItem.buying_price = variation.buying_price * Number(prodItem.quantity);
+          prodItem.final_price = variation.selling_price * Number(prodItem.quantity);
+        }
+      })
+      if (!warehouseFound) {
+        prodItem.inStock = false;
+        prodItem.selling_price = 0;
+        prodItem.mrp = 0;
+        prodItem.buying_price = 0;
+        prodItem.final_price = 0;
+        prodItem.variation_visibility = false;
+      }
+
+
+
+    }));
+    const userData = (await user.save());
+    return res.status(200).json({ message: "success", user: userData, cartProducts: userData.cart_products });
+  } catch (error) {
+    console.log(error)
+  }
 }

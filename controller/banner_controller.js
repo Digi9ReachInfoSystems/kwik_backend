@@ -22,7 +22,7 @@ exports.getBannerById = async (req, res) => {
 
   try {
     // Find the banner by its banner_id
-    const banner = await Banner.findOne({ banner_id:banner_id })
+    const banner = await Banner.find({ banner_id:banner_id })
       .populate("category_ref")
       .populate("sub_category_ref");
     if (!banner) {
@@ -82,12 +82,12 @@ exports.addBanner = async (req, res) => {
 
 // Edit an existing banner
 exports.editBanner = async (req, res) => {
-  const { banner_id } = req.params; // Assuming banner_id is passed in the URL
+  const { id } = req.params; // Assuming banner_id is passed in the URL
   const { banner_image, category_ref, sub_category_ref, order_id } = req.body;
 
   try {
     // Find the banner by banner_id
-    const banner = await Banner.findOne({ banner_id });
+    const banner = await Banner.findById(id );
     if (!banner) {
       return res.status(404).json({ message: "Banner not found" });
     }
