@@ -28,4 +28,4 @@ const zoneRackSchema = new mongoose.Schema({
 });
 
 // Create and export the ZoneRack model
-module.exports = mongoose.model("ZoneRack", zoneRackSchema);
+module.exports =  zoneRackSchema;

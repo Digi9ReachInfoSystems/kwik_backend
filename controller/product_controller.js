@@ -4,6 +4,7 @@ const Category = require("../models/category_model");
 const ZoneRack = require("../models/zoneRack_model");
 const SubCategory = require("../models/sub_category_model");
 const Warehouse = require("../models/warehouse_model");
+const Brand = require("../models/brand_model");
 // Create a new product
 exports.createProduct = async (req, res) => {
   try {
@@ -21,6 +22,21 @@ exports.createProduct = async (req, res) => {
         .status(400)
         .json({ message: "Product name must be at least 3 characters long" });
     }
+    const brand = await Brand.findOne({ brand_name: productData.Brand });
+    if (!brand) {
+      return res.status(400).json({ message: "Brand not found" });
+    }
+    productData.Brand = brand._id;
+    // const warehouse = await promise.all(
+    //   productData.warehouse_ref.map(async (warehouse) => {
+    //     const warehouseData = await new Warehouse.findOne({ warehouse_name: warehouse });
+    //     if (!warehouseData) {
+    //       return res.status(400).json({ message: "Warehouse not found" });
+    //     }
+    //     return warehouseData._id;
+    //   })
+    // )
+
     const category = await Category.findOne({
       category_name: productData.category_ref,
     });
@@ -36,15 +52,15 @@ exports.createProduct = async (req, res) => {
     }
     productData.sub_category_ref = subCategory._id;
     // create new zone rack
-    const zoneRackData = await Promise.all(
-      productData.zoneRack.map(async (zoneRack) => {
-        const zoneRackData = await new ZoneRack(zoneRack || {});
-        const savedZoneRack = await zoneRackData.save();
-        return savedZoneRack._id;
-      })
-    );
+    // const zoneRackData = await Promise.all(
+    //   productData.zoneRack.map(async (zoneRack) => {
+    //     const zoneRackData = await new ZoneRack(zoneRack || {});
+    //     const savedZoneRack = await zoneRackData.save();
+    //     return savedZoneRack._id;
+    //   })
+    // );
 
-    productData.zoneRack = zoneRackData;
+    // productData.zoneRack = zoneRackData;
 
     // Create a new product
     const newProduct = new Product(productData);
@@ -143,6 +159,25 @@ exports.updateProduct = async (req, res) => {
   const updatedData = req.body;
 
   try {
+    const brand = await Brand.findOne({ brand_name: updatedData.Brand });
+    if (!brand) {
+      return res.status(400).json({ message: "Brand not found" });
+    }
+    updatedData.Brand = brand._id;
+    const category = await Category.findOne({
+      category_name: updatedData.category_ref,
+    });
+    if (!category) {
+      return res.status(400).json({ message: "Category not found" });
+    }
+    updatedData.category_ref = category._id;
+    const subCategory = await SubCategory.findOne({
+      sub_category_name: updatedData.sub_category_ref,
+    });
+    if (!subCategory) {
+      return res.status(400).json({ message: "SubCategory not found" });
+    }
+    updatedData.sub_category_ref = subCategory._id;
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
       updatedData,

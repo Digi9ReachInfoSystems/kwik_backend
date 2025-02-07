@@ -30,7 +30,6 @@ const productSchema = new mongoose.Schema({
   Brand: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Brand",
-    required: [true, "Brand is required"],
   },
   category_ref: {
     type: mongoose.Schema.Types.ObjectId,
@@ -96,19 +95,7 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     required: [true, "Draft status is required"],
   },
-  // zone: {
-  //   type: String,
-  //   required: [true, "Zone is required"],
-  // },
-  // rack: {
-  //   type: String,
-  //   required: [true, "Rack is required"],
-  // },
-  zoneRack: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "ZoneRack",
-    required: [true, "Zone rack reference is required"]
-  }],
+ 
   created_time: {
     type: Date,
     required: [true, "Creation time is required"],
