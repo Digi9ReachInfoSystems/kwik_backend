@@ -22,7 +22,7 @@ exports.getBannerById = async (req, res) => {
 
   try {
     // Find the banner by its banner_id
-    const banner = await Banner.find({ banner_id:banner_id })
+    const banner = await Banner.find({ banner_id: banner_id })
       .populate("category_ref")
       .populate("sub_category_ref");
     if (!banner) {
@@ -87,26 +87,30 @@ exports.editBanner = async (req, res) => {
 
   try {
     // Find the banner by banner_id
-    const banner = await Banner.findById(id );
+    const banner = await Banner.findById(id);
     if (!banner) {
       return res.status(404).json({ message: "Banner not found" });
     }
 
     // Optionally, check if the category and sub-category exist (if not already validated)
     const category = await Category.findById(category_ref);
+
     if (
-      category
+      !category
     ) {
       return res.status(404).json({ message: " category reference does not exist" });
     }
 
-    const subCategory = await SubCategory.findById(sub_category_ref);
+
     if (
-      subCategory 
+      sub_category_ref
     ) {
-      return res
-        .status(400)
-        .json({ message: "Invalid sub-category reference" });
+      const subCategory = await SubCategory.findById(sub_category_ref);
+      if (!subCategory) {
+        return res
+          .status(400)
+          .json({ message: "Invalid sub-category reference" });
+      }
     }
 
     // Update the banner's properties
