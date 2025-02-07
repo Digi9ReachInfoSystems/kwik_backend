@@ -95,16 +95,14 @@ exports.editBanner = async (req, res) => {
     // Optionally, check if the category and sub-category exist (if not already validated)
     const category = await Category.findById(category_ref);
     if (
-      category &&
-      category._id.toString() !== banner.category_ref.toString()
+      category
     ) {
-      return res.status(400).json({ message: "Invalid category reference" });
+      return res.status(404).json({ message: " category reference does not exist" });
     }
 
     const subCategory = await SubCategory.findById(sub_category_ref);
     if (
-      subCategory &&
-      subCategory._id.toString() !== banner.sub_category_ref.toString()
+      subCategory 
     ) {
       return res
         .status(400)
