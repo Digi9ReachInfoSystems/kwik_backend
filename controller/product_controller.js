@@ -27,15 +27,7 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "Brand not found" });
     }
     productData.Brand = brand._id;
-    // const warehouse = await promise.all(
-    //   productData.warehouse_ref.map(async (warehouse) => {
-    //     const warehouseData = await new Warehouse.findOne({ warehouse_name: warehouse });
-    //     if (!warehouseData) {
-    //       return res.status(400).json({ message: "Warehouse not found" });
-    //     }
-    //     return warehouseData._id;
-    //   })
-    // )
+   
 
     const category = await Category.findOne({
       category_name: productData.category_ref,
@@ -51,16 +43,7 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "SubCategory not found" });
     }
     productData.sub_category_ref = subCategory._id;
-    // create new zone rack
-    // const zoneRackData = await Promise.all(
-    //   productData.zoneRack.map(async (zoneRack) => {
-    //     const zoneRackData = await new ZoneRack(zoneRack || {});
-    //     const savedZoneRack = await zoneRackData.save();
-    //     return savedZoneRack._id;
-    //   })
-    // );
-
-    // productData.zoneRack = zoneRackData;
+   
 
     // Create a new product
     const newProduct = new Product(productData);
@@ -120,7 +103,7 @@ exports.getProductsByCategory = async (req, res) => {
     const { categoryId } = req.params;
     const products = await Product.find({ category_ref: categoryId })
       .populate(
-        "Brand category_ref sub_category_ref variations warehouse_ref zoneRack review"
+        "Brand category_ref sub_category_ref variations warehouse_ref  review"
       )
       .exec();
 
@@ -140,7 +123,7 @@ exports.getProductsBySubCategory = async (req, res) => {
     const { subCategoryId } = req.params;
     const products = await Product.find({ sub_category_ref: subCategoryId })
       .populate(
-        "Brand category_ref sub_category_ref variations warehouse_ref zoneRack review"
+        "Brand category_ref sub_category_ref variations warehouse_ref  review"
       )
       .exec();
 
