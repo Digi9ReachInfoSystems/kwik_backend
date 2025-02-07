@@ -7,8 +7,7 @@ exports.getAllBanners = async (req, res) => {
   try {
     // Fetch all banners from the database
     const banners = await Banner.find()
-      .populate("category_ref")
-      .populate("sub_category_ref");
+      .populate("category_ref");
 
     return res.status(200).json(banners); // Just send the banners list directly
   } catch (error) {
@@ -46,7 +45,7 @@ exports.addBanner = async (req, res) => {
 
   try {
     // Check if category exists
-    const category = await Category.findById(category_ref);
+    const category = await Category.findOne({category_name:category_ref});
     if (!category) {
       return res.status(400).json({ message: "Category does not exist" });
     }
@@ -63,7 +62,7 @@ exports.addBanner = async (req, res) => {
     const newBanner = new Banner({
       banner_id,
       banner_image,
-      category_ref,
+      category_ref:category._id,
       sub_category_ref: sub_category_ref || null, // Set to null if not provided
       order_id,
     });
@@ -93,7 +92,7 @@ exports.editBanner = async (req, res) => {
     }
 
     // Optionally, check if the category and sub-category exist (if not already validated)
-    const category = await Category.findById(category_ref);
+    const category = await Category.findOne({category_name:category_ref});
 
     if (
       !category
@@ -115,7 +114,7 @@ exports.editBanner = async (req, res) => {
 
     // Update the banner's properties
     banner.banner_image = banner_image || banner.banner_image;
-    banner.category_ref = category_ref || banner.category_ref;
+    banner.category_ref = category._id || banner.category_ref;
     banner.sub_category_ref = sub_category_ref || banner.sub_category_ref;
     banner.order_id = order_id || banner.order_id;
 
