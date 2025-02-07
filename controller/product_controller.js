@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Product = require("../models/product_model");
-const Category = require("../models/category_model")
+const Category = require("../models/category_model");
 const ZoneRack = require("../models/zoneRack_model");
 const SubCategory = require("../models/sub_category_model");
 const Warehouse = require("../models/warehouse_model");
@@ -21,30 +21,30 @@ exports.createProduct = async (req, res) => {
         .status(400)
         .json({ message: "Product name must be at least 3 characters long" });
     }
-    const category = await Category.findOne({category_name:productData.category_ref});
+    const category = await Category.findOne({
+      category_name: productData.category_ref,
+    });
     if (!category) {
-      return res
-        .status(400)
-        .json({ message: "Category not found" });
+      return res.status(400).json({ message: "Category not found" });
     }
-    productData.category_ref = category._id
-    const subCategory = await SubCategory.findOne({sub_category_name:productData.sub_category_ref});
+    productData.category_ref = category._id;
+    const subCategory = await SubCategory.findOne({
+      sub_category_name: productData.sub_category_ref,
+    });
     if (!subCategory) {
-      return res
-        .status(400)
-        .json({ message: "SubCategory not found" });
+      return res.status(400).json({ message: "SubCategory not found" });
     }
-    productData.sub_category_ref = subCategory._id
+    productData.sub_category_ref = subCategory._id;
     // create new zone rack
-    const zoneRackData = await Promise.all( productData.zoneRack.map(async(zoneRack) => {
-      const zoneRackData = await new ZoneRack(zoneRack || {});
-      const savedZoneRack = await zoneRackData.save();
-      return savedZoneRack._id;
-    }
-    ));
+    const zoneRackData = await Promise.all(
+      productData.zoneRack.map(async (zoneRack) => {
+        const zoneRackData = await new ZoneRack(zoneRack || {});
+        const savedZoneRack = await zoneRackData.save();
+        return savedZoneRack._id;
+      })
+    );
 
-
-   productData.zoneRack = zoneRackData;
+    productData.zoneRack = zoneRackData;
 
     // Create a new product
     const newProduct = new Product(productData);
@@ -98,7 +98,45 @@ exports.getProductById = async (req, res) => {
       .json({ message: "Error retrieving product", error: error.message });
   }
 };
+// Get all products by category ID
+exports.getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const products = await Product.find({ category_ref: categoryId })
+      .populate(
+        "Brand category_ref sub_category_ref variations warehouse_ref zoneRack review"
+      )
+      .exec();
 
+    res
+      .status(200)
+      .json({ message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error retrieving products", error: error.message });
+  }
+};
+
+// Get all products by subcategory ID
+exports.getProductsBySubCategory = async (req, res) => {
+  try {
+    const { subCategoryId } = req.params;
+    const products = await Product.find({ sub_category_ref: subCategoryId })
+      .populate(
+        "Brand category_ref sub_category_ref variations warehouse_ref zoneRack review"
+      )
+      .exec();
+
+    res
+      .status(200)
+      .json({ message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error retrieving products", error: error.message });
+  }
+};
 // Update a product by ID
 exports.updateProduct = async (req, res) => {
   const productId = req.params.productId;
@@ -233,7 +271,7 @@ exports.getLowStockProducts = async (req, res) => {
       filter = {
         "variations.stock": {
           $elemMatch: {
-            warehouse_ref:  new mongoose.Types.ObjectId(warehouse_ref), // Match the warehouse reference
+            warehouse_ref: new mongoose.Types.ObjectId(warehouse_ref), // Match the warehouse reference
             stock_qty: { $lt: 10 }, // Check if stock quantity is less than 10
           },
         },
@@ -270,6 +308,9 @@ exports.getLowStockProducts = async (req, res) => {
     return res.status(200).json({ data: products });
   } catch (error) {
     console.error("Error fetching low stock products:", error);
-    return res.status(500).json({ message: "Error fetching low stock products", error: error.message });
+    return res.status(500).json({
+      message: "Error fetching low stock products",
+      error: error.message,
+    });
   }
 };
