@@ -27,7 +27,6 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "Brand not found" });
     }
     productData.Brand = brand._id;
-   
 
     const category = await Category.findOne({
       category_name: productData.category_ref,
@@ -43,7 +42,6 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "SubCategory not found" });
     }
     productData.sub_category_ref = subCategory._id;
-   
 
     // Create a new product
     const newProduct = new Product(productData);
@@ -153,7 +151,7 @@ exports.getProductsBySubCategories = async (req, res) => {
       sub_category_ref: { $in: subCategoryIds },
     })
       .populate(
-        "Brand category_ref sub_category_ref variations warehouse_ref zoneRack review"
+        "Brand category_ref sub_category_ref variations warehouse_ref  review"
       )
       .exec();
 
