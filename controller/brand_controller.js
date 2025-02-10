@@ -14,16 +14,15 @@ exports.getAllBrands = async (req, res) => {
 // Add a new brand
 exports.addBrand = async (req, res) => {
   try {
-    const { brand_id, brand_name, brand_image, brand_des, brand_url ,color} =
+    const {  brand_name, brand_image, brand_des, brand_url ,color} =
       req.body;
 
     // Validate required fields
-    if (!brand_id || !brand_name || !brand_image || !brand_des) {
+    if ( !brand_name || !brand_image || !brand_des) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     const newBrand = new Brand({
-      brand_id,
       brand_name,
       brand_image,
       brand_des,

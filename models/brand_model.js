@@ -1,12 +1,7 @@
 const mongoose = require("mongoose");
 
 const brandSchema = new mongoose.Schema({
-  brand_id: {
-    type: Number,
-    required: [true, "Brand ID is required"],
-    trim: true, // Trim spaces
-    unique: true, // Ensure uniqueness
-  },
+  
   brand_name: {
     type: String,
     required: [true, "Brand name is required"],
