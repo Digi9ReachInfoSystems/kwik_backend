@@ -5,13 +5,27 @@ const Product = require("../models/product_model"); // Import product model to c
 // Get all sub-categories
 exports.getAllSubCategories = async (req, res) => {
   try {
-    const subCategories = await SubCategory.find(); // Fetch all sub-categories from the database
+    const subCategories = await SubCategory.find().populate("category_ref"); // Fetch all sub-categories from the database
     res.status(200).json(subCategories); // Send only the subcategories array
   } catch (error) {
     console.error("Error fetching sub-categories:", error.message); // Log error for debugging
     res
       .status(500)
       .json({ message: "Error fetching sub-categories", error: error.message });
+  }
+};
+exports.getSubCategorieById = async (req, res) => {
+  try {
+    const subCategory = await SubCategory.findById(req.params.id).populate("category_ref");
+    if (!subCategory) {
+      return res.status(404).json({ message: "Sub-category not found" });
+    }
+    res.status(200).json({message:"success",data:subCategory});
+  } catch (error) {
+    console.error("Error fetching sub-category:", error.message); // Log error for debugging
+    res
+      .status(500)
+      .json({ message: "Error fetching sub-category", error: error.message });
   }
 };
 

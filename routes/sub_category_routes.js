@@ -9,6 +9,7 @@ router.get(
   "/allsubcategories/:categoryRef",
   subCategoryController.getSubCategoriesByCategoryRef
 );
+router.get("/:id", subCategoryController.getSubCategorieById);
 // Add a new sub-category
 router.post("/add", subCategoryController.addSubCategory);
 
