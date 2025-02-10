@@ -17,6 +17,7 @@ const searchHistoryRoutes = require('./routes/searchHistoryRoutes');
 const homeUiRoutes = require("./routes/homepage_ui_controller_Routes");
 const bannerRoutes = require("./routes/banner_Routes");
 const couonRoutes = require("./routes/couponRoutes");
+const jobRoutes = require("./routes/jobs_Routes");
 // MongoDB Connection
 connectDB();
 // test
@@ -43,6 +44,7 @@ app.use("/warehouse", warehouseRoutes);
 app.use("/auth", authRoutes);
 app.use("/search", searchRoutes);
 app.use("/searchhistory", searchHistoryRoutes);
+app.use("/jobs", jobRoutes);
 
 
 app.use("/ui", homeUiRoutes);
