@@ -5,7 +5,7 @@ const brandController = require('../controller/brand_controller');
 
 // Get all brand
 router.get('/allbrands', brandController.getAllBrands);
-
+router.get("/:id", brandController.getBrandById);
 // Add a new brand
 router.post('/add', brandController.addBrand);
 
