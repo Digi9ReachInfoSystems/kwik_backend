@@ -60,7 +60,6 @@ exports.addSubCategory = async (req, res) => {
       sub_category_des,
       sub_category_image,
     } = req.body;
-
     // Validate required fields
     if (
       !sub_category_id ||
@@ -73,7 +72,7 @@ exports.addSubCategory = async (req, res) => {
     }
 
     // Check if the category_ref exists in the Category collection
-    const categoryExists = await Category.findById(category_ref);
+    const categoryExists = await Category.findOne({category_name:category_ref});
     if (!categoryExists) {
       return res.status(400).json({
         message:
@@ -84,7 +83,7 @@ exports.addSubCategory = async (req, res) => {
     // Create and save the new sub-category
     const newSubCategory = new SubCategory({
       sub_category_id,
-      category_ref,
+      category_ref:categoryExists._id,
       sub_category_name,
       sub_category_des,
       sub_category_image,
@@ -108,13 +107,21 @@ exports.addSubCategory = async (req, res) => {
 exports.editSubCategory = async (req, res) => {
   try {
     const { id } = req.params; // Sub-category ID to update
-    const updates = req.body; // Updated fields
+    let updates = req.body; // Updated fields
 
     // Check if the sub-category exists
     const subCategoryExists = await SubCategory.findById(id);
     if (!subCategoryExists) {
       return res.status(404).json({ message: "Sub-category not found" });
     }
+    const categoryExists = await Category.findOne({category_name:updates.category_ref});
+    if (!categoryExists) {
+      return res.status(400).json({
+        message:
+          "Invalid category_ref. The referenced category does not exist.",
+      });
+    }
+     updates.category_ref = categoryExists._id;
 
     // Update the sub-category
     const updatedSubCategory = await SubCategory.findByIdAndUpdate(

@@ -151,11 +151,11 @@ exports.editBanner = async (req, res) => {
 
 // Delete a banner
 exports.deleteBanner = async (req, res) => {
-  const { banner_id } = req.params; // Assuming banner_id is passed in the URL
+  const { id } = req.params; // Assuming banner_id is passed in the URL
 
   try {
     // Find and delete the banner by banner_id
-    const banner = await Banner.findOneAndDelete({ banner_id });
+    const banner = await Banner.findByIdAndDelete(id);
     if (!banner) {
       return res.status(404).json({ message: "Banner not found" });
     }
