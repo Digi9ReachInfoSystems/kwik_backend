@@ -136,6 +136,37 @@ exports.getProductsBySubCategory = async (req, res) => {
       .json({ message: "Error retrieving products", error: error.message });
   }
 };
+//get multiple subcategory products
+exports.getProductsBySubCategories = async (req, res) => {
+  try {
+    const { subCategoryIds } = req.body; // Expecting an array of subcategory IDs
+
+    if (
+      !subCategoryIds ||
+      !Array.isArray(subCategoryIds) ||
+      subCategoryIds.length === 0
+    ) {
+      return res.status(400).json({ message: "Invalid subCategoryIds array" });
+    }
+
+    const products = await Product.find({
+      sub_category_ref: { $in: subCategoryIds },
+    })
+      .populate(
+        "Brand category_ref sub_category_ref variations warehouse_ref zoneRack review"
+      )
+      .exec();
+
+    res
+      .status(200)
+      .json({ message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error retrieving products", error: error.message });
+  }
+};
+
 // Update a product by ID
 exports.updateProduct = async (req, res) => {
   const productId = req.params.productId;
