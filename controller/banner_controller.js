@@ -6,8 +6,7 @@ const SubCategory = require("../models/sub_category_model"); // SubCategory mode
 exports.getAllBanners = async (req, res) => {
   try {
     // Fetch all banners from the database
-    const banners = await Banner.find()
-      .populate("category_ref");
+    const banners = await Banner.find().populate("category_ref");
 
     return res.status(200).json(banners); // Just send the banners list directly
   } catch (error) {
@@ -38,6 +37,29 @@ exports.getBannerById = async (req, res) => {
   }
 };
 
+// Get individual banner by banner_id
+exports.getBannerByObjestId = async (req, res) => {
+  const { id } = req.params; // Assuming banner_id is passed in the URL
+
+  try {
+    // Find the banner by its banner_id
+    const banner = await Banner.find({ _id: id })
+      .populate("category_ref")
+      .populate("sub_category_ref");
+    if (!banner) {
+      return res.status(404).json({ message: "Banner not found" });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Banner fetched successfully", banner });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
+  }
+};
+
 // Add a new banner
 exports.addBanner = async (req, res) => {
   const { banner_id, banner_image, category_ref, sub_category_ref, order_id } =
@@ -45,7 +67,7 @@ exports.addBanner = async (req, res) => {
 
   try {
     // Check if category exists
-    const category = await Category.findOne({category_name:category_ref});
+    const category = await Category.findOne({ category_name: category_ref });
     if (!category) {
       return res.status(400).json({ message: "Category does not exist" });
     }
@@ -62,7 +84,7 @@ exports.addBanner = async (req, res) => {
     const newBanner = new Banner({
       banner_id,
       banner_image,
-      category_ref:category._id,
+      category_ref: category._id,
       sub_category_ref: sub_category_ref || null, // Set to null if not provided
       order_id,
     });
@@ -92,18 +114,15 @@ exports.editBanner = async (req, res) => {
     }
 
     // Optionally, check if the category and sub-category exist (if not already validated)
-    const category = await Category.findOne({category_name:category_ref});
+    const category = await Category.findOne({ category_name: category_ref });
 
-    if (
-      !category
-    ) {
-      return res.status(404).json({ message: " category reference does not exist" });
+    if (!category) {
+      return res
+        .status(404)
+        .json({ message: " category reference does not exist" });
     }
 
-
-    if (
-      sub_category_ref
-    ) {
+    if (sub_category_ref) {
       const subCategory = await SubCategory.findById(sub_category_ref);
       if (!subCategory) {
         return res
