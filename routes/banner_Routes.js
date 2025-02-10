@@ -7,6 +7,7 @@ router.get("/allbanners", brandController.getAllBanners);
 
 // Edit an existing brand
 router.get("/:banner_id", brandController.getBannerById);
+router.get("/object/:id", brandController.getBannerByObjestId);
 // Add a new brand
 router.post("/add", brandController.addBanner);
 
