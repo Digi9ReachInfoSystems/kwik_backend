@@ -361,3 +361,24 @@ exports.getLowStockProducts = async (req, res) => {
     });
   }
 };
+
+exports.getProductsbyPincode = async (req, res) => {
+  try {
+    const { pincode } = req.body;
+    const warehouse = await Warehouse.findOne({ picode: pincode });
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found for this variant" });
+    }
+
+    const products = await Product.find({ warehouse_ref: warehouse._id })
+      .populate("Brand category_ref sub_category_ref variations")
+      .exec();
+
+    res.status(200).json({ message: "Products retrieved successfully", data: products,warehouse:warehouse });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error retrieving products", error: error.message });
+
+  }
+};
