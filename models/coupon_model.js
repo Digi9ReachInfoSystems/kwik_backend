@@ -48,10 +48,17 @@ const couponSchema = new mongoose.Schema({
     min: [0, "Minimum order value must be greater than or equal to 0"],
   },
 
-  discount_price: {
+  discount_max_price: {
     type: Number,
     required: [true, "Discount price is required"],
     min: [0, "Discount price must be greater than or equal to 0"],
+  },
+
+  discount_percentage: {
+    type: Number,
+    required: [true, "Discount percentage is required"],
+    min: [0, "Discount percentage must be greater than or equal to 0"],
+    max: [100, "Discount percentage must be less than or equal to 100"],
   },
 
   coupon_image: {
@@ -67,24 +74,38 @@ const couponSchema = new mongoose.Schema({
     type: String,
     required: [true, "Coupon type is required"],
     enum: {
-      values: ["All", "Selected users","new user","normal","individual"],
-      message: 'Coupon type must be either "All" or "Selected users"',
+      values: ["All", "Selected users", "new user", "normal", "individual"],
+      message:
+        'Coupon type must be either "All", "Selected users", "new user", "normal", or "individual"',
     },
   },
 
   user_list: {
     type: [userRefSchema],
-    required: [true, "User list is required"],
+    required: function () {
+      if (this.coupon_type === "Selected users" || this.coupon_type === "individual") {
+        return true
+      } else {
+        return false
+      }
+      // Only required for "Selected users" or "individual"
+    },
     validate: {
-      validator: async function (value) {
-        if (value.length > 0) {
-          const userExists = await mongoose
-            .model("User")
-            .exists({ _id: { $in: value } });
-          return userExists;
-        }
-        return false;
-      },
+      validator:
+        async function (value) {
+          if (this.coupon_type === "Selected users" || this.coupon_type === "individual") {
+            if (value.length > 0) {
+              const userExists = await mongoose
+                .model("User")
+                .exists({ _id: { $in: value } });
+              return userExists;
+            }
+            return false;
+          } else {
+            return true;
+          }
+        },
+
       message: "User list must contain valid user references",
     },
   },

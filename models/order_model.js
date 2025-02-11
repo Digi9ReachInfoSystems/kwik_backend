@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const User = require("./User"); // Import the User model
+const User = require("../models/user_models"); // Import the User model
 
 // Define the Address schema for user_address
 const addressSchema = require("./address_model");
@@ -9,11 +9,7 @@ const cartProductSchema = require("./cart_product_model");
 
 // Define the Order schema
 const orderSchema = new mongoose.Schema({
-  order_id: {
-    type: String,
-    required: [true, "Order ID is required"],
-    unique: true, // Ensure each order ID is unique
-  },
+
 
   warehouse_ref: {
     type: mongoose.Schema.Types.ObjectId,
@@ -55,7 +51,7 @@ const orderSchema = new mongoose.Schema({
   delivery_boy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: [true, "Delivery boy reference is required"],
+    required: [false, "Delivery boy reference is required"],
     validate: {
       validator: async (v) => {
         const deliveryBoyExists = await mongoose
@@ -70,7 +66,7 @@ const orderSchema = new mongoose.Schema({
   order_status: {
     type: String,
     required: [true, "Order status is required"],
-    enum: ["packing", "out_for_delivery", "delivered", "delivery_failed"],
+    enum: ["packing", "out_for_delivery", "delivered", "delivery_failed","order_placed"],
   },
 
   user_address: {
@@ -115,7 +111,7 @@ const orderSchema = new mongoose.Schema({
 
   out_for_delivery_time: {
     type: Date,
-    required: [true, "Out for delivery time is required"],
+    required: [false, "Out for delivery time is required"],
   },
 
   completed_time: {
@@ -185,6 +181,10 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: [true, "Type of delivery is required"],
     enum: ["tum tum", "instant"],
+  },
+  selected_time_slot: {
+    type: Date,
+    required: [false, "Time slot is required"],
   },
 
   delivery_charge: {

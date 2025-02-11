@@ -3,22 +3,24 @@ const router = express.Router();
 
 const couponController = require("../controller/couponController");
 
-// Route to create a coupon
-router.post("/create", couponController.createCoupon);
+// Create a new coupon
+router.post("/", couponController.createCoupon);
 
-// Route to get all coupons
-router.get("/", couponController.getAllCoupons);
-
-// Route to get a single coupon by ID
-router.get("/:id", couponController.getCouponById);
-
-// Route to update a coupon
+// Update a coupon by ID
 router.put("/:id", couponController.updateCoupon);
 
-// Route to delete a coupon
+// Delete a coupon by ID
 router.delete("/:id", couponController.deleteCoupon);
 
-// Route to validate a coupon
-router.post("/validate", couponController.validateCoupon);
+// Get all coupons
+router.get("/", couponController.getAllCoupons);
+
+// Get a coupon by ID
+router.get("/:id", couponController.getCouponById);
+
+// Get coupons by type
+router.get("/type/:type", couponController.getCouponsByType);
+
+router.post("/apply/validate", couponController.validateCoupon);
 
 module.exports = router;
