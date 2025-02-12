@@ -66,7 +66,7 @@ const orderSchema = new mongoose.Schema({
   order_status: {
     type: String,
     required: [true, "Order status is required"],
-    enum: ["packing", "out_for_delivery", "delivered", "delivery_failed","order_placed"],
+    enum: ["Packing", "Out for delivery", "Delivered", "Delivery failed","Order placed"],
   },
 
   user_address: {
@@ -91,7 +91,7 @@ const orderSchema = new mongoose.Schema({
       min: [-90, "Latitude must be between -90 and 90"],
       max: [90, "Latitude must be between -90 and 90"],
     },
-    lng: {
+    lang: {
       type: Number,
       required: [true, "Longitude is required"],
       min: [-180, "Longitude must be between -180 and 180"],

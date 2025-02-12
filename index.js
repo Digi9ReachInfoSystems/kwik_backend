@@ -18,6 +18,7 @@ const homeUiRoutes = require("./routes/homepage_ui_controller_Routes");
 const bannerRoutes = require("./routes/banner_Routes");
 const couonRoutes = require("./routes/couponRoutes");
 const jobRoutes = require("./routes/jobs_Routes");
+const orderRoutes = require("./routes/order_Routes");
 // MongoDB Connection
 connectDB();
 // test
@@ -50,6 +51,7 @@ app.use("/jobs", jobRoutes);
 app.use("/ui", homeUiRoutes);
 app.use("/banner", bannerRoutes);
 app.use("/coupon", couonRoutes);
+app.use("/order", orderRoutes);
 
 const PORT = 3000;
 

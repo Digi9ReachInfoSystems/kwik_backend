@@ -43,6 +43,17 @@ const categorySchema = new mongoose.Schema({
       message: "Invalid URL format for category image",
     },
   },
+  category_banner_image: {
+    type: String,
+    required: [true, "Category image URL is required"],
+    validate: {
+      validator: function (v) {
+        // Basic URL format validation
+        return /^(https?|chrome):\/\/[^\s$.?#].[^\s]*$/.test(v);
+      },
+      message: "Invalid URL format for category image",
+    },
+  },
   visibility: {
     type: Boolean,
     required: [true, "Category visibility is required"],
