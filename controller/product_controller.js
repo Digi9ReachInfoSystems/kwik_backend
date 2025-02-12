@@ -382,3 +382,13 @@ exports.getProductsbyPincode = async (req, res) => {
 
   }
 };
+
+exports.getProductByBrand = async (req, res) => {
+  try {
+    const { brandId } = req.body;
+    const products = await Product.find({ Brand: brandId }).populate("Brand category_ref sub_category_ref").exec();
+    res.status(200).json({ message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving products", error: error.message });
+  }
+};

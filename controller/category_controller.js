@@ -50,6 +50,7 @@ exports.addCategory = async (req, res) => {
       category_image,
       visibility,
       color,
+      category_banner_image,
     } = req.body;
     // Validate required fields
     if (
@@ -57,7 +58,9 @@ exports.addCategory = async (req, res) => {
       !category_name ||
       !category_des ||
       !category_image ||
-      !visibility
+      !visibility||
+      !color||
+      !category_banner_image
     ) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -66,7 +69,9 @@ exports.addCategory = async (req, res) => {
       typeof category_id !== "string" ||
       typeof category_name !== "string" ||
       typeof category_des !== "string" ||
-      typeof visibility !== "boolean"
+      typeof visibility !== "boolean"||
+      typeof color !== "string"||
+      typeof category_banner_image !== "string"
     ) {
       return res
         .status(400)
@@ -90,6 +95,7 @@ exports.addCategory = async (req, res) => {
       category_image,
       visibility,
       color,
+      category_banner_image
     });
 
     const savedCategory = await newCategory.save();
