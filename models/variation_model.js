@@ -18,6 +18,14 @@ const variationSchema = new mongoose.Schema({
     zone: { type: String, required: true },
     rack: { type: String, required: true }
   }],
+  Highlight:{
+   type:Map,
+   required:false
+  },
+  info:{
+    type:Map,
+    required:false
+  },
   created_time: { type: Date, required: true, default: Date.now },  // Timestamp for when the variation was created
 });
 

@@ -34,7 +34,7 @@ const categorySchema = new mongoose.Schema({
   },
   category_image: {
     type: String,
-    required: [true, "Category image URL is required"],
+    required: [true, "Category banner image URL is required"],
     validate: {
       validator: function (v) {
         // Basic URL format validation
