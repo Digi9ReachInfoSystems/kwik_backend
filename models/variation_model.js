@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const stockSchema = require("./stock_model");
 
 const variationSchema = new mongoose.Schema({
   Qty: { type: Number, required: true },  // Quantity in the specified unit
@@ -11,13 +12,7 @@ const variationSchema = new mongoose.Schema({
   MRP: { type: Number, required: true },  // Maximum Retail Price
   buying_price: { type: Number, required: true },  // Buying price of the product
   selling_price: { type: Number, required: true },  // Selling price of the product
-  stock: [{
-    warehouse_ref: { type: mongoose.Schema.Types.ObjectId, ref: 'Warehouse', required: true },  // Reference to the Warehouse model
-    stock_qty: { type: Number, required: true },  // Quantity of the product available in the warehouse
-    visibility: { type: Boolean, required: true },
-    zone: { type: String, required: true },
-    rack: { type: String, required: true }
-  }],
+  stock: [stockSchema],
   Highlight:{
    type:Map,
    required:false
