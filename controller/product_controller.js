@@ -9,10 +9,12 @@ const Brand = require("../models/brand_model");
 exports.createProduct = async (req, res) => {
   try {
     let productData = req.body;
-    productData.variations.map((variation) =>
-      variation.stock.map((stock) => {
-       console.log(stock)
-      })
+    productData.variations.map((variation) =>{
+      console.log(variation)
+      // variation.stock.map((stock) => {
+      //  console.log(stock)
+      // })
+    }
     );
 
     // Validate required fields
