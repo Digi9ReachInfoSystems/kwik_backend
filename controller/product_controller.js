@@ -9,6 +9,7 @@ const Brand = require("../models/brand_model");
 exports.createProduct = async (req, res) => {
   try {
     let productData = req.body;
+    console.log(productData);
 
     // Validate required fields
     if (!productData.product_name || !productData.sku) {
