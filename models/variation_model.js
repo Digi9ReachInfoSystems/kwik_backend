@@ -13,14 +13,14 @@ const variationSchema = new mongoose.Schema({
   buying_price: { type: Number, required: true },  // Buying price of the product
   selling_price: { type: Number, required: true },  // Selling price of the product
   stock: [stockSchema],
-  Highlight:{
+  Highlight:[{
    type:Map,
    required:false
-  },
-  info:{
+  }],
+  info:[{
     type:Map,
     required:false
-  },
+  }],
   created_time: { type: Date, required: true, default: Date.now },  // Timestamp for when the variation was created
 });
 
