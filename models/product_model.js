@@ -105,6 +105,11 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     required: [true, "Sensible product status is required"],
   },
+  isDeleted: {
+    type: Boolean,
+    required: [true, "Is deleted status is required"],
+    default: false,
+  },
 });
 
 // Create and export the Product model

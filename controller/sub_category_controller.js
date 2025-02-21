@@ -5,7 +5,7 @@ const Product = require("../models/product_model"); // Import product model to c
 // Get all sub-categories
 exports.getAllSubCategories = async (req, res) => {
   try {
-    const subCategories = await SubCategory.find().populate("category_ref"); // Fetch all sub-categories from the database
+    const subCategories = await SubCategory.find({isDeleted: false}).populate("category_ref"); // Fetch all sub-categories from the database
     res.status(200).json(subCategories); // Send only the subcategories array
   } catch (error) {
     console.error("Error fetching sub-categories:", error.message); // Log error for debugging
@@ -43,7 +43,7 @@ exports.getSubCategoriesByCategoryRef = async (req, res) => {
     }
 
     // Fetch all sub-categories associated with this category_ref
-    const subCategories = await SubCategory.find({ category_ref: categoryRef });
+    const subCategories = await SubCategory.find({ category_ref: categoryRef ,isDeleted: false}).populate("category_ref");
 
     if (!subCategories || subCategories.length === 0) {
       return res

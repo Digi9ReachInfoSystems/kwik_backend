@@ -4,7 +4,7 @@ const Product = require("../models/product_model"); // Assuming you have a Produ
 // Get all brands
 exports.getAllBrands = async (req, res) => {
   try {
-    const brands = await Brand.find(); // Fetch all brands from the database
+    const brands = await Brand.find({isDeleted: false}); // Fetch all brands from the database
     res.status(200).json(brands); // Send only the brands array
   } catch (error) {
     res.status(500).json({ error: error.message }); // Simplified error response

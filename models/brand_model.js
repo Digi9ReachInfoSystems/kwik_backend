@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const brandSchema = new mongoose.Schema({
-  
+
   brand_name: {
     type: String,
     required: [true, "Brand name is required"],
@@ -49,7 +49,12 @@ const brandSchema = new mongoose.Schema({
       },
       message: "Invalid brand URL format",
     },
-  }, // Optional for website URL
+  },
+  isDeleted: {
+    type: Boolean,
+    required: [true, "Is deleted status is required"],
+    default: false,
+  },
   created_time: { type: Date, required: true, default: Date.now },
 });
 
