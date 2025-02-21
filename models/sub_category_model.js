@@ -44,6 +44,11 @@ const subCategorySchema = new mongoose.Schema({
     required: true,
     default: Date.now,
   },
+  isDeleted: {
+    type: Boolean,
+    required: [true, "Is deleted status is required"],
+    default: false,
+  },
 });
 
 // Create and export the SubCategory model

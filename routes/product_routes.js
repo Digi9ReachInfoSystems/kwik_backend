@@ -19,4 +19,5 @@ router.get("/get/Drafts", ProductController.getDrafts);
 router.get("/get/lowStockProduct", ProductController.getLowStockProducts);
 router.get("/get/productsByPincode", ProductController.getProductsbyPincode);
 router.get("/get/productsByBrand", ProductController.getProductByBrand);
+router.put("/updateVariation", ProductController.updateVariation);
 module.exports = router;

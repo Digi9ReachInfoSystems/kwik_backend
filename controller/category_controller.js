@@ -11,7 +11,7 @@ const isValidUrl = (url) => {
 // Get all categories
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find(); // Fetch all categories from the database
+    const categories = await Category.find({isDeleted: false}); // Fetch all categories from the database
     res.status(200).json(categories); // Send only the categories array
   } catch (error) {
     res

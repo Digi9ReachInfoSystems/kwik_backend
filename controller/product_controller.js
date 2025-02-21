@@ -9,7 +9,7 @@ const Brand = require("../models/brand_model");
 exports.createProduct = async (req, res) => {
   try {
     let productData = req.body;
-    console.dir(productData,  {depth: null});
+    console.dir(productData, { depth: null });
 
     // Validate required fields
     if (!productData.product_name || !productData.sku) {
@@ -66,7 +66,7 @@ exports.createProduct = async (req, res) => {
 // Get all products
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find()
+    const products = await Product.find({ isDeleted: false, draft: false })
       .populate("Brand category_ref sub_category_ref warehouse_ref")
       .exec();
 
@@ -100,7 +100,7 @@ exports.getProductById = async (req, res) => {
 exports.getProductsByCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const products = await Product.find({ category_ref: categoryId })
+    const products = await Product.find({ category_ref: categoryId ,isDeleted: false, draft: false})
       .populate(
         "Brand category_ref sub_category_ref variations warehouse_ref  review"
       )
@@ -120,7 +120,7 @@ exports.getProductsByCategory = async (req, res) => {
 exports.getProductsBySubCategory = async (req, res) => {
   try {
     const { subCategoryId } = req.params;
-    const products = await Product.find({ sub_category_ref: subCategoryId })
+    const products = await Product.find({ sub_category_ref: subCategoryId ,isDeleted: false, draft: false})
       .populate(
         "Brand category_ref sub_category_ref variations warehouse_ref  review"
       )
@@ -150,6 +150,8 @@ exports.getProductsBySubCategories = async (req, res) => {
 
     const products = await Product.find({
       sub_category_ref: { $in: subCategoryIds },
+      isDeleted: false,
+      draft: false
     })
       .populate(
         "Brand category_ref sub_category_ref variations warehouse_ref  review"
@@ -375,7 +377,7 @@ exports.getProductsbyPincode = async (req, res) => {
       .populate("Brand category_ref sub_category_ref variations")
       .exec();
 
-    res.status(200).json({ message: "Products retrieved successfully", data: products,warehouse:warehouse });
+    res.status(200).json({ message: "Products retrieved successfully", data: products, warehouse: warehouse });
   } catch (error) {
     res
       .status(500)
@@ -387,9 +389,43 @@ exports.getProductsbyPincode = async (req, res) => {
 exports.getProductByBrand = async (req, res) => {
   try {
     const { brandId } = req.body;
-    const products = await Product.find({ Brand: brandId }).populate("Brand category_ref sub_category_ref").exec();
+    const products = await Product.find({ Brand: brandId,isDeleted: false, draft: false }).populate("Brand category_ref sub_category_ref").exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
+  }
+};
+
+exports.updateVariation = async (req, res) => {
+  try {
+  
+    const { productId,variation_id,variationData } = req.body; 
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    let varFound= false;
+    const updatedVariations = product.variations.map((variation) => {
+      console.log(variation._id.toString(), variation_id);
+      if (variation._id.toString() === variation_id) {
+        varFound = true;
+        return   (variationData) ;
+      }
+      return variation;
+    });
+
+    product.variations = updatedVariations;
+
+    await product.save();
+
+    if (!varFound) {
+      return res.status(404).json({ message: "Variation not found" });
+    }
+
+    res.status(200).json({ message: "Variation updated successfully", data: product });  
+  } catch (error) {
+    res.status(500).json({ message: "Error updating variation", error: error.message });
   }
 };
