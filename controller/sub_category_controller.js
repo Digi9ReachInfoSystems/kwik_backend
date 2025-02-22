@@ -224,3 +224,22 @@ exports.getSubCategoriesByCategoryName = async (req, res) => {
       .json({ message: "Server error", error: error.message });
   }
 };
+
+exports.softDeleteSubCategory = async (req, res) => {
+  try {
+    const subCategoryId = req.params.id;
+    const subCategory = await SubCategory.findById(subCategoryId);
+    if (!subCategory) {
+      return res.status(404).json({ message: "Sub-category not found" });
+    }
+    const products = await Product.find({ sub_category_ref: subCategory._id, isDeleted: false });
+    if (products.length > 0) {
+      return res.status(200).json({ message: "Sub-category is being used in a product and cannot be soft deleted" });
+    }
+    subCategory.isDeleted = true;
+    const updatedSubCategory = await subCategory.save();
+    res.status(200).json({ message: "Sub-category soft deleted successfully", data: updatedSubCategory });
+  } catch (error) {
+    res.status(500).json({ message: "Error soft deleting sub-category", error: error.message });
+  }
+};
