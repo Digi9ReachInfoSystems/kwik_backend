@@ -31,10 +31,7 @@ app.use((req, res, next) => {
 });
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "https://kwik-admin-qafts9.flutterflow.app",
-    ], // Allowed origins
+    origin: "*", // Allowed origins
     methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
     allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
   })
