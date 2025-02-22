@@ -33,7 +33,7 @@ app.use(
   cors({
     origin: "*", // Allowed origins
     methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
-    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+    // allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
   })
 );
 // Middleware to parse JSON body data
