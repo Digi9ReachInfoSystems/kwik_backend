@@ -107,3 +107,21 @@ exports.getBrandById = async (req, res) => {
     res.status(500).json({ message: "Error fetching brand", error: error.message });
   }
 };
+exports.softDeleteBrand = async (req, res) => {
+  try {
+    const brandId = req.params.id;
+    const brand = await Brand.findById(brandId);
+    const products=await Product.find({Brand:brandId,isDeleted:false});
+    if (products.length>0) {
+      return res.status(200).json({ message: "Brand is being used in a product and cannot be soft deleted" });
+    }
+    if (!brand) {
+      return res.status(404).json({ message: "Brand not found" });
+    }
+    brand.isDeleted = true;
+    const updatedBrand = await brand.save();
+    res.status(200).json({ message: "Brand soft deleted successfully", data: updatedBrand });
+  } catch (error) {
+    res.status(500).json({ message: "Error soft deleting brand", error: error.message });
+  }
+};

@@ -1,6 +1,7 @@
 const Category = require("../models/category_model"); // Adjust path as per your file structure
 const Product = require("../models/product_model"); // Assuming there is a Product model where category_ref is used
 const mongoose = require("mongoose");
+const SubCategory = require("../models/sub_category_model");
 
 // Helper function to validate URLs
 const isValidUrl = (url) => {
@@ -11,7 +12,7 @@ const isValidUrl = (url) => {
 // Get all categories
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find({isDeleted: false}); // Fetch all categories from the database
+    const categories = await Category.find({ isDeleted: false }); // Fetch all categories from the database
     res.status(200).json(categories); // Send only the categories array
   } catch (error) {
     res
@@ -58,8 +59,8 @@ exports.addCategory = async (req, res) => {
       !category_name ||
       !category_des ||
       !category_image ||
-      !visibility||
-      !color||
+      !visibility ||
+      !color ||
       !category_banner_image
     ) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -69,8 +70,8 @@ exports.addCategory = async (req, res) => {
       typeof category_id !== "string" ||
       typeof category_name !== "string" ||
       typeof category_des !== "string" ||
-      typeof visibility !== "boolean"||
-      typeof color !== "string"||
+      typeof visibility !== "boolean" ||
+      typeof color !== "string" ||
       typeof category_banner_image !== "string"
     ) {
       return res
@@ -191,5 +192,28 @@ exports.deleteCategory = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error deleting category", error: error.message });
+  }
+};
+
+exports.softDeleteCategory = async (req, res) => {
+  try {
+    const categoryId = req.params.id;
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+    const products = await Product.find({ category_ref: category._id, isDeleted: false });
+    if (products.length > 0) {
+      return res.status(200).json({ message: "Category is being used in a product and cannot be soft deleted" });
+    }
+    const subCategories = await SubCategory.find({ category_ref: category._id,isDeleted: false });
+    if (subCategories.length > 0) {
+      return res.status(200).json({ message: "Category is being used in a sub-category and cannot be soft deleted" });
+    }
+    category.isDeleted = true;
+    const updatedCategory = await category.save();
+    res.status(200).json({ message: "Category soft deleted successfully", data: updatedCategory });
+  } catch (error) {
+    res.status(500).json({ message: "Error soft deleting category", error: error.message });
   }
 };
