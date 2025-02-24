@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const app = express();
 const http = require("http").Server(app);
 const connectDB = require("./config/database");
@@ -12,8 +13,8 @@ const subcategoryRoutes = require("./routes/sub_category_routes");
 const warehouseRoutes = require("./routes/warehouse_routes");
 const authRoutes = require("./routes/auth_Routes");
 require("dotenv").config();
-const  searchRoutes = require('./routes/search_routes');
-const searchHistoryRoutes = require('./routes/searchHistoryRoutes');
+const searchRoutes = require("./routes/search_routes");
+const searchHistoryRoutes = require("./routes/searchHistoryRoutes");
 const homeUiRoutes = require("./routes/homepage_ui_controller_Routes");
 const bannerRoutes = require("./routes/banner_Routes");
 const couonRoutes = require("./routes/couponRoutes");
@@ -28,7 +29,13 @@ app.use((req, res, next) => {
   // console.log(`${req.method} request for '${req.url}'`);
   next();
 });
-
+app.use(
+  cors({
+    origin: "*", // Allowed origins
+    methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
+    // allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+  })
+);
 // Middleware to parse JSON body data
 app.use(express.json());
 
@@ -46,7 +53,6 @@ app.use("/auth", authRoutes);
 app.use("/search", searchRoutes);
 app.use("/searchhistory", searchHistoryRoutes);
 app.use("/jobs", jobRoutes);
-
 
 app.use("/ui", homeUiRoutes);
 app.use("/banner", bannerRoutes);
