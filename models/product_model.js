@@ -82,7 +82,10 @@ const productSchema = new mongoose.Schema({
     required: [false, "Product video URL is required"],
     validate: {
       validator: function (v) {
-        return /^(ftp|http|https):\/\/[^ "]+$/.test(v); 
+        if(v!==""||v!==null){
+          return /^(ftp|http|https):\/\/[^ "]+$/.test(v);
+        }
+       return true;
       },
       message: "Invalid video URL format",
     },
