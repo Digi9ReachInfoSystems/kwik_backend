@@ -68,6 +68,7 @@ exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find({ isDeleted: false, draft: false })
       .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ createdAt: -1 })
       .exec();
 
     res.status(200).json(products); // Send only the products array
