@@ -76,7 +76,7 @@ const couponSchema = new mongoose.Schema({
     enum: {
       values: ["All", "Selected users", "new user", "normal", "individual"],
       message:
-        'Coupon type must be either "All", "Selected users", "new user", "normal", or "individual"',
+        'Coupon type must be either "All", "Selected users", "new user", "normal",  "individual"',
     },
   },
 

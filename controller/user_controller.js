@@ -9,7 +9,7 @@ exports.createUser = async (req, res) => {
   try {
     const {
       phone,
-      name,
+      displayName,
       UID,
       Address,
       selected_Address,
@@ -27,6 +27,7 @@ exports.createUser = async (req, res) => {
       deliveryboy_bike_number,
       deliveryboy_bike_image,
       assigned_warehouse,
+      isWarehouse,
     } = req.body;
 
     // Check if the user already exists with the provided UID or phone
@@ -40,7 +41,7 @@ exports.createUser = async (req, res) => {
     // Create a new user
     const user = new User({
       phone,
-      name,
+      displayName,
       UID,
       Address,
       selected_Address,
@@ -58,6 +59,7 @@ exports.createUser = async (req, res) => {
       deliveryboy_bike_number,
       deliveryboy_bike_image,
       assigned_warehouse,
+      isWarehouse,
     });
 
     // Save the new user to the database
