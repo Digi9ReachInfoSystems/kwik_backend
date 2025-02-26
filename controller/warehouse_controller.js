@@ -19,6 +19,7 @@ exports.getAllWarehouses = async (req, res) => {
 exports.addWarehouse = async (req, res) => {
   try {
     const {
+      UID,
       warehouse_id,
       warehouse_name,
       warehouse_des,
@@ -39,6 +40,7 @@ exports.addWarehouse = async (req, res) => {
 
     // Validate required fields
     if (
+      !UID ||
       !warehouse_id ||
       !warehouse_name ||
       !warehouse_des ||
@@ -57,6 +59,7 @@ exports.addWarehouse = async (req, res) => {
     }
 
     const newWarehouse = new Warehouse({
+      UID,
       warehouse_id,
       warehouse_name,
       warehouse_des,
