@@ -8,6 +8,7 @@ const userRefSchema = {
 
 // Define the Warehouse schema
 const warehouseSchema = new mongoose.Schema({
+  UID: { type: String, required: true },
   warehouse_id: { type: String, required: true },
   warehouse_name: { type: String, required: true },
   warehouse_des: { type: String, required: true },
