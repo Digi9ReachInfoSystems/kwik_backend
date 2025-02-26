@@ -6,7 +6,7 @@ const Address = require("./address_model");
 const SearchHistory = require("./searchHistory_model");
 
 const userSchema = new mongoose.Schema({
-  phone: { type: String, required: false },
+  phone: { type: String, required: true },
   displayName: { type: String, required: true },
   photo_url: { type: String, required: false }, // URL for photo
   UID: { type: String, required: true },
@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema({
   cart_products: [{ type: CartProduct, required: false }],
   cart_added_date: { type: Date, required: false },
   saved_cart_products: [{ type: CartProduct, required: false }],
-  is_deliveryboy: { type: Boolean, required: false },
+  is_deliveryboy: { type: Boolean, required: true,default:false },
   is_blocked: { type: Boolean, required: false, default: false },
   deliveryboy_aadhar: { type: String, required: false }, // URL for Aadhar image
   deliveryboy_aadhar_number: { type: String, required: false },
@@ -32,6 +32,7 @@ const userSchema = new mongoose.Schema({
     ref: "Warehouse",
     required: false,
   },
+  isWarehouse:{type:Boolean ,required:true,default:false},
   fcm_token: { type: String, required: false },
   created_time: { type: Date, required: true, default: Date.now },
 });
