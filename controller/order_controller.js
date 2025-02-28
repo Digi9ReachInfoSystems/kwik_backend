@@ -44,6 +44,7 @@ exports.createOrder = async (req, res) => {
         return res.status(400).json({ success: false, message: `Product with ID ${product.product_ref} is invalid` });
       }
     }
+    
 
     // Create a new order object
     const newOrder = new Order({

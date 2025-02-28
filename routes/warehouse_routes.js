@@ -15,4 +15,5 @@ router.put('/edit/:id', warehouseController.editWarehouse);
 // Delete a warehouse
 router.delete('/delete/:id', warehouseController.deleteWarehouse);
 
+router.get("/getById/:id", warehouseController.getWarehouseId);
 module.exports = router;

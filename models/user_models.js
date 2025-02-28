@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
     required: false,
   },
   isWarehouse:{type:Boolean ,required:true,default:false},
+  isUser:{type:Boolean ,required:true,default:false},
   fcm_token: { type: String, required: false },
   created_time: { type: Date, required: true, default: Date.now },
 });
