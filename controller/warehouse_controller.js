@@ -145,3 +145,17 @@ exports.deleteWarehouse = async (req, res) => {
       .json({ message: "Error deleting warehouse", error: error.message });
   }
 };
+exports.getWarehouseId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const warehouse = await Warehouse.findById(id);
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    res.status(200).json({ message: "Warehouse found", data: warehouse });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching warehouse", error: error.message });
+  }
+};

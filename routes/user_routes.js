@@ -35,5 +35,6 @@ router.post("/decreseqty", userController.decreaseCartProductQuantity);
 router.put("/addAddress/:userId", userController.addAddress);
 router.put("/select/address/change", userController.userSelectedAddressChange);
 router.get("/getUserCart/:userId", userController.getUserCartById);
+router.get("/get/userStats",userController.userStats);
 
 module.exports = router;

@@ -662,3 +662,17 @@ exports.getUserCartById = async (req, res) => {
     console.log(error)
   }
 }
+exports.userStats = async (req, res) => {
+  try {
+    const user = await User.find();
+    const allUsers = user.length;
+    const  totaUsers=await User.countDocuments({isUser:true});
+    const totalDeliveryBoy=await User.countDocuments({is_deliveryboy:true});
+    const totalWarehouse=await User.countDocuments({isWarehouse:true});
+    
+    return res.status(200).json({ message: "success",allUsers: allUsers,  totalUsers: totaUsers, totalDeliveryBoy: totalDeliveryBoy, totalWarehouse: totalWarehouse });  
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+}
