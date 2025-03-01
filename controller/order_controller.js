@@ -290,3 +290,21 @@ exports.getOrderByWarehouseAndStatus = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error fetching data' });
   } 
 }
+
+exports.getOrdersByWarehouseId = async (req, res) => {
+  try {
+    const { warehouse_id } = req.params;
+    const warehouse = await Warehouse.findById(warehouse_id);
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+    const orders = await Order.find({ warehouse_ref: warehouse._id });
+    if (!orders) {
+      return res.status(404).json({ success: false, message: "Orders not found" });
+    }
+    res.status(200).json({ success: true, data: orders });
+  } catch (error) {
+    console.error("Error getting orders by warehouse ID:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
