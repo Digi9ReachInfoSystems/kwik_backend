@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema({
   isWarehouse:{type:Boolean ,required:true,default:false},
   isUser:{type:Boolean ,required:true,default:false},
   fcm_token: { type: String, required: false },
+  device_number: { type: String, required: false },
   created_time: { type: Date, required: true, default: Date.now },
 });
 

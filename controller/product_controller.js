@@ -477,3 +477,23 @@ exports.softDeleteVariation = async (req, res) => {
 };
 
 
+
+exports.getAllProductsByWarehouse = async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    const products = await Product.find({ warehouse_ref: warehouseId , isDeleted: false, draft: false }).populate("Brand category_ref sub_category_ref").exec();
+    res.status(200).json({ message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving products", error: error.message });
+  }
+};
+
+exports.getDraftsByWarehouse = async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    const products = await Product.find({ warehouse_ref: warehouseId, draft: "true" }).populate("Brand category_ref sub_category_ref").exec();
+    res.status(200).json({ message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving products", error: error.message });
+  }
+};
