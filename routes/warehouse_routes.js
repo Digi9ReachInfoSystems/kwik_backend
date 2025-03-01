@@ -18,4 +18,5 @@ router.delete('/delete/:id', warehouseController.deleteWarehouse);
 router.get("/getById/:id", warehouseController.getWarehouseId);
 router.post("/addDeliveryBoy", warehouseController.addDeliveryBoys);
 router.get("/getDeliveryBoyStats", warehouseController.getDeliveryBoysStats);
+router.get("/get/warehouseByUID/:UID", warehouseController.getWarehouseByUID);
 module.exports = router;

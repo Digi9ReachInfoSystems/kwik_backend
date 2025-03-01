@@ -491,6 +491,10 @@ exports.getAllProductsByWarehouse = async (req, res) => {
 exports.getDraftsByWarehouse = async (req, res) => {
   try {
     const { warehouseId } = req.params;
+    const warehouse = await Warehouse.findById(warehouseId);
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
     const products = await Product.find({ warehouse_ref: warehouseId, draft: "true" }).populate("Brand category_ref sub_category_ref").exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
   } catch (error) {

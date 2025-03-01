@@ -208,3 +208,15 @@ exports.getDeliveryBoysStats = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching delivery boys stats", error: error.message });
   }
 }
+exports.getWarehouseByUID = async (req, res) => {
+  try {
+    const { UID } = req.params;
+    const warehouse = await Warehouse.findOne({ UID: UID }).exec();
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+    res.status(200).json({ success: true, message: "Warehouse found", warehouse: warehouse });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching warehouse", error: error.message });
+  }
+}
