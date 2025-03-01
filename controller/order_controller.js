@@ -279,3 +279,14 @@ exports.getMonthlyRevenueByYear = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error fetching data' });
   }
 };
+
+exports.getOrderByWarehouseAndStatus = async (req, res) => {
+  try {
+    const { warehouse_id, order_status } = req.params;
+    const orders = await Order.find({ warehouse_ref: warehouse_id, order_status: order_status }).exec();
+    res.status(200).json({ success: true, data: orders });
+  } catch (error) {
+    console.error('Error fetching orders by warehouse ID and status:', error);
+    res.status(500).json({ success: false, message: 'Error fetching data' });
+  } 
+}
