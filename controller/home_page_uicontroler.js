@@ -18,87 +18,35 @@ exports.getHomepageWidget = async (req, res) => {
     });
   }
 };
-// Controller function to update a homepage widget
-exports.updateHomepageWidget = async (req, res) => {
+
+exports.updateWidgetTemplate = async (req, res) => {
   try {
-    const { widgetId } = req.params; // Assuming widget ID is passed in the URL
-    const updateData = req.body; // Fields to update
+    
+    const {  template, value } = req.body;
+    const widget = await HomepageWidget.findOne();
 
-    // Check if ui_order_number is being updated
-    if (updateData.ui_order_number) {
-      // Dynamically generate query to check all fields with ui_order_number
-      const fieldsWithUiOrder = [
-        "categorylist.ui_order_number",
-        "template2.ui_order_number",
-        "templateBanner3.ui_order_number",
-        "template3.ui_order_number",
-        "template4.ui_order_number",
-        "template5.ui_order_number",
-        "template6Brand1.ui_order_number",
-        "template7.ui_order_number",
-        "template8.ui_order_number",
-        "template9.ui_order_number",
-        "template10.ui_order_number",
-        "template11.ui_order_number",
-        "template12.ui_order_number",
-        "template13Brand2.ui_order_number",
-        "template14.ui_order_number",
-        "template15.ui_order_number",
-        "template16.ui_order_number",
-        "template17.ui_order_number",
-        "template18.ui_order_number",
-        "template19Brand3.ui_order_number",
-        "template20.ui_order_number",
-        "template21.ui_order_number",
-        "template22.ui_order_number",
-        "template23.ui_order_number",
-        "template24.ui_order_number",
-        "template25.ui_order_number",
-        "template26.ui_order_number",
-        "template27.ui_order_number",
-      ];
-
-      // Generate query to check if ui_order_number is unique
-      const query = fieldsWithUiOrder.reduce((acc, field) => {
-        acc[field] = updateData.ui_order_number;
-        return acc;
-      }, {});
-
-      // Check if ui_order_number is already used in any of the fields
-      const isOrderNumberUnique = await HomepageWidget.find(query);
-
-      // If the `ui_order_number` already exists, return an error
-      if (isOrderNumberUnique.length > 0) {
-        return res.status(400).json({
-          message: "The UI order number is already taken by another template.",
-        });
-      }
+    if (!widget) {
+      return res.status(404).json({ success: false, message: 'Widget not found' });
+    }
+    if (!widget[template]) {
+      return res.status(400).json({ success: false, message: `Template ${template} does not exist` });
     }
 
-    // Find and update the homepage widget
-    const updatedWidget = await HomepageWidget.findByIdAndUpdate(
-      widgetId,
-      updateData,
-      {
-        new: true, // Return the updated document
-        runValidators: true, // Validate according to schema
-      }
-    );
+    widget[template] = value;
 
-    if (!updatedWidget) {
-      return res.status(404).json({
-        message: "Homepage widget not found.",
-      });
-    }
+  
+    await widget.save();
 
     return res.status(200).json({
-      message: "Homepage widget updated successfully.",
-      updatedWidget,
+      success: true,
+      message: 'Widget updated successfully',
+      data: widget,
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error updating widget field:', error);
     return res.status(500).json({
-      message: "Something went wrong while updating the homepage widget.",
+      success: false,
+      message: 'Error updating widget field',
       error: error.message,
     });
   }
