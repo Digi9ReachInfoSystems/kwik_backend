@@ -22,4 +22,6 @@ router.get("/get/productsByBrand", ProductController.getProductByBrand);
 router.put("/updateVariation", ProductController.updateVariation);
 router.delete("/softDelete/:productId", ProductController.softDeleteProduct);  
 router.delete("/soft/delete/variation", ProductController.softDeleteVariation);
+router.get("/allproducts/warehouse/:warehouseId", ProductController.getAllProductsByWarehouse);
+router.get("/get/drafts/warehouse/:warehouseId", ProductController.getDraftsByWarehouse);
 module.exports = router;

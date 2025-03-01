@@ -1,5 +1,5 @@
 const Warehouse = require("../models/warehouse_model"); // Adjust the path as per your structure
-
+const User = require("../models/user_models");
 // Get all warehouses
 exports.getAllWarehouses = async (req, res) => {
   try {
@@ -159,3 +159,52 @@ exports.getWarehouseId = async (req, res) => {
       .json({ message: "Error fetching warehouse", error: error.message });
   }
 };
+
+exports.addDeliveryBoys = async (req, res) => {
+  try {
+    const { user_id, warehouse_id } = req.body;
+    const user = await User.findOne({ UID: user_id });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const warehouse = await Warehouse.findById(warehouse_id).exec();
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+    if (warehouse.deliveryboys.some((deliveryboy) => deliveryboy._id.toString() === user._id.toString())) {
+      res.status(500).json({ success: false, message: "Delivery boy already added", error: "Delivery boy already added" });
+    }
+    warehouse.deliveryboys.push(user._id);
+    await warehouse.save();
+    res.status(200).json({ success: true, message: "Delivery boy added successfully", warehouse: warehouse });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error adding delivery boy", error: error.message });
+  }
+}
+
+exports.getDeliveryBoysStats = async (req, res) => {
+  try {
+    const { pincode } = req.query;
+    console.log("pincode", pincode);
+    let warehouse;
+    if (pincode) {
+      warehouse = await Warehouse.find({ picode: pincode }).exec();
+    } else {
+      warehouse = await Warehouse.find().exec();
+    }
+
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+    const data = warehouse.map((warehouse) => {
+      return {
+        warehouse_id: warehouse._id,
+        warehouse_name: warehouse.warehouse_name,
+        delivery_boys: warehouse.deliveryboys.length
+      }
+    })
+    res.status(200).json({ success: true, message: "Delivery boys stats fetched successfully", warehouse: data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching delivery boys stats", error: error.message });
+  }
+}
