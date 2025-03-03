@@ -3,6 +3,7 @@ const User = require("../models/user_models");
 const Warehouse = require("../models/warehouse_model"); 
 const CartProduct = require("../models/cart_product_model"); 
 const Product = require("../models/product_model");
+const mongoose = require("mongoose");
 
 // Create a new order
 exports.createOrder = async (req, res) => {
@@ -305,6 +306,20 @@ exports.getOrdersByWarehouseId = async (req, res) => {
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
     console.error("Error getting orders by warehouse ID:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteOrderById = async (req, res) => {
+  try {
+    const  id =new mongoose.Types.ObjectId( req.params.id);
+    const order = await Order.findByIdAndDelete(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    res.status(200).json({ success: true, message: "Order deleted successfully", data: order });
+  } catch (error) {
+    console.error("Error deleting order by ID:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
