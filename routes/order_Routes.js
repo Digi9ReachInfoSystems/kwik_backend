@@ -13,5 +13,6 @@ router.get("/stats/orderCount", orderController.getWeeklyOrdersByMonthAndYear);
 router.get("/stats/orderRevenue", orderController.getMonthlyRevenueByYear);
 router.get("/get/warehouse/:warehouse_id/status/:order_status", orderController.getOrderByWarehouseAndStatus);
 router.get("/getWarehouseId/:warehouse_id", orderController.getOrdersByWarehouseId);
+router.delete("/deleteOrder/:id", orderController.deleteOrderById);
 
 module.exports = router;

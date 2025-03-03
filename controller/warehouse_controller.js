@@ -220,3 +220,5 @@ exports.getWarehouseByUID = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching warehouse", error: error.message });
   }
 }
+
+//  numberof user  pincode,total orders total delivered order,total revenue,number of delivery boys
