@@ -96,7 +96,9 @@ exports.createOrder = async (req, res) => {
 };
 exports.getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const orders = await Order.find().sort({ createdAt: -1 })
+    .populate("warehouse_ref user_ref products.product_ref")
+    .exec();
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
     console.error("Error getting orders:", error);
@@ -107,7 +109,9 @@ exports.getAllOrders = async (req, res) => {
 exports.getOrderById = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await Order.findById(id);
+    const order = await Order.findById(id)
+    .populate("warehouse_ref user_ref products.product_ref")
+    .exec();
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
@@ -125,7 +129,9 @@ exports.getOrderByUserId = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    const orders = await Order.find({ user_ref: user._id });
+    const orders = await Order.find({ user_ref: user._id })
+    .populate("warehouse_ref user_ref products.product_ref")
+    .exec();
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
@@ -167,7 +173,9 @@ exports.getOrdersByWarehouseId = async (req, res) => {
     if (!warehouse) {   
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }   
-    const orders = await Order.find({ warehouse_ref: warehouse._id });
+    const orders = await Order.find({ warehouse_ref: warehouse._id })
+    .populate("warehouse_ref user_ref products.product_ref")
+    .exec();
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
@@ -284,7 +292,9 @@ exports.getMonthlyRevenueByYear = async (req, res) => {
 exports.getOrderByWarehouseAndStatus = async (req, res) => {
   try {
     const { warehouse_id, order_status } = req.params;
-    const orders = await Order.find({ warehouse_ref: warehouse_id, order_status: order_status }).exec();
+    const orders = await Order.find({ warehouse_ref: warehouse_id, order_status: order_status })
+    .populate("warehouse_ref user_ref products.product_ref")
+    .exec();
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
     console.error('Error fetching orders by warehouse ID and status:', error);
@@ -299,7 +309,9 @@ exports.getOrdersByWarehouseId = async (req, res) => {
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
-    const orders = await Order.find({ warehouse_ref: warehouse._id });
+    const orders = await Order.find({ warehouse_ref: warehouse._id })
+    .populate("warehouse_ref user_ref products.product_ref")
+    .exec();
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
@@ -313,7 +325,9 @@ exports.getOrdersByWarehouseId = async (req, res) => {
 exports.deleteOrderById = async (req, res) => {
   try {
     const  id =new mongoose.Types.ObjectId( req.params.id);
-    const order = await Order.findByIdAndDelete(id);
+    const order = await Order.findByIdAndDelete(id)
+    .populate("warehouse_ref user_ref products.product_ref")
+    .exec();
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }

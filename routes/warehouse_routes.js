@@ -19,4 +19,5 @@ router.get("/getById/:id", warehouseController.getWarehouseId);
 router.post("/addDeliveryBoy", warehouseController.addDeliveryBoys);
 router.get("/getDeliveryBoyStats", warehouseController.getDeliveryBoysStats);
 router.get("/get/warehouseByUID/:UID", warehouseController.getWarehouseByUID);
+router.get("/warehouseStats", warehouseController.getWarehouseStats);
 module.exports = router;
