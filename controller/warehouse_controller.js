@@ -1,5 +1,6 @@
 const Warehouse = require("../models/warehouse_model"); // Adjust the path as per your structure
 const User = require("../models/user_models");
+const Orders = require("../models/order_model");
 // Get all warehouses
 exports.getAllWarehouses = async (req, res) => {
   try {
@@ -222,3 +223,80 @@ exports.getWarehouseByUID = async (req, res) => {
 }
 
 //  numberof user  pincode,total orders total delivered order,total revenue,number of delivery boys
+
+exports.getWarehouseStats = async (req, res) => {
+  try {
+    const { id } = req.query;
+    let warehouse;
+    if (id) {
+      warehouse = await Warehouse.find({ _id: id }).exec();
+    } else {
+      warehouse = await Warehouse.find().exec();
+    }
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+    console.log("warehouse", warehouse);
+    let main_delivery_boys = 0; 
+    let main_total_orders=0;
+    let main_total_failed =0
+    let main_total_amount = 0;
+    let main_total_profit = 0;
+    let main_total_delivered = 0;
+
+    let final_data=[];
+    await Promise.all(warehouse.map(async (warehouse) => {
+
+
+      let delivery_boys = warehouse.deliveryboys.length;
+      const orders = await Orders.find({ warehouse_ref: warehouse._id }).exec();
+      let total_orders = orders.length;
+      let total_delivered = orders.filter((order) => order.order_status === "Delivered").length;
+      let total_failed = orders.filter((order) => order.order_status === "Delivery failed").length;
+      let total_amount = 0;
+      orders.map((order) => {
+        if (order.order_status === "Delivered")
+          total_amount += order.total_amount
+      }
+
+      );
+      let total_profit = 0;
+      orders.map((order) => {
+        if (order.order_status === "Delivered")
+          total_profit += order.profit
+      });
+      const data = {
+        warehouse_id: warehouse._id,
+        warehouse_name: warehouse.warehouse_name,
+        delivery_boys: delivery_boys,
+        total_orders: total_orders,
+        total_delivered: total_delivered,
+        total_amount: total_amount,
+        total_profit: total_profit,
+        total_failed: total_failed,
+      }
+      main_total_delivered += total_delivered;
+      main_delivery_boys += delivery_boys;
+      main_total_orders += total_orders;
+      main_total_failed += total_failed;
+      main_total_amount += total_amount;
+      main_total_profit += total_profit;
+      console.log("data", data);
+      final_data.push(data);
+    }))
+    console.log("final_data", final_data);
+    res.status(200).json({ 
+      success: true,
+       message: "Warehouse stats fetched successfully", 
+       total_delivery_boys:main_delivery_boys,
+       total_delivered:main_total_delivered,
+       total_orders:main_total_orders,
+       total_failed:main_total_failed,
+       total_amount:main_total_amount,
+       total_profit:main_total_profit,
+       warehouse: final_data 
+      });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching warehouse stats", error: error.message });
+  }
+}
