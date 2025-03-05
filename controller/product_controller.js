@@ -503,7 +503,7 @@ exports.getDraftsByWarehouse = async (req, res) => {
 };
 exports.getProductsByWarehuseCategorySubCategory = async (req, res) => {
   try {
-    const { warehouseId, categoryName, subCategoryName,warehouseName } = req.query;  
+    const { warehouseId, categoryName, subCategoryName,warehouseName } = req.params;  
     let warehouse;
     if(warehouseId){
       warehouse= await Warehouse.find({_id:warehouseId});
