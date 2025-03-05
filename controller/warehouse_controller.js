@@ -230,24 +230,26 @@ exports.getWarehouseStats = async (req, res) => {
     let warehouse;
     if (id) {
       warehouse = await Warehouse.find({ _id: id }).exec();
+      
     } else {
       warehouse = await Warehouse.find().exec();
     }
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
-    console.log("warehouse", warehouse);
+    // console.log("warehouse", warehouse);
     let main_delivery_boys = 0; 
     let main_total_orders=0;
     let main_total_failed =0
     let main_total_amount = 0;
     let main_total_profit = 0;
     let main_total_delivered = 0;
+    let main_total_users = 0;
 
     let final_data=[];
     await Promise.all(warehouse.map(async (warehouse) => {
-
-
+      const users= await User.find({"selected_Address.pincode":warehouse.picode,isUser:true}).exec();
+      let total_users = users.length;
       let delivery_boys = warehouse.deliveryboys.length;
       const orders = await Orders.find({ warehouse_ref: warehouse._id }).exec();
       let total_orders = orders.length;
@@ -281,13 +283,14 @@ exports.getWarehouseStats = async (req, res) => {
       main_total_failed += total_failed;
       main_total_amount += total_amount;
       main_total_profit += total_profit;
-      console.log("data", data);
+      main_total_users += total_users;
       final_data.push(data);
     }))
-    console.log("final_data", final_data);
+    // console.log("final_data", final_data);
     res.status(200).json({ 
       success: true,
        message: "Warehouse stats fetched successfully", 
+       total_users:main_total_users,
        total_delivery_boys:main_delivery_boys,
        total_delivered:main_total_delivered,
        total_orders:main_total_orders,
