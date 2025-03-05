@@ -501,3 +501,33 @@ exports.getDraftsByWarehouse = async (req, res) => {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
   }
 };
+exports.getProductsByWarehuseCategorySubCategory = async (req, res) => {
+  try {
+    const { warehouseId, categoryName, subCategoryName,warehouseName } = req.query;  
+    let warehouse;
+    if(warehouseId){
+      warehouse= await Warehouse.find({_id:warehouseId});
+
+    }else if(warehouseName){
+      warehouse= await Warehouse.find({warehouse_name:warehouseName});
+    }
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    const category = await Category.findOne({ category_name: categoryName });
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+    const subCategory = await SubCategory.findOne({ sub_category_name: subCategoryName, category_ref: category._id });
+    if (!subCategory) {
+      return res.status(404).json({ message: "Sub-category not found" });
+    }
+    const categoryId = category._id;
+    const subCategoryId = subCategory._id;
+    
+    const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId }).populate("Brand category_ref sub_category_ref").exec();
+    res.status(200).json({ message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving products", error: error.message });
+  }
+};
