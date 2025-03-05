@@ -24,5 +24,7 @@ router.delete("/softDelete/:productId", ProductController.softDeleteProduct);
 router.delete("/soft/delete/variation", ProductController.softDeleteVariation);
 router.get("/allproducts/warehouse/:warehouseId", ProductController.getAllProductsByWarehouse);
 router.get("/get/drafts/warehouse/:warehouseId", ProductController.getDraftsByWarehouse);
-router.get("/get/productsFilter", ProductController.getProductsByWarehuseCategorySubCategory);
+router.get("/get/productsFilterwarehouseId/:categoryName/:subCategoryName/:warehouseId", ProductController.getProductsByWarehuseCategorySubCategory);
+router.get("/get/productsFilterwarehouseName/:categoryName/:subCategoryName/:warehouseName", ProductController.getProductsByWarehuseCategorySubCategory);
+
 module.exports = router;
