@@ -337,3 +337,20 @@ exports.deleteOrderById = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+exports.getDeliveredOrderByWarehouseId= async(req,res)=>{
+  try{
+    const {warehouseId}=req.params;
+    if(!warehouseId){
+      return res.status(400).json({success:false,message:"warehouseId is required"});
+    }
+    const orders= await Order.find({warehouse_ref:warehouseId,order_status:"Delivered"}).populate("warehouse_ref user_ref products.product_ref").exec();
+    if(!orders){
+      return res.status(404).json({success:false,message:"Orders not found"});
+    }
+    res.status(200).json({success:true,data:orders});
+  }catch(error){
+    res.status(500).json({success:false,message:error.message});
+  }
+}
