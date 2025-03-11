@@ -366,7 +366,7 @@ exports.getOrdersByStatus = async (req, res) => {
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
-    if(orders.length === 0){
+    if (orders.length === 0) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
     res.status(200).json({ success: true, data: orders });
@@ -376,7 +376,7 @@ exports.getOrdersByStatus = async (req, res) => {
   }
 };
 
-exports.getOrderProfitAndTotalAmountYear = async (req, res) => {
+exports.getOrderStatsByWareHouseYear = async (req, res) => {
   try {
     const { warehouseId, year, month } = req.query;
 
@@ -384,66 +384,245 @@ exports.getOrderProfitAndTotalAmountYear = async (req, res) => {
       return res.status(400).json({ success: false, message: "Warehouse ID and year are required" });
     }
 
-    // Construct the base query for year
+
     const query = {
       warehouse_ref: warehouseId,
       order_status: "Delivered",
       order_placed_time: {
-        $gte: new Date(`${year}-01-01T00:00:00Z`), // Start of the year in UTC
-        $lt: new Date(`${parseInt(year) + 1}-01-01T00:00:00Z`), // Start of the next year in UTC
+        $gte: new Date(`${year}-01-01T00:00:00Z`),
+        $lt: new Date(`${parseInt(year) + 1}-01-01T00:00:00Z`),  // Start of the next year
       },
     };
 
-    console.log("Query before month filter:", query);
-
     if (month) {
-      // Validate month
+
       if (parseInt(month) < 1 || parseInt(month) > 12) {
         return res.status(400).json({ success: false, message: "Invalid month. Please provide a month between 1 and 12." });
       }
 
-      // Create date range for the given month
-      const startOfMonth = moment(`${year}-${month}-01`).startOf('month').toDate();  // Start of the month
-      const endOfMonth = moment(`${year}-${month}-01`).endOf('month').toDate(); // End of the month
+      const startOfMonth = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`); // Ensure two-digit month
+      const endOfMonth = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`);
+      endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+      if (isNaN(startOfMonth) || isNaN(endOfMonth)) {
+        return res.status(400).json({ success: false, message: "Invalid date provided for the month." });
+      }
 
-      // Update query to filter by the selected month
-      query.order_placed_time = {
-        $gte: startOfMonth,
-        $lt: endOfMonth,
-      };
+      query.order_placed_time = { $gte: startOfMonth, $lt: endOfMonth };
     }
 
-    console.log("Final query after applying month filter:", query);
-    const result1 = await Order.find(query).exec();
-    console.log("result", result1);
+    const result1 = await Order.find(
+      query,
+    )
+    let groupBy = month ? { $dayOfMonth: "$order_placed_time" } : { $month: "$order_placed_time" };
+    // const result = await Order.aggregate([
+    //   // {
+    //   //   $match:
+    //   //     query,
+    //   // },
+    //   {
+    //     $group: {
+    //       _id: groupBy,
+    //       totalAmount: { $sum: "$total_amount" },
+    //       totalProfit: { $sum: "$profit" },
+    //     },
+    //   },
+    //   {
+    //     $sort: { _id: 1 },
+    //   },
+    // ]);
+    const aggregatedResult = result1.reduce((acc, order) => {
+      let key;
+      if (month) {
+        key = new Date(order.order_placed_time).getDate();
+      } else {
+        key = new Date(order.order_placed_time).getMonth() + 1;  // JavaScript months are 0-indexed
+      }
 
+      if (!acc[key]) {
+        acc[key] = {
+          totalAmount: 0,
+          totalProfit: 0,
+        };
+      }
 
-    const result = await Order.aggregate([
-      {
-        $match: query, // Match the query
-      },
-      {
-        $group: {
-          _id: "$warehouse_ref",
-          totalAmount: { $sum: "$total_amount" },
-          totalProfit: { $sum: "$profit" },
-        },
-      },
-    ]).exec();
+      acc[key].totalAmount += order.total_amount;
+      acc[key].totalProfit += order.profit;
 
-    console.log("Aggregation result:", result);
-
+      return acc;
+    }, {});
+    const result = [];
+    let maxTotalAmount = 0;
+    let maxTotalProfit = 0;
+    if (month) {
+      const daysInMonth = new Date(year, month, 0).getDate(); 
+      for (let i = 1; i <= daysInMonth; i++) {
+        if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
+          maxTotalAmount = aggregatedResult[i]?.totalAmount;
+        }
+        if (aggregatedResult[i]?.totalProfit > maxTotalProfit) {
+          maxTotalProfit = aggregatedResult[i]?.totalProfit;
+        }
+        result.push({
+          _id: i,
+          totalAmount: aggregatedResult[i]?.totalAmount || 0,
+          totalProfit: aggregatedResult[i]?.totalProfit || 0,
+        });
+      }
+    } else {
+      const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      for (let i = 1; i <= 12; i++) {
+        if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
+          maxTotalAmount = aggregatedResult[i]?.totalAmount;
+        }
+        if (aggregatedResult[i]?.totalProfit > maxTotalProfit) {
+          maxTotalProfit = aggregatedResult[i]?.totalProfit;
+        }
+        result.push({
+          _id: i,
+          month:months[i-1],
+          totalAmount: aggregatedResult[i]?.totalAmount || 0,
+          totalProfit: aggregatedResult[i]?.totalProfit || 0,
+        });
+      }
+    }
     if (!result || result.length === 0) {
       return res.status(404).json({ success: false, message: "No orders found for the given criteria" });
     }
 
     return res.status(200).json({
       success: true,
-      data: result[0],
+      maxXAxis: maxTotalAmount>maxTotalProfit ? maxTotalAmount : maxTotalProfit,
+      maxYAxis: month?result[result.length-1]._id : 12,
+      data: result,
     });
 
   } catch (error) {
-    console.error("Error fetching profit and total amount:", error);
+    console.error("Error fetching order stats:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+exports.getOrderStatsByYear = async (req, res) => {
+  try {
+    const { year, month } = req.query;
+
+    if ( !year) {
+      return res.status(400).json({ success: false, message: "year is  required" });
+    }
+
+
+    const query = {
+      // warehouse_ref: warehouseId,
+      order_status: "Delivered",
+      order_placed_time: {
+        $gte: new Date(`${year}-01-01T00:00:00Z`),
+        $lt: new Date(`${parseInt(year) + 1}-01-01T00:00:00Z`),  // Start of the next year
+      },
+    };
+
+    if (month) {
+
+      if (parseInt(month) < 1 || parseInt(month) > 12) {
+        return res.status(400).json({ success: false, message: "Invalid month. Please provide a month between 1 and 12." });
+      }
+
+      const startOfMonth = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`); // Ensure two-digit month
+      const endOfMonth = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`);
+      endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+      if (isNaN(startOfMonth) || isNaN(endOfMonth)) {
+        return res.status(400).json({ success: false, message: "Invalid date provided for the month." });
+      }
+
+      query.order_placed_time = { $gte: startOfMonth, $lt: endOfMonth };
+    }
+
+    const result1 = await Order.find(
+      query,
+    )
+    let groupBy = month ? { $dayOfMonth: "$order_placed_time" } : { $month: "$order_placed_time" };
+    // const result = await Order.aggregate([
+    //   // {
+    //   //   $match:
+    //   //     query,
+    //   // },
+    //   {
+    //     $group: {
+    //       _id: groupBy,
+    //       totalAmount: { $sum: "$total_amount" },
+    //       totalProfit: { $sum: "$profit" },
+    //     },
+    //   },
+    //   {
+    //     $sort: { _id: 1 },
+    //   },
+    // ]);
+    const aggregatedResult = result1.reduce((acc, order) => {
+      let key;
+      if (month) {
+        key = new Date(order.order_placed_time).getDate();
+      } else {
+        key = new Date(order.order_placed_time).getMonth() + 1;  // JavaScript months are 0-indexed
+      }
+
+      if (!acc[key]) {
+        acc[key] = {
+          totalAmount: 0,
+          totalProfit: 0,
+        };
+      }
+
+      acc[key].totalAmount += order.total_amount;
+      acc[key].totalProfit += order.profit;
+
+      return acc;
+    }, {});
+    const result = [];
+    let maxTotalAmount = 0;
+    let maxTotalProfit = 0;
+    if (month) {
+      const daysInMonth = new Date(year, month, 0).getDate(); 
+      for (let i = 1; i <= daysInMonth; i++) {
+        if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
+          maxTotalAmount = aggregatedResult[i]?.totalAmount;
+        }
+        if (aggregatedResult[i]?.totalProfit > maxTotalProfit) {
+          maxTotalProfit = aggregatedResult[i]?.totalProfit;
+        }
+        result.push({
+          _id: i,
+          totalAmount: aggregatedResult[i]?.totalAmount || 0,
+          totalProfit: aggregatedResult[i]?.totalProfit || 0,
+        });
+      }
+    } else {
+      const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      for (let i = 1; i <= 12; i++) {
+        if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
+          maxTotalAmount = aggregatedResult[i]?.totalAmount;
+        }
+        if (aggregatedResult[i]?.totalProfit > maxTotalProfit) {
+          maxTotalProfit = aggregatedResult[i]?.totalProfit;
+        }
+        result.push({
+          _id: i,
+          month:months[i-1],
+          totalAmount: aggregatedResult[i]?.totalAmount || 0,
+          totalProfit: aggregatedResult[i]?.totalProfit || 0,
+        });
+      }
+    }
+    if (!result || result.length === 0) {
+      return res.status(404).json({ success: false, message: "No orders found for the given criteria" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      maxXAxis: maxTotalAmount>maxTotalProfit ? maxTotalAmount : maxTotalProfit,
+      maxYAxis: month?result[result.length-1]._id : 12,
+      data: result,
+    });
+
+  } catch (error) {
+    console.error("Error fetching order stats:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
