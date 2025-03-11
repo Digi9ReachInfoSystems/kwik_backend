@@ -15,5 +15,7 @@ router.get("/get/warehouse/:warehouse_id/status/:order_status", orderController.
 router.get("/getWarehouseId/:warehouse_id", orderController.getOrdersByWarehouseId);
 router.delete("/deleteOrder/:id", orderController.deleteOrderById);
 router.get("/getDeliveredOrdersByWarehouseId/:warehouseId", orderController.getDeliveredOrderByWarehouseId);
+router.get("/get/orderbyStatus/:status", orderController.getOrdersByStatus);
+router.get("/get/deliveredOrderStatsByWarehouseYearly",orderController.getOrderProfitAndTotalAmountYear)
 
 module.exports = router;
