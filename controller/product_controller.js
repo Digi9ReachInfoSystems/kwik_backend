@@ -446,7 +446,7 @@ exports.softDeleteProduct = async (req, res) => {
 };
 exports.softDeleteVariation = async (req, res) => {
   try {
-    const { productId, variationId,stock_id } = req.body;
+    const { productId, variationId, stock_id } = req.body;
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -460,7 +460,7 @@ exports.softDeleteVariation = async (req, res) => {
           }
           return item;
         })
-        
+
       }
       return variation;
     });
@@ -481,7 +481,7 @@ exports.softDeleteVariation = async (req, res) => {
 exports.getAllProductsByWarehouse = async (req, res) => {
   try {
     const { warehouseId } = req.params;
-    const products = await Product.find({ warehouse_ref: warehouseId , isDeleted: false, draft: false }).populate("Brand category_ref sub_category_ref").exec();
+    const products = await Product.find({ warehouse_ref: warehouseId, isDeleted: false, draft: false }).populate("Brand category_ref sub_category_ref").exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
@@ -503,13 +503,13 @@ exports.getDraftsByWarehouse = async (req, res) => {
 };
 exports.getProductsByWarehuseCategorySubCategory = async (req, res) => {
   try {
-    const { warehouseId, categoryName, subCategoryName,warehouseName } = req.params;  
+    const { warehouseId, categoryName, subCategoryName, warehouseName } = req.params;
     let warehouse;
-    if(warehouseId){
-      warehouse= await Warehouse.find({_id:warehouseId});
+    if (warehouseId) {
+      warehouse = await Warehouse.find({ _id: warehouseId });
 
-    }else if(warehouseName){
-      warehouse= await Warehouse.find({warehouse_name:warehouseName});
+    } else if (warehouseName) {
+      warehouse = await Warehouse.find({ warehouse_name: warehouseName });
     }
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
@@ -524,7 +524,7 @@ exports.getProductsByWarehuseCategorySubCategory = async (req, res) => {
     }
     const categoryId = category._id;
     const subCategoryId = subCategory._id;
-    
+
     const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId }).populate("Brand category_ref sub_category_ref").exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
   } catch (error) {
@@ -547,12 +547,38 @@ exports.searchProducts = async (req, res) => {
     });
 
     if (products.length === 0) {
-      return res.status(404).json({ success: false, message: "No products found" ,data: products });
+      return res.status(404).json({ success: false, message: "No products found", data: products });
     }
 
-    return res.status(200).json({success: true, message: "Products retrieved successfully", data: products });
+    return res.status(200).json({ success: true, message: "Products retrieved successfully", data: products });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error" ,error: error.message });
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+exports.searchProductsByWarehouse = async (req, res) => {
+  const { name } = req.query;
+  const { warehouseId } = req.params;
+
+  if (!name) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+
+  try {
+    // Case-insensitive search for products whose names start with the provided term
+    const products = await Product.find({
+      product_name: { $regex: `^${name}`, $options: "i" },
+      warehouse_ref: warehouseId,
+      isDeleted: false
+    });
+
+    if (products.length === 0) {
+      return res.status(404).json({ success: false, message: "No products found", data: products });
+    }
+
+    return res.status(200).json({ success: true, message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
