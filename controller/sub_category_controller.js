@@ -252,7 +252,7 @@ exports.searchSubCategories = async (req, res) => {
     }
 
    
-    const subCategories = await SubCategory.find({ sub_category_name: { $regex: `^${name}`, $options: "i" }, isDeleted: false });
+    const subCategories = await SubCategory.find({ sub_category_name: { $regex: `^${name}`, $options: "i" }, isDeleted: false }).populate('category_ref');
     if (subCategories.length === 0) {
       return res.status(404).json({ success: false, message: "No subcategories found" ,data: subCategories });
     }
