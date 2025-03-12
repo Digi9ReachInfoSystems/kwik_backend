@@ -217,3 +217,22 @@ exports.softDeleteCategory = async (req, res) => {
     res.status(500).json({ message: "Error soft deleting category", error: error.message });
   }
 };
+
+exports.searchCategory = async (req, res) => {
+  try {
+    const { name } = req.query;
+    if (!name) {
+      return res.status(400).json({ message: "Search term is required" });
+    }
+
+   
+    const categories = await Category.find({ category_name: { $regex: `^${name}`, $options: "i" }, isDeleted: false });
+    if (categories.length === 0) {
+      return res.status(404).json({ success: false, message: "No categories found" ,data: categories });
+    }
+
+    res.status(200).json({success: true, message: "Categories retrieved successfully", data: categories });
+  } catch (error) {
+    res.status(500).json({ message: "Error searching categories", error: error.message });  
+  }
+};

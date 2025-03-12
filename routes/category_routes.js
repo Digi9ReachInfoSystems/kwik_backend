@@ -14,6 +14,7 @@ router.put("/edit/:id", categoryController.editCategory);
 
 // Delete a category
 router.delete("/delete/:id", categoryController.deleteCategory);
-router.delete("/softDelete/:id", categoryController.softDeleteCategory);    
+router.delete("/softDelete/:id", categoryController.softDeleteCategory);
+router.get("/search/category", categoryController.searchCategory);    
 
 module.exports = router;
