@@ -15,5 +15,6 @@ router.put('/edit/:id', brandController.editBrand);
 // Delete a brand
 router.delete('/delete/:id', brandController.deleteBrand);
 router.delete('/softDelete/:id', brandController.softDeleteBrand);
+router.get("/search/brand", brandController.searchBrand);
 
 module.exports = router;
