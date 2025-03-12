@@ -27,5 +27,5 @@ router.get("/get/drafts/warehouse/:warehouseId", ProductController.getDraftsByWa
 router.get("/get/productsFilterwarehouseId/:categoryName/:subCategoryName/:warehouseId", ProductController.getProductsByWarehuseCategorySubCategory);
 router.get("/get/productsFilterwarehouseName/:categoryName/:subCategoryName/:warehouseName", ProductController.getProductsByWarehuseCategorySubCategory);
 router.get("/search/product", ProductController.searchProducts);
-
+router.get("/search/product/:warehouseId", ProductController.searchProductsByWarehouse);
 module.exports = router;
