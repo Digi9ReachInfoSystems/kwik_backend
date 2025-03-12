@@ -26,5 +26,6 @@ router.get(
   subCategoryController.getSubCategoriesByCategoryName
 );
 router.delete("/softDelete/:id", subCategoryController.softDeleteSubCategory);
+router.get("/search/subcategory", subCategoryController.searchSubCategories);
 
 module.exports = router;

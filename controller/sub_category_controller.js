@@ -243,3 +243,22 @@ exports.softDeleteSubCategory = async (req, res) => {
     res.status(500).json({ message: "Error soft deleting sub-category", error: error.message });
   }
 };
+
+exports.searchSubCategories = async (req, res) => {
+  try {
+    const { name } = req.query;
+    if (!name) {
+      return res.status(400).json({ message: "Search term is required" });
+    }
+
+   
+    const subCategories = await SubCategory.find({ sub_category_name: { $regex: `^${name}`, $options: "i" }, isDeleted: false });
+    if (subCategories.length === 0) {
+      return res.status(404).json({ success: false, message: "No subcategories found" ,data: subCategories });
+    }
+
+    res.status(200).json({success: true, message: "subcategories retrieved successfully", data: subCategories });
+  } catch (error) {
+    res.status(500).json({ message: "Error searching sub-categories", error: error.message });  
+  }
+};

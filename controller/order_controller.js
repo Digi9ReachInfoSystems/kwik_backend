@@ -6,6 +6,14 @@ const Product = require("../models/product_model");
 const mongoose = require("mongoose");
 const moment = require("moment");
 
+function getISOWeek(date) {
+  const tempDate = new Date(date.getTime());
+  tempDate.setDate(tempDate.getDate() + 4 - (tempDate.getDay() || 7));
+  const yearStart = new Date(tempDate.getFullYear(), 0, 1);
+  const weekNo = Math.ceil(((tempDate - yearStart) / 86400000 + 1) / 7);
+  return weekNo;
+}
+
 // Create a new order
 exports.createOrder = async (req, res) => {
   try {
@@ -454,7 +462,7 @@ exports.getOrderStatsByWareHouseYear = async (req, res) => {
     let maxTotalAmount = 0;
     let maxTotalProfit = 0;
     if (month) {
-      const daysInMonth = new Date(year, month, 0).getDate(); 
+      const daysInMonth = new Date(year, month, 0).getDate();
       for (let i = 1; i <= daysInMonth; i++) {
         if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
           maxTotalAmount = aggregatedResult[i]?.totalAmount;
@@ -469,7 +477,7 @@ exports.getOrderStatsByWareHouseYear = async (req, res) => {
         });
       }
     } else {
-      const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       for (let i = 1; i <= 12; i++) {
         if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
           maxTotalAmount = aggregatedResult[i]?.totalAmount;
@@ -479,20 +487,25 @@ exports.getOrderStatsByWareHouseYear = async (req, res) => {
         }
         result.push({
           _id: i,
-          month:months[i-1],
+          month: months[i - 1],
           totalAmount: aggregatedResult[i]?.totalAmount || 0,
           totalProfit: aggregatedResult[i]?.totalProfit || 0,
         });
       }
     }
     if (!result || result.length === 0) {
-      return res.status(404).json({ success: false, message: "No orders found for the given criteria" });
+      return res.status(404).json({
+        success: false, message: "No orders found for the given criteria" ,
+        data: result,
+        maxXAxis: maxTotalAmount > maxTotalProfit ? (maxTotalAmount + (maxTotalAmount * 0.2)) : (maxTotalProfit + (maxTotalProfit * 0.2)),
+        maxYAxis: month ? result[result.length - 1]._id : 12,
+      });
     }
 
     return res.status(200).json({
       success: true,
-      maxXAxis: maxTotalAmount>maxTotalProfit ? maxTotalAmount : maxTotalProfit,
-      maxYAxis: month?result[result.length-1]._id : 12,
+      maxXAxis: maxTotalAmount > maxTotalProfit ? (maxTotalAmount + (maxTotalAmount * 0.2)) : (maxTotalProfit + (maxTotalProfit * 0.2)),
+      maxYAxis: month ? result[result.length - 1]._id : 12,
       data: result,
     });
 
@@ -505,7 +518,7 @@ exports.getOrderStatsByYear = async (req, res) => {
   try {
     const { year, month } = req.query;
 
-    if ( !year) {
+    if (!year) {
       return res.status(400).json({ success: false, message: "year is  required" });
     }
 
@@ -579,7 +592,7 @@ exports.getOrderStatsByYear = async (req, res) => {
     let maxTotalAmount = 0;
     let maxTotalProfit = 0;
     if (month) {
-      const daysInMonth = new Date(year, month, 0).getDate(); 
+      const daysInMonth = new Date(year, month, 0).getDate();
       for (let i = 1; i <= daysInMonth; i++) {
         if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
           maxTotalAmount = aggregatedResult[i]?.totalAmount;
@@ -594,7 +607,7 @@ exports.getOrderStatsByYear = async (req, res) => {
         });
       }
     } else {
-      const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       for (let i = 1; i <= 12; i++) {
         if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
           maxTotalAmount = aggregatedResult[i]?.totalAmount;
@@ -604,20 +617,25 @@ exports.getOrderStatsByYear = async (req, res) => {
         }
         result.push({
           _id: i,
-          month:months[i-1],
+          month: months[i - 1],
           totalAmount: aggregatedResult[i]?.totalAmount || 0,
           totalProfit: aggregatedResult[i]?.totalProfit || 0,
         });
       }
     }
     if (!result || result.length === 0) {
-      return res.status(404).json({ success: false, message: "No orders found for the given criteria" });
+      return res.status(404).json({
+        success: false, message: "No orders found for the given criteria",
+        data: result,
+        maxXAxis: maxTotalAmount > maxTotalProfit ? (maxTotalAmount + (maxTotalAmount * 0.2)) : (maxTotalProfit + (maxTotalProfit * 0.2)),
+        maxYAxis: month ? result[result.length - 1]._id : 12,
+      });
     }
 
     return res.status(200).json({
       success: true,
-      maxXAxis: maxTotalAmount>maxTotalProfit ? maxTotalAmount : maxTotalProfit,
-      maxYAxis: month?result[result.length-1]._id : 12,
+      maxXAxis: maxTotalAmount > maxTotalProfit ? (maxTotalAmount + (maxTotalAmount * 0.2)) : (maxTotalProfit + (maxTotalProfit * 0.2)),
+      maxYAxis: month ? result[result.length - 1]._id : 12,
       data: result,
     });
 
@@ -626,3 +644,69 @@ exports.getOrderStatsByYear = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+exports.getWeeklyDeliveredOrderCount = async (req, res) => {
+  const { year, month, warehouseId } = req.query;
+  try {
+    const startDate = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`);
+    const endDate = new Date(year, month, 1);
+    const totalWeeks = Math.ceil((endDate.getDate() - startDate.getDate() + 1) / 7);
+    console.log("totalWeeks",);
+    const pipeline = [
+      {
+        $match: {
+          order_status: "Delivered",
+          order_placed_time: {
+            $gte: startDate,
+            $lt: endDate,
+          },
+          ...(warehouseId && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
+        },
+      },
+      {
+        $project: {
+          week: { $isoWeek: "$order_placed_time" },
+        },
+      },
+      {
+        $group: {
+          _id: "$week",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+      {
+        $project: {
+          _id: 0,
+          week: "$_id",
+          count: 1,
+        },
+      },
+    ];
+
+
+    const result = await Order.aggregate(pipeline);
+
+
+    let weekCounts = [];
+    let maxXAxis = 0;
+    for (let i = getISOWeek(startDate), j = 1; i <= getISOWeek(endDate); i++, j++) {
+      const weekData = result.find((item) => item.week === i);
+      if (weekData && weekData.count > maxXAxis) {
+        maxXAxis = weekData.count;
+      }
+      weekCounts.push({ week: j, count: weekData ? weekData.count : 0 });
+    }
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({ success: false, message: "No orders found for the given criteria", data: weekCounts });
+    }
+
+    return res.status(200).json({ success: true, maxXAxis: (maxXAxis + 5), maxYAxis: weekCounts[weekCounts.length - 1].week, data: weekCounts, });
+  } catch (error) {
+    console.error("Error fetching order stats:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+}
