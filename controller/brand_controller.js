@@ -125,3 +125,27 @@ exports.softDeleteBrand = async (req, res) => {
     res.status(500).json({ message: "Error soft deleting brand", error: error.message });
   }
 };
+exports.searchBrand = async (req, res) => {
+  const { name } = req.query;
+
+  if (!name) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+
+  try {
+    // Case-insensitive search for products whose names start with the provided term
+    const brands = await Brand.find({
+      brand_name: { $regex: `^${name}`, $options: "i" },
+      isDeleted: false
+    });
+
+    if (brands.length === 0) {
+      return res.status(404).json({ success: false, message: "No brands found", data: brands });
+    }
+
+    return res.status(200).json({ success: true, message: "Brands retrieved successfully", data: brands });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

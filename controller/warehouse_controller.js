@@ -303,3 +303,25 @@ exports.getWarehouseStats = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching warehouse stats", error: error.message });
   }
 }
+exports.searchWarehouse = async (req, res) => {
+  const { name } = req.query;
+
+  if (!name) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+
+  try {
+    const warehouses = await Warehouse.find({
+      warehouse_name: { $regex: `^${name}`, $options: "i" }
+    });
+
+    if (warehouses.length === 0) {
+      return res.status(404).json({ success: false, message: "No Warehouse found", data: warehouses });
+    }
+
+    return res.status(200).json({ success: true, message: "Warehouses retrieved successfully", data: warehouses });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
