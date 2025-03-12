@@ -495,7 +495,7 @@ exports.getOrderStatsByWareHouseYear = async (req, res) => {
     }
     if (!result || result.length === 0) {
       return res.status(404).json({
-        success: false, message: "No orders found for the given criteria" ,
+        success: false, message: "No orders found for the given criteria",
         data: result,
         maxXAxis: maxTotalAmount > maxTotalProfit ? (maxTotalAmount + (maxTotalAmount * 0.2)) : (maxTotalProfit + (maxTotalProfit * 0.2)),
         maxYAxis: month ? result[result.length - 1]._id : 12,
@@ -710,3 +710,56 @@ exports.getWeeklyDeliveredOrderCount = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 }
+
+exports.searchOrderBycustomerName = async (req, res) => {
+  const { name } = req.query;
+
+  if (!name) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+
+  try {
+    const users = await User.find({ displayName: { $regex: `^${name}`, $options: "i" } });
+    if (!users) {
+      return res.status(404).json({ sucess: false, message: "Users not found" });
+    }
+    const userIds = users.map(user => user._id);
+    const orders = await Order.find({  user_ref: { $in: userIds }}).populate('user_ref', 'displayName');
+
+    if (orders.length === 0) {
+      return res.status(404).json({ success: false, message: "No Orders found", data: orders });
+    }
+
+    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orders });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.searchOrderByWarehouseCustomerName = async (req, res) => {
+  const { name } = req.query;
+  const{warehouseId} = req.params;
+
+  if (!name) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+
+  try {
+    const users = await User.find({ displayName: { $regex: `^${name}`, $options: "i" } });
+    if (!users) {
+      return res.status(404).json({ sucess: false, message: "Users not found" });
+    }
+    const userIds = users.map(user => user._id);
+    const orders = await Order.find({  user_ref: { $in: userIds },warehouse_ref:warehouseId }).populate('user_ref', 'displayName');
+
+    if (orders.length === 0) {
+      return res.status(404).json({ success: false, message: "No Orders found", data: orders });
+    }
+
+    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orders });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

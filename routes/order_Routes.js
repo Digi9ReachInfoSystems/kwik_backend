@@ -19,5 +19,7 @@ router.get("/get/orderbyStatus/:status", orderController.getOrdersByStatus);
 router.get("/get/deliveredOrderStatsByWarehouseYearly",orderController.getOrderStatsByWareHouseYear)
 router.get("/get/deliveredOrderStatsByYearly",orderController.getOrderStatsByYear)
 router.get("/get/orderStatsByMonth",orderController.getWeeklyDeliveredOrderCount)
+router.get("/search/order",orderController.searchOrderBycustomerName)
+router.get("/search/orderbywarehouse/:warehouseId",orderController.searchOrderByWarehouseCustomerName)
 
 module.exports = router;
