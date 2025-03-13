@@ -5,6 +5,7 @@ const Order = require("../models/order_model");
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
   try {
+    console.dir(req.body, { depth: null });
     const newCoupon = new Coupon(req.body);
     await newCoupon.save();
     res.status(201).json({ success: true, message: "Coupon created successfully", data: newCoupon });
