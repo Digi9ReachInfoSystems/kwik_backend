@@ -68,6 +68,16 @@ const categorySchema = new mongoose.Schema({
     required: [true, "Is deleted status is required"],
     default: false,
   },
+  is_landingPage: {
+    type: Boolean,
+    default: false,
+  },
+  selected_sub_category_ref: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubCategory",
+    },
+  ],
 });
 
 // Create and export the Category model
