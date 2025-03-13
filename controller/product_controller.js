@@ -36,13 +36,19 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "Category not found" });
     }
     productData.category_ref = category._id;
-    const subCategory = await SubCategory.findOne({
-      sub_category_name: productData.sub_category_ref,
-    });
-    if (!subCategory) {
-      return res.status(400).json({ message: "SubCategory not found" });
-    }
-    productData.sub_category_ref = subCategory._id;
+
+    const subCategoryIds = await Promise.all(productData.sub_category_ref.map(async (sub_category_ref) => {
+      console.log("Hello", sub_category_ref);
+      const subCategory = await SubCategory.findOne({
+        sub_category_name: sub_category_ref,
+      });
+      if (!subCategory) {
+        return res.status(400).json({ message: "SubCategory not found" });
+      }
+      return subCategory._id
+    })
+    )
+    productData.sub_category_ref = subCategoryIds;
 
     // Create a new product
     const newProduct = new Product(productData);

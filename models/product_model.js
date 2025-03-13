@@ -46,7 +46,7 @@ const productSchema = new mongoose.Schema({
       message: "Invalid category reference",
     },
   },
-  sub_category_ref: {
+  sub_category_ref:[ {
     type: mongoose.Schema.Types.ObjectId,
     ref: "SubCategory",
     required: [true, "Sub-category reference is required"],
@@ -60,7 +60,7 @@ const productSchema = new mongoose.Schema({
       },
       message: "Invalid sub-category reference",
     },
-  },
+  }],
   variations: {
     type: [variationSchema],
     required: [true, "Product variations are required"],
