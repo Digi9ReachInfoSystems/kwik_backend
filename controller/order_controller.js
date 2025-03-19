@@ -292,7 +292,7 @@ exports.getMonthlyRevenueByYear = async (req, res) => {
     });
 
 
-    res.status(200).json({ success: true, data: responseData, total_Revenue: total_amount, MaxAmount: ( maxAmount * 1.2)  });
+    res.status(200).json({ success: true, data: responseData, total_Revenue: total_amount, MaxAmount: (maxAmount * 1.2) });
   } catch (error) {
     console.error('Error fetching monthly revenue by year:', error);
     res.status(500).json({ success: false, message: 'Error fetching data' });
@@ -724,7 +724,7 @@ exports.searchOrderBycustomerName = async (req, res) => {
       return res.status(404).json({ sucess: false, message: "Users not found" });
     }
     const userIds = users.map(user => user._id);
-    const orders = await Order.find({  user_ref: { $in: userIds }}).populate('user_ref', 'displayName');
+    const orders = await Order.find({ user_ref: { $in: userIds } }).populate('user_ref', 'displayName');
 
     if (orders.length === 0) {
       return res.status(404).json({ success: false, message: "No Orders found", data: orders });
@@ -739,7 +739,7 @@ exports.searchOrderBycustomerName = async (req, res) => {
 
 exports.searchOrderByWarehouseCustomerName = async (req, res) => {
   const { name } = req.query;
-  const{warehouseId} = req.params;
+  const { warehouseId } = req.params;
 
   if (!name) {
     return res.status(400).json({ message: "Search term is required" });
@@ -751,7 +751,7 @@ exports.searchOrderByWarehouseCustomerName = async (req, res) => {
       return res.status(404).json({ sucess: false, message: "Users not found" });
     }
     const userIds = users.map(user => user._id);
-    const orders = await Order.find({  user_ref: { $in: userIds },warehouse_ref:warehouseId }).populate('user_ref', 'displayName');
+    const orders = await Order.find({ user_ref: { $in: userIds }, warehouse_ref: warehouseId }).populate('user_ref', 'displayName');
 
     if (orders.length === 0) {
       return res.status(404).json({ success: false, message: "No Orders found", data: orders });
@@ -798,7 +798,7 @@ exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
     });
 
 
-    res.status(200).json({ success: true, data: responseData, total_Revenue: total_amount, MaxAmount:( maxAmount * 1.2) });
+    res.status(200).json({ success: true, data: responseData, total_Revenue: total_amount, MaxAmount: (maxAmount * 1.2) });
   } catch (error) {
     console.error('Error fetching monthly revenue by year:', error);
     res.status(500).json({ success: false, message: 'Error fetching data' });
@@ -806,9 +806,11 @@ exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
 };
 
 
-exports.getRecentOrders=async(req,res)=>{
+exports.getRecentOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ created_time: -1 }).limit(10).exec();
+    const orders = await Order.find().sort({ created_time: -1 }).limit(10)
+    .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+    .exec();
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
@@ -821,3 +823,41 @@ exports.getRecentOrders=async(req,res)=>{
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 }
+exports.getMonthlyOrderCount = async (req, res) => {
+  try {
+    const { year, warehouseId } = req.query;
+    const filter = {};
+    if (!year) {
+      return res.status(400).json({ success: false, message: "Year is required" });
+    }
+
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+    filter.order_placed_time = { $gte: startDate, $lte: endDate };
+    if (warehouseId) {
+      filter.warehouse_ref = warehouseId
+    }
+    filter.order_status = 'Delivered';
+
+    const orders = await Order.find(filter).exec();
+    const orderCounts = new Array(12).fill(0);
+    const finalOrders=[];
+
+    orders.forEach(order => {
+      const month = order.created_time.getMonth();
+      orderCounts[month]++;
+    });
+
+    for (let i = 0; i < orderCounts.length; i++) {
+      finalOrders.push({
+        month: i + 1,
+        count: orderCounts[i]
+      });
+    }
+
+    res.status(200).json({ success: true, data: finalOrders });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
