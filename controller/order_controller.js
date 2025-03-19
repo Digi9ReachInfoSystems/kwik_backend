@@ -804,3 +804,20 @@ exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error fetching data' });
   }
 };
+
+
+exports.getRecentOrders=async(req,res)=>{
+  try {
+    const orders = await Order.find().sort({ created_time: -1 }).limit(10).exec();
+    if (!orders) {
+      return res.status(404).json({ success: false, message: "Orders not found" });
+    }
+    if (orders.length === 0) {
+      return res.status(404).json({ success: false, message: "Orders not found" });
+    }
+    res.status(200).json({ success: true, data: orders });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
