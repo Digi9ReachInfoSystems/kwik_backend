@@ -292,7 +292,7 @@ exports.getMonthlyRevenueByYear = async (req, res) => {
     });
 
 
-    res.status(200).json({ success: true, data: responseData, total_Revenue: total_amount, MaxAmount: maxAmount });
+    res.status(200).json({ success: true, data: responseData, total_Revenue: total_amount, MaxAmount: ( maxAmount * 1.2)  });
   } catch (error) {
     console.error('Error fetching monthly revenue by year:', error);
     res.status(500).json({ success: false, message: 'Error fetching data' });
@@ -761,5 +761,46 @@ exports.searchOrderByWarehouseCustomerName = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
+  try {
+    const { year } = req.query;
+    const startDate = new Date(year, 0, 1);  // Start of the year
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999);  // End of the year
+
+    const orders = await Order.find({
+      completed_time: { $gte: startDate, $lte: endDate },
+      order_status: 'Delivered',
+    }).exec();
+    let total_amount = 0;
+    let maxAmount = 0;
+
+    const monthlyRevenue = Array(12).fill(0);
+
+    orders.forEach(order => {
+      const month = order.completed_time.getMonth();
+      monthlyRevenue[month] += order.total_amount;
+      total_amount += order.total_amount
+
+    });
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    const responseData = monthlyRevenue.map((revenue, index) => {
+      if (revenue > maxAmount) {
+        maxAmount = revenue;
+      }
+      return ({
+        month: months[index],
+        revenue: revenue
+      })
+    });
+
+
+    res.status(200).json({ success: true, data: responseData, total_Revenue: total_amount, MaxAmount:( maxAmount * 1.2) });
+  } catch (error) {
+    console.error('Error fetching monthly revenue by year:', error);
+    res.status(500).json({ success: false, message: 'Error fetching data' });
   }
 };

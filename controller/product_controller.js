@@ -126,8 +126,8 @@ exports.getProductsByCategory = async (req, res) => {
 // Get all products by subcategory ID
 exports.getProductsBySubCategory = async (req, res) => {
   try {
-    const { subCategoryId } = req.params;
-    const products = await Product.find({ sub_category_ref: subCategoryId, isDeleted: false, draft: false })
+    const subCategoryId = new mongoose.Types.ObjectId(req.params.subCategoryId);
+    const products = await Product.find({ sub_category_ref: subCategoryId ,isDeleted: false, draft: false })//, 
       .populate(
         "Brand category_ref sub_category_ref variations warehouse_ref  review"
       )
