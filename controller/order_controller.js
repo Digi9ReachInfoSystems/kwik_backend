@@ -861,3 +861,74 @@ exports.getMonthlyOrderCount = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+exports.getTopSellingProducts = async (req, res) => {
+  try {
+    // 1. Extract warehouseId and year from query (or body/params if you prefer)
+    const { warehouseId, year } = req.query; 
+    
+    if (!warehouseId || !year) {
+      return res
+        .status(400)
+        .json({ message: "Missing warehouseId or year in request query" });
+    }
+
+    const startOfYear = new Date(`${year}-01-01T00:00:00Z`);
+    const endOfYear = new Date(`${year}-12-31T23:59:59Z`);
+
+    const warehouseObjectId = new mongoose.Types.ObjectId(warehouseId);
+    const topProducts = await Order.aggregate([
+      {
+        $match: {
+          warehouse_ref: warehouseObjectId,
+          order_placed_time: {
+            $gte: startOfYear,
+            $lte: endOfYear,
+          },
+        },
+      },
+      { $unwind: "$products" },
+      {
+        $group: {
+          _id: "$products.product_ref", 
+          totalSold: { $sum: "$products.quantity" },
+        },
+      },
+      { $sort: { totalSold: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: "products",            // MongoDB collection name for Product
+          localField: "_id",           // _id from the group (product_ref)
+          foreignField: "_id",         // matches Product's _id
+          as: "productDetails",
+        },
+      },
+      { $unwind: "$productDetails" },
+      {
+        $project: {
+          _id: 0,
+          productId: "$_id",
+          totalSold: 1,
+          productDetails: {
+            _id: 1,
+            product_name: 1,
+            product_des: 1,
+            product_image:1,
+          },
+        },
+      },
+    ]);
+
+    // 5. Return the result
+    return res.status(200).json({
+      message: "Top 10 selling products retrieved successfully",
+      data: topProducts,
+    });
+  } catch (error) {
+    console.error("Error fetching top selling products:", error);
+    return res
+      .status(500)
+      .json({ message: "Error fetching top selling products", error: error.message });
+  }
+};
