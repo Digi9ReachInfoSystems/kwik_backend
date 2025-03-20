@@ -73,7 +73,8 @@ exports.addSubCategory = async (req, res) => {
       sub_category_name,
       sub_category_des,
       sub_category_image,
-      add_to_Category
+      add_to_Category,
+      productId_list
     } = req.body;
     // Validate required fields
     if (
@@ -107,6 +108,15 @@ exports.addSubCategory = async (req, res) => {
     const savedSubCategory = await newSubCategory.save();
     if (add_to_Category) {
       const updatedCategory = await Category.findByIdAndUpdate(categoryExists._id, { $push: { selected_sub_category_ref: savedSubCategory._id } }, { new: true });
+    }
+    if(productId_list.length > 0){
+      for (const productId of productId_list) {
+        const product = await Product.findById(productId);
+        if (product) {
+          product.sub_category_ref.push(savedSubCategory._id);
+          await product.save();
+        }
+      }
     }
     res.status(201).json({
       message: "Sub-category added successfully",

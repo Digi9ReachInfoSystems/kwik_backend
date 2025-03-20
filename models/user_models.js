@@ -36,6 +36,7 @@ const userSchema = new mongoose.Schema({
   isUser:{type:Boolean ,required:true,default:false},
   fcm_token: { type: String, required: false },
   device_number: { type: String, required: false },
+  is_qc: { type: Boolean, required: true, default: false },
   created_time: { type: Date, required: true, default: Date.now },
 });
 

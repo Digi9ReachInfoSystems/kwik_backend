@@ -28,4 +28,6 @@ router.get("/get/productsFilterwarehouseId/:categoryName/:subCategoryName/:wareh
 router.get("/get/productsFilterwarehouseName/:categoryName/:subCategoryName/:warehouseName", ProductController.getProductsByWarehuseCategorySubCategory);
 router.get("/search/product", ProductController.searchProducts);
 router.get("/search/product/:warehouseId", ProductController.searchProductsByWarehouse);
+router.put("/updateqcStatus/:productId", ProductController.updateQcStatus);
+router.get("/get/productByQcStatus", ProductController.getProductsByQcStatus);
 module.exports = router;

@@ -28,6 +28,7 @@ exports.createUser = async (req, res) => {
       deliveryboy_bike_image,
       assigned_warehouse,
       isWarehouse,
+      is_qc,
     } = req.body;
 
     // Check if the user already exists with the provided UID or phone
@@ -60,6 +61,7 @@ exports.createUser = async (req, res) => {
       deliveryboy_bike_image,
       assigned_warehouse,
       isWarehouse,
+      is_qc,
     });
 
     // Save the new user to the database
