@@ -255,10 +255,10 @@ exports.getWeeklyOrdersByMonthAndYear = async (req, res) => {
 
 exports.getMonthlyRevenueByYear = async (req, res) => {
   try {
-    const { year, pincode } = req.query;
+    const { year, warehouseId } = req.query;
     const startDate = new Date(year, 0, 1);  // Start of the year
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);  // End of the year
-    const warehouse = await Warehouse.findOne({ picode: pincode });
+    const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
