@@ -865,26 +865,22 @@ exports.getMonthlyOrderCount = async (req, res) => {
 exports.getTopSellingProducts = async (req, res) => {
   try {
     // 1. Extract warehouseId and year from query (or body/params if you prefer)
-    const { warehouseId, year } = req.query; 
+    const { warehouseId } = req.query; 
     
-    if (!warehouseId || !year) {
+    if (!warehouseId ) {
       return res
         .status(400)
         .json({ message: "Missing warehouseId or year in request query" });
     }
 
-    const startOfYear = new Date(`${year}-01-01T00:00:00Z`);
-    const endOfYear = new Date(`${year}-12-31T23:59:59Z`);
+    // const startOfYear = new Date(`${year}-01-01T00:00:00Z`);
+    // const endOfYear = new Date(`${year}-12-31T23:59:59Z`);
 
     const warehouseObjectId = new mongoose.Types.ObjectId(warehouseId);
     const topProducts = await Order.aggregate([
       {
         $match: {
           warehouse_ref: warehouseObjectId,
-          order_placed_time: {
-            $gte: startOfYear,
-            $lte: endOfYear,
-          },
         },
       },
       { $unwind: "$products" },
