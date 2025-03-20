@@ -46,7 +46,7 @@ const productSchema = new mongoose.Schema({
       message: "Invalid category reference",
     },
   },
-  sub_category_ref:[ {
+  sub_category_ref: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "SubCategory",
     required: [true, "Sub-category reference is required"],
@@ -114,6 +114,22 @@ const productSchema = new mongoose.Schema({
     required: [true, "Is deleted status is required"],
     default: false,
   },
+  qc_status: {
+    type: String,
+    required: true,
+    enum: ["pending", "approved", "rejected", "revised"],
+    message: "Invalid QC status",
+    default: "pending"
+  },
+  last_qc_done_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: false,
+  },
+  qc_remarks:[ {
+    type: String,
+    required: false,
+  }],
 });
 
 // Create and export the Product model
