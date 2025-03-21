@@ -185,6 +185,7 @@ exports.updateProduct = async (req, res) => {
   const productId = req.params.productId;
   const updatedData = req.body.updatedData;
   const isQcRequired = req.body.isQcRequired;
+  console.log("req`s body", req.body);
 
   if (isQcRequired) {
     updatedData.qc_status = "revised";
