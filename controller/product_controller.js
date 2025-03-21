@@ -505,7 +505,7 @@ exports.getAllProductsByWarehouse = async (req, res) => {
   try {
     const { warehouseId } = req.params;
     const products = await Product.find({ warehouse_ref: warehouseId, isDeleted: false, draft: false, qc_status: "approved" }).populate("Brand category_ref sub_category_ref")
-    .sort({ createdAt: -1 })
+    .sort({ created_time: -1 })
     .exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
   } catch (error) {
