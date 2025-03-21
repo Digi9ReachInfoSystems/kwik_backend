@@ -344,12 +344,12 @@ exports.getLowStockProducts = async (req, res) => {
         },
       };
 
-      populateQuery = [
-        {
-          path: "variations.stock.warehouse_ref", // Populate warehouse reference
-          model: "Warehouse", // The model to populate (should match your Warehouse model)
-        },
-      ];
+      // populateQuery = [
+      //   {
+      //     path: "variations.stock.warehouse_ref", // Populate warehouse reference
+      //     model: "Warehouse", // The model to populate (should match your Warehouse model)
+      //   },
+      // ];
     } else {
       filter = {
         "variations.stock.stock_qty": { $lt: 10 }, // No warehouse filter, just quantity < 10
