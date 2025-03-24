@@ -203,13 +203,13 @@ exports.updateProduct = async (req, res) => {
       return res.status(400).json({ message: "Category not found" });
     }
     updatedData.category_ref = category._id;
-    const subCategory = await SubCategory.findOne({
-      sub_category_name: updatedData.sub_category_ref,
-    });
-    if (!subCategory) {
-      return res.status(400).json({ message: "SubCategory not found" });
-    }
-    updatedData.sub_category_ref = subCategory._id;
+    const subcategory = await Promise.all(updatedData.sub_category_ref.map(async(sub) => {
+      const result = await SubCategory.findOne({
+        sub_category_name: sub,
+      });
+      return result._id;
+    }))
+    updatedData.sub_category_ref = subcategory;
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
       updatedData,
