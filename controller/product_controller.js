@@ -319,8 +319,13 @@ exports.addReview = async (req, res) => {
 
 exports.getDrafts = async (req, res) => {
   try {
-    const drafts = await Product.find({ draft: "true" })
-    .sort({ created_time: -1 });
+    const drafts = await Product.find({
+      isDeleted: false,
+      draft: false,
+      qc_status: "approved"
+    })
+      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 });
     res.status(200).json(drafts);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -366,8 +371,8 @@ exports.getLowStockProducts = async (req, res) => {
 
     // Query products with the filter and populate warehouse_ref
     const products = await Product.find(filter).populate(populateQuery)
-    .populate("sub_category_ref")
-    .sort({ created_time: -1 });
+      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 });
 
     // If no products are found, return a 404 error
     if (!products || products.length === 0) {
@@ -411,8 +416,8 @@ exports.getProductByBrand = async (req, res) => {
   try {
     const { brandId } = req.body;
     const products = await Product.find({ Brand: brandId, isDeleted: false, draft: false, qc_status: "approved" }).populate("Brand category_ref sub_category_ref")
-    .sort({ created_time: -1 })
-    .exec();
+      .sort({ created_time: -1 })
+      .exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
@@ -422,7 +427,7 @@ exports.getProductByBrand = async (req, res) => {
 exports.updateVariation = async (req, res) => {
   try {
 
-    const { productId, variation_id, variationData ,isQcRequired} = req.body;
+    const { productId, variation_id, variationData, isQcRequired } = req.body;
 
     const product = await Product.findById(productId);
 
@@ -507,8 +512,8 @@ exports.getAllProductsByWarehouse = async (req, res) => {
   try {
     const { warehouseId } = req.params;
     const products = await Product.find({ warehouse_ref: warehouseId, isDeleted: false, draft: false, qc_status: "approved" }).populate("Brand category_ref sub_category_ref")
-    .sort({ created_time: -1 })
-    .exec();
+      .sort({ created_time: -1 })
+      .exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
@@ -523,8 +528,8 @@ exports.getDraftsByWarehouse = async (req, res) => {
       return res.status(404).json({ message: "Warehouse not found" });
     }
     const products = await Product.find({ warehouse_ref: warehouseId, draft: "true" }).populate("Brand category_ref sub_category_ref")
-    .sort({ created_time: -1 })
-    .exec();
+      .sort({ created_time: -1 })
+      .exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
@@ -555,8 +560,8 @@ exports.getProductsByWarehuseCategorySubCategory = async (req, res) => {
     const subCategoryId = subCategory._id;
 
     const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: false, qc_status: "approved" }).populate("Brand category_ref sub_category_ref")
-    .sort({ created_time: -1 })
-    .exec();
+      .sort({ created_time: -1 })
+      .exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
@@ -620,7 +625,7 @@ exports.searchProductsByWarehouse = async (req, res) => {
 exports.updateQcStatus = async (req, res) => {
   try {
     const { productId } = req.params;
-    const {  product_qc_status, UID,qc_remarks } = req.body;
+    const { product_qc_status, UID, qc_remarks } = req.body;
     if (!UID || !productId || !product_qc_status) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -644,13 +649,13 @@ exports.updateQcStatus = async (req, res) => {
 }
 exports.getProductsByQcStatus = async (req, res) => {
   try {
-    const { qc_status,warehouseId } = req.query;
-    const filter={};
-    if(!qc_status){
+    const { qc_status, warehouseId } = req.query;
+    const filter = {};
+    if (!qc_status) {
       return res.status(400).json({ message: "Missing required fields qc_status" });
     }
     filter.qc_status = qc_status;
-    if(warehouseId){
+    if (warehouseId) {
       filter.warehouse_ref = warehouseId;
     }
     const products = await Product.find(filter).populate("Brand category_ref sub_category_ref").exec();
@@ -685,8 +690,8 @@ exports.getDraftProductsByWarehuseCategorySubCategory = async (req, res) => {
     const subCategoryId = subCategory._id;
 
     const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: true, qc_status: "approved" }).populate("Brand category_ref sub_category_ref warehouse_ref")
-    .sort({ created_time: -1 })
-    .exec();
+      .sort({ created_time: -1 })
+      .exec();
     res.status(200).json({ message: "Draft Products retrieved successfully", data: products });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
@@ -717,9 +722,9 @@ exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
     const categoryId = category._id;
     const subCategoryId = subCategory._id;
 
-    const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: false, qc_status: "approved" , "variations.stock.stock_qty": { $lt: 10 },}).populate("Brand category_ref sub_category_ref warehouse_ref")
-    .sort({ created_time: -1 })
-    .exec();
+    const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: false, qc_status: "approved", "variations.stock.stock_qty": { $lt: 10 }, }).populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 })
+      .exec();
     res.status(200).json({ message: "Low Stock Products retrieved successfully", data: products });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
