@@ -684,7 +684,7 @@ exports.getDraftProductsByWarehuseCategorySubCategory = async (req, res) => {
     const categoryId = category._id;
     const subCategoryId = subCategory._id;
 
-    const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: true, qc_status: "approved" }).populate("Brand category_ref sub_category_ref")
+    const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: true, qc_status: "approved" }).populate("Brand category_ref sub_category_ref warehouse_ref")
     .sort({ created_time: -1 })
     .exec();
     res.status(200).json({ message: "Draft Products retrieved successfully", data: products });
@@ -717,7 +717,7 @@ exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
     const categoryId = category._id;
     const subCategoryId = subCategory._id;
 
-    const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: false, qc_status: "approved" , "variations.stock.stock_qty": { $lt: 10 },}).populate("Brand category_ref sub_category_ref")
+    const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: false, qc_status: "approved" , "variations.stock.stock_qty": { $lt: 10 },}).populate("Brand category_ref sub_category_ref warehouse_ref")
     .sort({ created_time: -1 })
     .exec();
     res.status(200).json({ message: "Low Stock Products retrieved successfully", data: products });
