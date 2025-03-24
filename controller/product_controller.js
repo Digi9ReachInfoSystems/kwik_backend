@@ -659,3 +659,69 @@ exports.getProductsByQcStatus = async (req, res) => {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
   }
 };
+
+exports.getDraftProductsByWarehuseCategorySubCategory = async (req, res) => {
+  try {
+    const { warehouseId, categoryName, subCategoryName, warehouseName } = req.params;
+    let warehouse;
+    if (warehouseId) {
+      warehouse = await Warehouse.find({ _id: warehouseId });
+
+    } else if (warehouseName) {
+      warehouse = await Warehouse.find({ warehouse_name: warehouseName });
+    }
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    const category = await Category.findOne({ category_name: categoryName });
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+    const subCategory = await SubCategory.findOne({ sub_category_name: subCategoryName, category_ref: category._id });
+    if (!subCategory) {
+      return res.status(404).json({ message: "Sub-category not found" });
+    }
+    const categoryId = category._id;
+    const subCategoryId = subCategory._id;
+
+    const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: true, qc_status: "approved" }).populate("Brand category_ref sub_category_ref")
+    .sort({ created_time: -1 })
+    .exec();
+    res.status(200).json({ message: "Draft Products retrieved successfully", data: products });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving products", error: error.message });
+  }
+};
+
+exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
+  try {
+    const { warehouseId, categoryName, subCategoryName, warehouseName } = req.params;
+    let warehouse;
+    if (warehouseId) {
+      warehouse = await Warehouse.find({ _id: warehouseId });
+
+    } else if (warehouseName) {
+      warehouse = await Warehouse.find({ warehouse_name: warehouseName });
+    }
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    const category = await Category.findOne({ category_name: categoryName });
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+    const subCategory = await SubCategory.findOne({ sub_category_name: subCategoryName, category_ref: category._id });
+    if (!subCategory) {
+      return res.status(404).json({ message: "Sub-category not found" });
+    }
+    const categoryId = category._id;
+    const subCategoryId = subCategory._id;
+
+    const products = await Product.find({ warehouse_ref: warehouse[0]._id, category_ref: categoryId, sub_category_ref: subCategoryId, isDeleted: false, draft: false, qc_status: "approved" , "variations.stock.stock_qty": { $lt: 10 },}).populate("Brand category_ref sub_category_ref")
+    .sort({ created_time: -1 })
+    .exec();
+    res.status(200).json({ message: "Low Stock Products retrieved successfully", data: products });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving products", error: error.message });
+  }
+};
