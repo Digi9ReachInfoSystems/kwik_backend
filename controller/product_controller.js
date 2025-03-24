@@ -366,6 +366,7 @@ exports.getLowStockProducts = async (req, res) => {
 
     // Query products with the filter and populate warehouse_ref
     const products = await Product.find(filter).populate(populateQuery)
+    .populate("sub_category_ref")
     .sort({ created_time: -1 });
 
     // If no products are found, return a 404 error
