@@ -755,3 +755,26 @@ exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
   }
 };
+exports.getProductNotInWarehouse=async(req,res)=>{
+  try {
+    const { warehouseId } = req.params;
+    const filter = {};
+    if (!warehouseId) {
+      res.status(400).json({ message: "Missing required fields warehouseId" });
+    }
+    const warehouse = await Warehouse.findById( warehouseId);
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    filter.warehouse_ref ={ $ne: warehouseId };  
+    filter.isDeleted = false;
+    filter.draft = false;
+    filter.qc_status = "approved"
+    const products = await Product.find({ ...filter}).populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 })
+      .exec();
+    res.status(200).json({ message: "Low Stock Products retrieved successfully", data: products });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving products", error: error.message });
+  }
+};

@@ -314,8 +314,9 @@ exports.addProductToCart = async (req, res) => {
       variation_visibility: true,
       cart_added_date: new Date(),
     };
+    cartProductData.variant._id = variant;
 
-    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref && item.pincode == pincode);
+    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref && item.pincode == pincode && item.variant == variant);
 
     // // Check if the product already exists in the cart
     if (cartProduct) {
@@ -345,7 +346,7 @@ exports.addProductToCart = async (req, res) => {
 
 exports.increseCartProductQuantity = async (req, res) => {
   try {
-    const { userId, product_ref, pincode } = req.body;
+    const { userId, product_ref, pincode, variant } = req.body;
     const quantity = 1;
     let setIncrease = true;
 
@@ -369,7 +370,7 @@ exports.increseCartProductQuantity = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref);
+    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref && item.variant._id == variant);
 
 
     const variation = product.variations.find((item) => item._id.equals(cartProduct.variant._id));
@@ -423,7 +424,7 @@ exports.increseCartProductQuantity = async (req, res) => {
 
 exports.decreaseCartProductQuantity = async (req, res) => {
   try {
-    const { userId, product_ref, pincode, } = req.body;
+    const { userId, product_ref, pincode, variant } = req.body;
     const quantity = 1;
     let setDecrease = true;
 
@@ -447,7 +448,7 @@ exports.decreaseCartProductQuantity = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref);
+    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref && item.variant._id == variant);
 
 
     const variation = product.variations.find((item) => item._id.equals(cartProduct.variant._id));
@@ -668,11 +669,11 @@ exports.userStats = async (req, res) => {
   try {
     const user = await User.find();
     const allUsers = user.length;
-    const  totaUsers=await User.countDocuments({isUser:true});
-    const totalDeliveryBoy=await User.countDocuments({is_deliveryboy:true});
-    const totalWarehouse=await User.countDocuments({isWarehouse:true});
-    
-    return res.status(200).json({ message: "success",allUsers: allUsers,  totalUsers: totaUsers, totalDeliveryBoy: totalDeliveryBoy, totalWarehouse: totalWarehouse });  
+    const totaUsers = await User.countDocuments({ isUser: true });
+    const totalDeliveryBoy = await User.countDocuments({ is_deliveryboy: true });
+    const totalWarehouse = await User.countDocuments({ isWarehouse: true });
+
+    return res.status(200).json({ message: "success", allUsers: allUsers, totalUsers: totaUsers, totalDeliveryBoy: totalDeliveryBoy, totalWarehouse: totalWarehouse });
   } catch (error) {
     console.log(error)
     return res.status(500).json({ message: "Error", error });
