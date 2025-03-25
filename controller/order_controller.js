@@ -928,3 +928,27 @@ exports.getTopSellingProducts = async (req, res) => {
       .json({ message: "Error fetching top selling products", error: error.message });
   }
 };
+
+exports.getRecentOrdersBywarehouseId = async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    const warehouse= await Warehouse.findById(warehouseId);
+    if(!warehouse){
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+
+    const orders = await Order.find({ warehouse_ref: warehouse._id }).sort({ created_time: -1 }).limit(10)
+    .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+    .exec();
+    if (!orders) {
+      return res.status(404).json({ success: false, message: "Orders not found" });
+    }
+    if (orders.length === 0) {
+      return res.status(404).json({ success: false, message: "Orders not found" });
+    }
+    res.status(200).json({ success: true, data: orders });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+}

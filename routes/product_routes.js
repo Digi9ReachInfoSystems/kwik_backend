@@ -32,4 +32,5 @@ router.put("/updateqcStatus/:productId", ProductController.updateQcStatus);
 router.get("/get/productByQcStatus", ProductController.getProductsByQcStatus);
 router.get("/get/draft/productsFilterwarehouseId/:categoryName/:warehouseId/:subCategoryName", ProductController.getDraftProductsByWarehuseCategorySubCategory);
 router.get("/get/lowStock/productsFilterwarehouseId/:categoryName/:warehouseId/:subCategoryName", ProductController.getLowStockProductsByWarehuseCategorySubCategory);
+router.get("/get/notInwarehouse/:warehouseId", ProductController.getProductNotInWarehouse);
 module.exports = router;
