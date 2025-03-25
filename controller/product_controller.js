@@ -537,8 +537,7 @@ exports.getDraftsByWarehouse = async (req, res) => {
 };
 exports.getProductsByWarehuseCategorySubCategory = async (req, res) => {
   try {
-    const { warehouseId, categoryName, warehouseName } = req.params;
-    const { subCategoryName } = req.query;
+    const { warehouseId, categoryName, warehouseName ,subCategoryName} = req.params;
     const filter = {}
     let warehouse;
     if (warehouseId) {
@@ -557,7 +556,7 @@ exports.getProductsByWarehuseCategorySubCategory = async (req, res) => {
     }
     filter.category_ref = category._id;
     let subCategory;
-    if (subCategoryName) {
+    if (subCategoryName!="null") {
       subCategory = await SubCategory.findOne({ sub_category_name: subCategoryName, category_ref: category._id });
       if (!subCategory) {
         return res.status(404).json({ message: "Sub-category not found" });
@@ -676,8 +675,7 @@ exports.getProductsByQcStatus = async (req, res) => {
 
 exports.getDraftProductsByWarehuseCategorySubCategory = async (req, res) => {
   try {
-    const { warehouseId, categoryName, warehouseName } = req.params;
-    const { subCategoryName } = req.query;
+    const { warehouseId, categoryName, warehouseName,subCategoryName } = req.params;
     const filter = {};
     let warehouse;
     if (warehouseId) {
@@ -696,7 +694,7 @@ exports.getDraftProductsByWarehuseCategorySubCategory = async (req, res) => {
     }
     filter.category_ref = category._id;
     let subCategory;
-    if (subCategoryName) {
+    if (subCategoryName!="null") {
       subCategory = await SubCategory.findOne({ sub_category_name: subCategoryName, category_ref: category._id });
       if (!subCategory) {
         return res.status(404).json({ message: "Sub-category not found" });
@@ -720,8 +718,7 @@ exports.getDraftProductsByWarehuseCategorySubCategory = async (req, res) => {
 
 exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
   try {
-    const { warehouseId, categoryName, warehouseName } = req.params;
-    const { subCategoryName } = req.query;
+    const { warehouseId, categoryName, warehouseName ,subCategoryName} = req.params;
     const filter = {};
     let warehouse;
     if (warehouseId) {
@@ -740,7 +737,7 @@ exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
     }
     filter.category_ref = category._id;
     let subCategory;
-    if (subCategoryName) {
+    if (subCategoryName!="null") {
       subCategory = await SubCategory.findOne({ sub_category_name: subCategoryName, category_ref: category._id });
       if (!subCategory) {
         return res.status(404).json({ message: "Sub-category not found" });
