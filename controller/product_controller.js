@@ -537,7 +537,7 @@ exports.getDraftsByWarehouse = async (req, res) => {
 };
 exports.getProductsByWarehuseCategorySubCategory = async (req, res) => {
   try {
-    const { warehouseId, categoryName, warehouseName ,subCategoryName} = req.params;
+    const { warehouseId, categoryName, warehouseName, subCategoryName } = req.params;
     const filter = {}
     let warehouse;
     if (warehouseId) {
@@ -556,7 +556,7 @@ exports.getProductsByWarehuseCategorySubCategory = async (req, res) => {
     }
     filter.category_ref = category._id;
     let subCategory;
-    if (subCategoryName!="null") {
+    if (subCategoryName != "null") {
       subCategory = await SubCategory.findOne({ sub_category_name: subCategoryName, category_ref: category._id });
       if (!subCategory) {
         return res.status(404).json({ message: "Sub-category not found" });
@@ -675,7 +675,7 @@ exports.getProductsByQcStatus = async (req, res) => {
 
 exports.getDraftProductsByWarehuseCategorySubCategory = async (req, res) => {
   try {
-    const { warehouseId, categoryName, warehouseName,subCategoryName } = req.params;
+    const { warehouseId, categoryName, warehouseName, subCategoryName } = req.params;
     const filter = {};
     let warehouse;
     if (warehouseId) {
@@ -694,7 +694,7 @@ exports.getDraftProductsByWarehuseCategorySubCategory = async (req, res) => {
     }
     filter.category_ref = category._id;
     let subCategory;
-    if (subCategoryName!="null") {
+    if (subCategoryName != "null") {
       subCategory = await SubCategory.findOne({ sub_category_name: subCategoryName, category_ref: category._id });
       if (!subCategory) {
         return res.status(404).json({ message: "Sub-category not found" });
@@ -718,7 +718,7 @@ exports.getDraftProductsByWarehuseCategorySubCategory = async (req, res) => {
 
 exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
   try {
-    const { warehouseId, categoryName, warehouseName ,subCategoryName} = req.params;
+    const { warehouseId, categoryName, warehouseName, subCategoryName } = req.params;
     const filter = {};
     let warehouse;
     if (warehouseId) {
@@ -737,7 +737,7 @@ exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
     }
     filter.category_ref = category._id;
     let subCategory;
-    if (subCategoryName!="null") {
+    if (subCategoryName != "null") {
       subCategory = await SubCategory.findOne({ sub_category_name: subCategoryName, category_ref: category._id });
       if (!subCategory) {
         return res.status(404).json({ message: "Sub-category not found" });
@@ -755,26 +755,55 @@ exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
   }
 };
-exports.getProductNotInWarehouse=async(req,res)=>{
+exports.getProductNotInWarehouse = async (req, res) => {
   try {
     const { warehouseId } = req.params;
     const filter = {};
     if (!warehouseId) {
       res.status(400).json({ message: "Missing required fields warehouseId" });
     }
-    const warehouse = await Warehouse.findById( warehouseId);
+    const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
     }
-    filter.warehouse_ref ={ $ne: warehouseId };  
+    filter.warehouse_ref = { $ne: warehouseId };
     filter.isDeleted = false;
     filter.draft = false;
     filter.qc_status = "approved"
-    const products = await Product.find({ ...filter}).populate("Brand category_ref sub_category_ref warehouse_ref")
+    const products = await Product.find({ ...filter }).populate("Brand category_ref sub_category_ref warehouse_ref")
       .sort({ created_time: -1 })
       .exec();
     res.status(200).json({ message: "Low Stock Products retrieved successfully", data: products });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving products", error: error.message });
+  }
+};
+
+exports.addStockToExistingProduct = async (req, res) => {
+  try {
+    const { productId, warehouse_ref, stock_qty, unit, zone, rack } = req.body;
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    product.warehouse_ref.push(warehouse_ref);
+    product.variations.map((variation) => {
+      if (variation.unit === unit) {
+        const newStock =  {
+          stock_qty: stock_qty,
+          warehouse_ref: warehouse_ref,
+          unit: unit,
+          zone: zone,
+          rack: rack,
+          visibility: true,
+          isDeleted: false
+        };
+        variation.stock.push(newStock);
+      }
+    });
+    await product.save();
+    res.status(200).json({ message: "Stock added to product successfully", data: product });
+  } catch (error) {
+    res.status(500).json({ message: "Error adding stock to product", error: error.message });
   }
 };
