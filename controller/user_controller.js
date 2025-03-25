@@ -246,7 +246,7 @@ exports.addProductToCart = async (req, res) => {
   try {
     const { userId, product_ref, variant, pincode } = req.body;
     const quantity = 1;
-
+    console.log("one",req.body);
     // Validate required fields
     if (!product_ref || !variant || !pincode || !userId) {
       return res.status(400).json({ message: "All fields are required" });
