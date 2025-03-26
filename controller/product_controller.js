@@ -223,7 +223,7 @@ exports.updateProduct = async (req, res) => {
     updatedData.variations = updatedData.variations.map((variation) => {
      
         return {
-          ...variation.toObject(),
+          ...variation,
           _id: variation._id,  
         };
     });
