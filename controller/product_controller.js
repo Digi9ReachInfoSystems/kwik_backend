@@ -195,7 +195,7 @@ exports.updateProduct = async (req, res) => {
   const productId = req.params.productId;
   const updatedData = req.body.updatedData;
   const isQcRequired = req.body.isQcRequired;
-  console.log("req`s body", req.body);
+  console.dir( req.body, { depth: null });
 
   if (isQcRequired) {
     updatedData.qc_status = "revised";
@@ -220,6 +220,13 @@ exports.updateProduct = async (req, res) => {
       return result._id;
     }))
     updatedData.sub_category_ref = subcategory;
+    updatedData.variations = updatedData.variations.map((variation) => {
+     
+        return {
+          ...variation.toObject(),
+          _id: variation._id,  
+        };
+    });
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
       updatedData,
