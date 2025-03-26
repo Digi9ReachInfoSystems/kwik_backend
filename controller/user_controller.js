@@ -316,7 +316,7 @@ exports.addProductToCart = async (req, res) => {
     };
     cartProductData.variant._id = variant;
 
-    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref && item.pincode == pincode && item.variant == variant);
+    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref && item.pincode == pincode && item.variant._id == variant);
 
     // // Check if the product already exists in the cart
     if (cartProduct) {
