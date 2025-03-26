@@ -34,4 +34,5 @@ router.get("/get/draft/productsFilterwarehouseId/:categoryName/:warehouseId/:sub
 router.get("/get/lowStock/productsFilterwarehouseId/:categoryName/:warehouseId/:subCategoryName", ProductController.getLowStockProductsByWarehuseCategorySubCategory);
 router.get("/get/notInwarehouse/:warehouseId", ProductController.getProductNotInWarehouse);
 router.post("/add/stockwithWarehouse",ProductController.addStockToExistingProduct);
+router.get("/get/recommendedProducts/:userId", ProductController.getRecomandedProducts);
 module.exports = router;

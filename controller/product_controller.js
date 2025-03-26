@@ -6,6 +6,16 @@ const SubCategory = require("../models/sub_category_model");
 const Warehouse = require("../models/warehouse_model");
 const Brand = require("../models/brand_model");
 const User = require("../models/user_models");
+const Order = require("../models/order_model");
+
+const getRandomProducts = (products, limit) => {
+  const shuffled = products.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, limit);
+};
+const getRandomCategories = (categories, limit) => {
+  const shuffled = categories.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, limit);
+};
 // Create a new product
 exports.createProduct = async (req, res) => {
   try {
@@ -441,7 +451,11 @@ exports.updateVariation = async (req, res) => {
     const updatedVariations = product.variations.map((variation) => {
       if (variation._id.toString() === variation_id) {
         varFound = true;
-        return { ...variation.toObject(), ...variationData };
+        return {
+          ...variation.toObject(),
+          ...variationData,
+          _id: variation._id,  // Ensure _id is not overwritten
+        };
       }
       return variation;
     });
@@ -789,7 +803,7 @@ exports.addStockToExistingProduct = async (req, res) => {
     product.warehouse_ref.push(warehouse_ref);
     product.variations.map((variation) => {
       if (variation.unit === unit) {
-        const newStock =  {
+        const newStock = {
           stock_qty: stock_qty,
           warehouse_ref: warehouse_ref,
           unit: unit,
@@ -805,5 +819,95 @@ exports.addStockToExistingProduct = async (req, res) => {
     res.status(200).json({ message: "Stock added to product successfully", data: product });
   } catch (error) {
     res.status(500).json({ message: "Error adding stock to product", error: error.message });
+  }
+};
+exports.getRecomandedProducts = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { cartId } = req.query;
+    const user = await User.findOne({ UID: userId })
+      .populate('cart_products.product_ref')
+      .exec();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.dir(user);
+
+    const orders = await Order.find({ user_ref: user._id }).populate('products.product_ref').exec();
+
+    let recommendedProducts = [];
+    if (orders.length > 0) {
+      const orderedCategories = orders.flatMap(order =>
+        order.products.map(product => product.product_ref.category_ref)
+      );
+      const uniqueCategories = [...new Set(orderedCategories)];
+      const randomCategories = getRandomCategories(uniqueCategories, 4); // Adjust number of categories as needed
+
+      for (const category of randomCategories) {
+        const productsInCategory = await Product.aggregate([
+          { $match: { category_ref: category } },
+          { $sample: { size: 10 } }
+        ]).exec();
+        recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInCategory, 3)]; // Adjust number to pick from each category
+        if (recommendedProducts.length >= 10) break;
+      }
+      if (recommendedProducts.length >= 10) {
+        return res.status(200).json({ message: "Recomanded products retrieved successfully", data: recommendedProducts.slice(0, 10) });
+      }
+    }
+    if (user.cart_products.length > 0 && recommendedProducts.length < 10) {
+      const cartCategories = user.cart_products.map(cartProduct => cartProduct.product_ref.category_ref);
+      const uniqueCartCategories = [...new Set(cartCategories.map(cat => cat.toString()))];
+      console.log("uniqueCartCategories", uniqueCartCategories);
+      const randomCategoriesFromCart = getRandomCategories(uniqueCartCategories, 3); // Adjust number of categories as needed
+
+      for (const category of randomCategoriesFromCart) {
+        const productsInCartCategory = await Product.aggregate([
+          { $match: { category_ref: new mongoose.Types.ObjectId(category) } },
+          { $sample: { size: 10 } }
+        ]).exec();
+        console.log("productsInCartCategory", productsInCartCategory);
+        recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInCartCategory, 3)];
+        if (recommendedProducts.length >= 10) break;
+      }
+
+      if (recommendedProducts.length >= 10) {
+        return res.status(200).json({ message: "Recomanded products retrieved successfully", data: recommendedProducts.slice(0, 10) });
+      }
+    }
+    if (user.selected_Address && recommendedProducts.length < 10) {
+      const pincode = user.selected_Address.pincode;
+      const warehouse = await Warehouse.findOne({ picode: { $in: [pincode] } });
+
+      if (warehouse) {
+        const warehouseProducts = await Product.aggregate([
+          { $match:  { warehouse_ref: warehouse._id } },
+          { $sample: { size: 10 } }]
+        ).exec();
+        recommendedProducts = [...recommendedProducts, ...getRandomProducts(warehouseProducts, 3)];
+        if (recommendedProducts.length >= 10) return res.status(200).json({ message: "Recomanded products retrieved successfully", data: recommendedProducts.slice(0, 10) });
+      }
+    }
+
+    if (recommendedProducts.length < 10) {
+      const defaultCategory = await Category.findById(cartId); 
+
+      if (defaultCategory) {
+        const productsInDefaultCategory = await Product.aggregate([
+          { $match: { category_ref: defaultCategory._id }},
+          { $sample: { size: 10 } }
+        ]).exec();
+        recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInDefaultCategory, 3)];
+        if (recommendedProducts.length >= 10) return res.status(200).json({ message: "Recomanded products retrieved successfully", data: recommendedProducts.slice(0, 10) });
+      }
+    }
+
+    return res.status(200).json({ message: "Recomanded products retrieved successfully", data: recommendedProducts.slice(0, 10) });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Error retrieving recomanded products", error: error.message });
   }
 };
