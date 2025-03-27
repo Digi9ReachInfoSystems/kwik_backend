@@ -16,6 +16,16 @@ const getRandomCategories = (categories, limit) => {
   const shuffled = categories.sort(() => 0.5 - Math.random());
   return shuffled.slice(0, limit);
 };
+const getUniqueProducts = (products) => {
+  const seenIds = new Set();
+  return products.filter(product => {
+    if (!seenIds.has(product._id.toString())) {
+      seenIds.add(product._id.toString());
+      return true;
+    }
+    return false;
+  });
+};
 // Create a new product
 exports.createProduct = async (req, res) => {
   try {
@@ -195,7 +205,7 @@ exports.updateProduct = async (req, res) => {
   const productId = req.params.productId;
   const updatedData = req.body.updatedData;
   const isQcRequired = req.body.isQcRequired;
-  console.dir( req.body, { depth: null });
+  console.dir(req.body, { depth: null });
 
   if (isQcRequired) {
     updatedData.qc_status = "revised";
@@ -221,11 +231,11 @@ exports.updateProduct = async (req, res) => {
     }))
     updatedData.sub_category_ref = subcategory;
     updatedData.variations = updatedData.variations.map((variation) => {
-     
-        return {
-          ...variation,
-          _id: variation._id,  
-        };
+
+      return {
+        ...variation,
+        _id: variation._id,
+      };
     });
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
@@ -376,6 +386,9 @@ exports.getLowStockProducts = async (req, res) => {
     } else {
       filter = {
         "variations.stock.stock_qty": { $lt: 10 }, // No warehouse filter, just quantity < 10
+        isDeleted : false,
+        draft : false,
+        qc_status : "approved",
       };
 
       populateQuery = [
@@ -849,8 +862,10 @@ exports.getRecomandedProducts = async (req, res) => {
       const orderedCategories = orders.flatMap(order =>
         order.products.map(product => product.product_ref.category_ref)
       );
-      const uniqueCategories = [...new Set(orderedCategories)];
-      const randomCategories = getRandomCategories(uniqueCategories, 4); // Adjust number of categories as needed
+      const uniqueCategories = [...new Set(orderedCategories.map(cat => cat.toString()))];
+      console.log("uniqueCategories", uniqueCategories);
+      const randomCategories = getRandomCategories(uniqueCategories, 4);
+      console.log("randomCategories", randomCategories);
 
       for (const category of randomCategories) {
         const productsInCategory = await Product.aggregate([
@@ -861,13 +876,12 @@ exports.getRecomandedProducts = async (req, res) => {
         if (recommendedProducts.length >= 10) break;
       }
       if (recommendedProducts.length >= 10) {
-        return res.status(200).json({ message: "Recomanded products retrieved successfully", data: recommendedProducts.slice(0, 10) });
+        return res.status(200).json({ message: "Recomanded products retrieved successfully", data: getUniqueProducts(recommendedProducts).slice(0, 10) });
       }
     }
     if (user.cart_products.length > 0 && recommendedProducts.length < 10) {
       const cartCategories = user.cart_products.map(cartProduct => cartProduct.product_ref.category_ref);
       const uniqueCartCategories = [...new Set(cartCategories.map(cat => cat.toString()))];
-      console.log("uniqueCartCategories", uniqueCartCategories);
       const randomCategoriesFromCart = getRandomCategories(uniqueCartCategories, 3); // Adjust number of categories as needed
 
       for (const category of randomCategoriesFromCart) {
@@ -875,13 +889,12 @@ exports.getRecomandedProducts = async (req, res) => {
           { $match: { category_ref: new mongoose.Types.ObjectId(category) } },
           { $sample: { size: 10 } }
         ]).exec();
-        console.log("productsInCartCategory", productsInCartCategory);
         recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInCartCategory, 3)];
         if (recommendedProducts.length >= 10) break;
       }
 
       if (recommendedProducts.length >= 10) {
-        return res.status(200).json({ message: "Recomanded products retrieved successfully", data: recommendedProducts.slice(0, 10) });
+        return res.status(200).json({ message: "Recomanded products retrieved successfully", data: getUniqueProducts(recommendedProducts).slice(0, 10) });
       }
     }
     if (user.selected_Address && recommendedProducts.length < 10) {
@@ -890,7 +903,7 @@ exports.getRecomandedProducts = async (req, res) => {
 
       if (warehouse) {
         const warehouseProducts = await Product.aggregate([
-          { $match:  { warehouse_ref: warehouse._id } },
+          { $match: { warehouse_ref: warehouse._id } },
           { $sample: { size: 10 } }]
         ).exec();
         recommendedProducts = [...recommendedProducts, ...getRandomProducts(warehouseProducts, 3)];
@@ -899,11 +912,11 @@ exports.getRecomandedProducts = async (req, res) => {
     }
 
     if (recommendedProducts.length < 10) {
-      const defaultCategory = await Category.findById(cartId); 
+      const defaultCategory = await Category.findById(cartId);
 
       if (defaultCategory) {
         const productsInDefaultCategory = await Product.aggregate([
-          { $match: { category_ref: defaultCategory._id }},
+          { $match: { category_ref: defaultCategory._id } },
           { $sample: { size: 10 } }
         ]).exec();
         recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInDefaultCategory, 3)];
@@ -911,7 +924,7 @@ exports.getRecomandedProducts = async (req, res) => {
       }
     }
 
-    return res.status(200).json({ message: "Recomanded products retrieved successfully", data: recommendedProducts.slice(0, 10) });
+    return res.status(200).json({ message: "Recomanded products retrieved successfully", data: getUniqueProducts(recommendedProducts).slice(0, 10) });
 
   } catch (error) {
     console.error(error);
