@@ -1007,3 +1007,22 @@ exports.searchLowStockProducts = async (req, res) => {
     });
   }
 };
+
+exports.searchDrafts = async (req, res) => {
+  try {
+    const { name } = req.query;
+    const { warehouseId } = req.params;
+    const drafts = await Product.find({
+      product_name: { $regex: `^${name}`, $options: "i" },
+      warehouse_ref: warehouseId,
+      isDeleted: false,
+      draft: true,
+      qc_status: "approved"
+    })
+      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 });
+    res.status(200).json({success: true, message: "Drafts retrieved successfully", data: drafts});
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching draft products", error: error.message });
+  }
+};
