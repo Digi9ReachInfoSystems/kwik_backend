@@ -113,7 +113,10 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     required: [false, "Out for delivery time is required"],
   },
-
+  packing_time: {
+    type: Date,
+    required: [false, "Packing time is required"],
+  },
   completed_time: {
     type: Date,
     validate: {
