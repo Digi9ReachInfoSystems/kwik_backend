@@ -36,5 +36,6 @@ router.put("/addAddress/:userId", userController.addAddress);
 router.put("/select/address/change", userController.userSelectedAddressChange);
 router.get("/getUserCart/:userId", userController.getUserCartById);
 router.get("/get/userStats",userController.userStats);
+router.put("/update/currentPincode",userController.updateCurrentPincode);
 
 module.exports = router;

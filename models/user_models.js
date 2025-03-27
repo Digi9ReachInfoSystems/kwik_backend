@@ -38,6 +38,7 @@ const userSchema = new mongoose.Schema({
   device_number: { type: String, required: false },
   is_qc: { type: Boolean, required: true, default: false },
   created_time: { type: Date, required: true, default: Date.now },
+  current_pincode: { type: String, required: false },
 });
 
 // Create and export the User model

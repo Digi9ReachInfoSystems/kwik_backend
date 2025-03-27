@@ -175,7 +175,7 @@ exports.updateOrder = async (req, res) => {
   }
 };
 
-exports.getOrdersByWarehouseId = async (req, res) => {
+exports.getOrdersByWarehouse = async (req, res) => {
   try {
     const { pincode } = req.params;
     const warehouse = await Warehouse.findOne({ picode: pincode });

@@ -679,3 +679,22 @@ exports.userStats = async (req, res) => {
     return res.status(500).json({ message: "Error", error });
   }
 }
+exports.updateCurrentPincode = async (req, res) => {
+  try {
+    const { userId, pincode } = req.body;
+    const user = await User.findOne({ UID: userId });
+    const warehouse = await Warehouse.findOne({ picode: pincode });
+    if (!user) {
+      return res.status(404).json({success: false, message: "User not found" });
+    }
+    if (!warehouse) {
+      return res.status(404).json({success: false, message: "Warehouse not found" });
+    }
+    user.current_pincode = pincode;
+    const savedUser = await user.save();
+    return res.status(200).json({success: true, message: "current pincode updated", user: savedUser });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({success: false, message: "Error", error: error.message });
+  }
+}
