@@ -26,4 +26,5 @@ router.get("/recent/orders", orderController.getRecentOrders);
 router.get("/stats/orderCountAdmin", orderController.getMonthlyOrderCount);
 router.get("/topSellingProducts/byWarehouse", orderController.getTopSellingProducts);
 router.get("/recent/orders/:warehouseId", orderController.getRecentOrdersBywarehouseId);
+router.get("/search/orderbywarehouse/:warehouseId/:status",orderController.searchOrderBycustomerNameStatus)
 module.exports = router;
