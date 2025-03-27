@@ -185,8 +185,14 @@ exports.getProductsBySubCategories = async (req, res) => {
       qc_status: "approved"
     })
       .populate(
-        "Brand category_ref sub_category_ref variations warehouse_ref  review"
+        "Brand category_ref  variations warehouse_ref  sub_category_ref"
       )
+      .populate({
+        path: "sub_category_ref",
+        populate: {
+          path: "category_ref", 
+        }
+      })
       .sort({ created_time: -1 })
       .exec();
 
@@ -887,7 +893,7 @@ exports.getRecomandedProducts = async (req, res) => {
       //   return res.status(200).json({ message: "Recomanded products retrieved successfully", data: getUniqueProducts(recommendedProducts).slice(0, 10) });
       // }
     }
-    if (user.cart_products.length > 0 ) {
+    if (user.cart_products.length > 0) {
       const cartCategories = user.cart_products.map(cartProduct => cartProduct.product_ref.category_ref);
       const uniqueCartCategories = [...new Set(cartCategories.map(cat => cat.toString()))];
       // const randomCategoriesFromCart = getRandomCategories(uniqueCartCategories, 3); // Adjust number of categories as needed
@@ -908,42 +914,44 @@ exports.getRecomandedProducts = async (req, res) => {
     if (user.current_pincode) {
       const topSellingProducts = await Order.aggregate([
         { $match: { warehouse_ref: warehouse._id } },
-        { $unwind: "$products" }, 
-        { $group: { 
+        { $unwind: "$products" },
+        {
+          $group: {
             _id: "$products.product_ref",
-            totalQuantitySold: { $sum: "$products.quantity" } 
+            totalQuantitySold: { $sum: "$products.quantity" }
           }
         },
-        { $sort: { totalQuantitySold: -1 } }, 
+        { $sort: { totalQuantitySold: -1 } },
         { $limit: 10 }, // Limit to top 10 products
-        { $lookup: {
-            from: "products", 
-            localField: "_id", 
-            foreignField: "_id", 
-            as: "productDetails" 
+        {
+          $lookup: {
+            from: "products",
+            localField: "_id",
+            foreignField: "_id",
+            as: "productDetails"
           }
         },
-        { $unwind: "$productDetails" } 
+        { $unwind: "$productDetails" }
       ]).exec();
 
       recommendedProducts = [...recommendedProducts, ...topSellingProducts.map(item => item.productDetails)];
 
-     
+
       // recommendedProducts = getUniqueProducts(recommendedProducts).slice(0, 10);
     }
 
-   
-      const defaultCategory = await Category.findById(categoryId);
-      if (defaultCategory) {
-        const productsInDefaultCategory = await Product.aggregate([
-          { $match: { category_ref: defaultCategory._id, warehouse_ref: warehouse._id } },
-          { $sample: { size: 20 } }
-        ]).exec();
-        recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInDefaultCategory, 10)];
-        //if (recommendedProducts.length >= 10) return 
-        // res.status(200).json({ message: "Recomanded products retrieved successfully", data: getUniqueProducts(recommendedProducts).slice(0, 10) });
-      }
-    
+
+    const defaultCategory = await Category.findById(categoryId);
+    if (defaultCategory) {
+      const productsInDefaultCategory = await Product.aggregate([
+        { $match: { category_ref: defaultCategory._id, warehouse_ref: warehouse._id } },
+        { $sample: { size: 20 } }
+      ]).exec();
+      recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInDefaultCategory, 10)];
+      //if (recommendedProducts.length >= 10) return 
+      // res.status(200).json({ message: "Recomanded products retrieved successfully", data: getUniqueProducts(recommendedProducts).slice(0, 10) });
+    }
+
 
     return res.status(200).json({ message: "Recomanded products retrieved successfully", randomTenProducts: getUniqueProducts(recommendedProducts).slice(0, 10), allProducts: getUniqueProducts(recommendedProducts) });
 
