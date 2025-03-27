@@ -164,6 +164,7 @@ exports.updateOrder = async (req, res) => {
     updates.out_for_delivery_time = updates.out_for_delivery_time || order.out_for_delivery_time;
     updates.completed_time = updates.completed_time || order.completed_time;
     updates.failed_time = updates.failed_time || order.failed_time;
+    updates.packing_time = updates.packing_time || order.packing_time;
     const updatedOrder = await Order.findByIdAndUpdate(id, updates, { new: true });
     if (!updatedOrder) {
       return res.status(404).json({ success: false, message: "Order not found" });
