@@ -21,6 +21,7 @@ const bannerRoutes = require("./routes/banner_Routes");
 const couonRoutes = require("./routes/couponRoutes");
 const jobRoutes = require("./routes/jobs_Routes");
 const orderRoutes = require("./routes/order_Routes");
+const superSaverUiRoutes = require("./routes/superSaver_page_ui_Routes");
 // MongoDB Connection
 connectDB();
 // test
@@ -60,6 +61,7 @@ app.use("/categoryui", categoryUiRoutes);
 app.use("/banner", bannerRoutes);
 app.use("/coupon", couonRoutes);
 app.use("/order", orderRoutes);
+app.use("/superSaver", superSaverUiRoutes);
 
 const PORT = 3000;
 
