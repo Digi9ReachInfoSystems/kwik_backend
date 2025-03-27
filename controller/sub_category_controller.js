@@ -1,7 +1,7 @@
 const SubCategory = require("../models/sub_category_model"); // Adjust path as per your file structure
 const Category = require("../models/category_model"); // Import category model to validate category_ref
 const Product = require("../models/product_model"); // Import product model to check product association
-
+const mongoose = require("mongoose");
 // Get all sub-categories
 exports.getAllSubCategories = async (req, res) => {
   try {
@@ -32,7 +32,7 @@ exports.getSubCategorieById = async (req, res) => {
 // Get all sub-categories by category_ref
 exports.getSubCategoriesByCategoryRef = async (req, res) => {
   try {
-    const categoryRef = req.params.categoryRef; // Get the category_ref from the request parameters
+    const categoryRef = new mongoose.Types.ObjectId(req.params.categoryRef); // Get the category_ref from the request parameters
 
     // Check if the category_ref exists in the Category collection
     const categoryExists = await Category.findById(categoryRef);
