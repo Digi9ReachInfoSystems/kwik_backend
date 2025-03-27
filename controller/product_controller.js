@@ -624,7 +624,10 @@ exports.searchProducts = async (req, res) => {
       isDeleted: false,
       draft: false,
       qc_status: "approved"
-    });
+    })
+    .populate("Brand category_ref sub_category_ref warehouse_ref")
+    .sort({ created_time: -1 })
+    .exec();
 
     if (products.length === 0) {
       return res.status(404).json({ success: false, message: "No products found", data: products });
@@ -652,7 +655,10 @@ exports.searchProductsByWarehouse = async (req, res) => {
       isDeleted: false,
       draft: false,
       qc_status: "approved"
-    });
+    })
+    .populate("Brand category_ref sub_category_ref warehouse_ref")
+    .sort({ created_time: -1 })
+    .exec();
 
     if (products.length === 0) {
       return res.status(404).json({ success: false, message: "No products found", data: products });
