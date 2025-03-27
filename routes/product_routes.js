@@ -36,4 +36,5 @@ router.get("/get/notInwarehouse/:warehouseId", ProductController.getProductNotIn
 router.post("/add/stockwithWarehouse",ProductController.addStockToExistingProduct);
 router.get("/get/recommendedProducts/:userId", ProductController.getRecomandedProducts);
 router.get("/search/lowStockProduct/:warehouseId", ProductController.searchLowStockProducts);
+router.get("/search/draftProduct/:warehouseId", ProductController.searchDrafts);
 module.exports = router;
