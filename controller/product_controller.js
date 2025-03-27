@@ -153,6 +153,12 @@ exports.getProductsBySubCategory = async (req, res) => {
       .populate(
         "Brand category_ref sub_category_ref variations warehouse_ref  review"
       )
+      .populate({
+        path: "sub_category_ref",
+        populate: {
+          path: "category_ref",
+        }
+      })
       .sort({ created_time: -1 })
       .exec();
 
