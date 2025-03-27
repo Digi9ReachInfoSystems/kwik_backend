@@ -953,3 +953,29 @@ exports.getRecentOrdersBywarehouseId = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 }
+exports.searchOrderBycustomerNameStatus = async (req, res) => {
+  const { name } = req.query;
+  const { status, warehouseId } = req.params;
+
+  if (!name) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+
+  try {
+    const users = await User.find({ displayName: { $regex: `^${name}`, $options: "i" } });
+    if (!users) {
+      return res.status(404).json({ sucess: false, message: "Users not found" });
+    }
+    const userIds = users.map(user => user._id);
+    const orders = await Order.find({ user_ref: { $in: userIds }, order_status: status, warehouse_ref: warehouseId }).populate('user_ref', 'displayName');
+
+    if (orders.length === 0) {
+      return res.status(404).json({ success: false, message: "No Orders found", data: orders });
+    }
+
+    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orders });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
