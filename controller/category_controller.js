@@ -12,7 +12,13 @@ const isValidUrl = (url) => {
 // Get all categories
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ isDeleted: false }); // Fetch all categories from the database
+    const categories = await Category.find({ isDeleted: false })
+    .populate({
+      path: "sub_category_ref",
+      populate: {
+        path: "category_ref", 
+      }
+    }); // Fetch all categories from the database
     res.status(200).json(categories); // Send only the categories array
   } catch (error) {
     res
@@ -27,7 +33,13 @@ exports.getCategoryById = async (req, res) => {
     const categoryId = req.params.id; // The category_id to search for
 
     // Find category by category_id
-    const category = await Category.findOne({ _id: categoryId });
+    const category = await Category.findOne({ _id: categoryId })
+    .populate({
+      path: "sub_category_ref",
+      populate: {
+        path: "category_ref", 
+      }
+    });
 
     if (!category) {
       return res.status(404).json({ error: "Category not found" });
@@ -226,7 +238,13 @@ exports.searchCategory = async (req, res) => {
     }
 
    
-    const categories = await Category.find({ category_name: { $regex: `^${name}`, $options: "i" }, isDeleted: false });
+    const categories = await Category.find({ category_name: { $regex: `^${name}`, $options: "i" }, isDeleted: false })
+    .populate({
+      path: "sub_category_ref",
+      populate: {
+        path: "category_ref", 
+      }
+    });
     if (categories.length === 0) {
       return res.status(404).json({ success: false, message: "No categories found" ,data: categories });
     }
