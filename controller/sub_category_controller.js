@@ -32,6 +32,7 @@ exports.getSubCategorieById = async (req, res) => {
 // Get all sub-categories by category_ref
 exports.getSubCategoriesByCategoryRef = async (req, res) => {
   try {
+    console.log(req.params.categoryRef);
     const categoryRef = new mongoose.Types.ObjectId(req.params.categoryRef); // Get the category_ref from the request parameters
 
     // Check if the category_ref exists in the Category collection
