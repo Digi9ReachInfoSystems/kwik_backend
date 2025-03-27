@@ -12,13 +12,7 @@ const isValidUrl = (url) => {
 // Get all categories
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ isDeleted: false })
-    .populate({
-      path: "sub_category_ref",
-      populate: {
-        path: "category_ref", 
-      }
-    }); // Fetch all categories from the database
+    const categories = await Category.find({ isDeleted: false }); // Fetch all categories from the database
     res.status(200).json(categories); // Send only the categories array
   } catch (error) {
     res
@@ -33,13 +27,7 @@ exports.getCategoryById = async (req, res) => {
     const categoryId = req.params.id; // The category_id to search for
 
     // Find category by category_id
-    const category = await Category.findOne({ _id: categoryId })
-    .populate({
-      path: "sub_category_ref",
-      populate: {
-        path: "category_ref", 
-      }
-    });
+    const category = await Category.findOne({ _id: categoryId });
 
     if (!category) {
       return res.status(404).json({ error: "Category not found" });
@@ -218,7 +206,7 @@ exports.softDeleteCategory = async (req, res) => {
     if (products.length > 0) {
       return res.status(200).json({ message: "Category is being used in a product and cannot be soft deleted" });
     }
-    const subCategories = await SubCategory.find({ category_ref: category._id,isDeleted: false });
+    const subCategories = await SubCategory.find({ category_ref: category._id, isDeleted: false });
     if (subCategories.length > 0) {
       return res.status(200).json({ message: "Category is being used in a sub-category and cannot be soft deleted" });
     }
@@ -237,20 +225,14 @@ exports.searchCategory = async (req, res) => {
       return res.status(400).json({ message: "Search term is required" });
     }
 
-   
-    const categories = await Category.find({ category_name: { $regex: `^${name}`, $options: "i" }, isDeleted: false })
-    .populate({
-      path: "sub_category_ref",
-      populate: {
-        path: "category_ref", 
-      }
-    });
+
+    const categories = await Category.find({ category_name: { $regex: `^${name}`, $options: "i" }, isDeleted: false });
     if (categories.length === 0) {
-      return res.status(404).json({ success: false, message: "No categories found" ,data: categories });
+      return res.status(404).json({ success: false, message: "No categories found", data: categories });
     }
 
-    res.status(200).json({success: true, message: "Categories retrieved successfully", data: categories });
+    res.status(200).json({ success: true, message: "Categories retrieved successfully", data: categories });
   } catch (error) {
-    res.status(500).json({ message: "Error searching categories", error: error.message });  
+    res.status(500).json({ message: "Error searching categories", error: error.message });
   }
 };
