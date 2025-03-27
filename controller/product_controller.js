@@ -375,6 +375,9 @@ exports.getLowStockProducts = async (req, res) => {
             stock_qty: { $lt: 10 }, // Check if stock quantity is less than 10
           },
         },
+        isDeleted: false,
+        draft: false,
+        qc_status: "approved",
       };
 
       // populateQuery = [
@@ -386,9 +389,9 @@ exports.getLowStockProducts = async (req, res) => {
     } else {
       filter = {
         "variations.stock.stock_qty": { $lt: 10 }, // No warehouse filter, just quantity < 10
-        isDeleted : false,
-        draft : false,
-        qc_status : "approved",
+        isDeleted: false,
+        draft: false,
+        qc_status: "approved",
       };
 
       populateQuery = [
@@ -625,9 +628,9 @@ exports.searchProducts = async (req, res) => {
       draft: false,
       qc_status: "approved"
     })
-    .populate("Brand category_ref sub_category_ref warehouse_ref")
-    .sort({ created_time: -1 })
-    .exec();
+      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 })
+      .exec();
 
     if (products.length === 0) {
       return res.status(404).json({ success: false, message: "No products found", data: products });
@@ -656,9 +659,9 @@ exports.searchProductsByWarehouse = async (req, res) => {
       draft: false,
       qc_status: "approved"
     })
-    .populate("Brand category_ref sub_category_ref warehouse_ref")
-    .sort({ created_time: -1 })
-    .exec();
+      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 })
+      .exec();
 
     if (products.length === 0) {
       return res.status(404).json({ success: false, message: "No products found", data: products });
@@ -935,5 +938,72 @@ exports.getRecomandedProducts = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Error retrieving recomanded products", error: error.message });
+  }
+};
+
+exports.searchLowStockProducts = async (req, res) => {
+  try {
+    const { name } = req.query;
+    const { warehouseId } = req.params;
+
+    // If warehouse_ref is provided, filter based on that warehouse
+    let filter = {};
+    let populateQuery = [];
+
+    if (warehouseId) {
+      filter = {
+        product_name: { $regex: `^${name}`, $options: "i" },
+        "variations.stock": {
+          $elemMatch: {
+            warehouse_ref: new mongoose.Types.ObjectId(warehouseId), // Match the warehouse reference
+            stock_qty: { $lt: 10 }, // Check if stock quantity is less than 10
+          },
+        },
+        isDeleted: false,
+        draft: false,
+        qc_status: "approved",
+      };
+
+      // populateQuery = [
+      //   {
+      //     path: "variations.stock.warehouse_ref", // Populate warehouse reference
+      //     model: "Warehouse", // The model to populate (should match your Warehouse model)
+      //   },
+      // ];
+    } else {
+      filter = {
+        product_name: { $regex: `^${name}`, $options: "i" },
+        "variations.stock.stock_qty": { $lt: 10 }, // No warehouse filter, just quantity < 10
+        isDeleted: false,
+        draft: false,
+        qc_status: "approved",
+      };
+
+      populateQuery = [
+        {
+          path: "variations.stock.warehouse_ref", // Populate warehouse reference
+          model: "Warehouse", // The model to populate (should match your Warehouse model)
+        },
+      ];
+    }
+
+    // Query products with the filter and populate warehouse_ref
+    const products = await Product.find(filter).populate(populateQuery)
+      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 });
+
+    // If no products are found, return a 404 error
+    if (!products || products.length === 0) {
+      return res.status(404).json({ message: "No low stock products found" });
+    }
+
+    // Return the result
+    return res.status(200).json({ data: products });
+  } catch (error) {
+    console.error("Error fetching low stock products:", error);
+    return res.status(500).json({
+      message: "Error fetching low stock products",
+      error: error.message,
+    });
   }
 };
