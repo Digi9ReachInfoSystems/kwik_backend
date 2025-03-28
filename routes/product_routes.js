@@ -38,4 +38,5 @@ router.get("/get/recommendedProducts/:userId", ProductController.getRecomandedPr
 router.get("/search/lowStockProduct/:warehouseId", ProductController.searchLowStockProducts);
 router.get("/search/draftProduct/:warehouseId", ProductController.searchDrafts);
 router.get("/get/recommendedProductsByUserOrder/:userId", ProductController.getRecomandedProductsBasedOnOrders);
+router.get("/search/product/user/:userId", ProductController.searchProductsbyUserId);
 module.exports = router;

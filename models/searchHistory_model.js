@@ -4,6 +4,11 @@ const mongoose = require('mongoose');
 const searchHistorySchema = new mongoose.Schema({
   result: [
     {
+      product_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+        // required: true
+      },
       product_name: {
         type: String,
         // required: true
