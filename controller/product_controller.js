@@ -1098,54 +1098,88 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
 
     }
     if (user.current_pincode) {
-      // let topSellingProducts = await Order.aggregate([
-      //   { $match: { warehouse_ref: warehouse._id } },
-      //   { $unwind: "$products" },
-      //   {
-      //     $group: {
-      //       _id: "$products.product_ref",
-      //       totalQuantitySold: { $sum: "$products.quantity" }
-      //     }
-      //   },
-      //   { $sort: { totalQuantitySold: -1 } },
-      //   { $limit: 20 },
-      //   {
-      //     $lookup: {
-      //       from: "products",
-      //       localField: "_id",
-      //       foreignField: "_id",
-      //       as: "productDetails"
-      //     }
-      //   },
-      //   { $unwind: "$productDetails" },
-      //   {
-      //     $lookup: {
-      //       from: "brands",
-      //       localField: "productDetails.Brand",
-      //       foreignField: "_id",
-      //       as: "productDetails.Brand"
-      //     }
-      //   },
-      //   { $unwind: "$productDetails.Brand" },
-      // ]).exec();
-      // console.log("top selling products", topSellingProducts);
-      // topSellingProducts = await Product.populate(topSellingProducts, [
-      //   // { path: "Brand" },
-      //   { path: "category_ref" },
-      //   { path: "sub_category_ref" },
-      //   { path: "variations" },
-      //   { path: "warehouse_ref" },
-      //   { path: "review" },
-      //   // If you need nested populate:
-      //   {
-      //     path: "sub_category_ref",
-      //     populate: { path: "category_ref" }
-      //   }
-      // ]);
-      // console.log("top selling products two ", topSellingProducts);
-
-      // recommendedProducts = [...recommendedProducts, ...topSellingProducts.map(item => item.productDetails)];
-      if (true) {
+      let topSellingProducts = await Order.aggregate([
+        { $match: { warehouse_ref: warehouse._id } },
+        { $unwind: "$products" },
+        {
+          $group: {
+            _id: "$products.product_ref",
+            totalQuantitySold: { $sum: "$products.quantity" }
+          }
+        },
+        { $sort: { totalQuantitySold: -1 } },
+        { $limit: 20 },
+        {
+          $lookup: {
+            from: "products",
+            localField: "_id",
+            foreignField: "_id",
+            as: "productDetails"
+          }
+        },
+        { $unwind: "$productDetails" },
+        {
+          $lookup: {
+            from: "brands",
+            localField: "productDetails.Brand",
+            foreignField: "_id",
+            as: "productDetails.Brand"
+          }
+        },
+        { $unwind: "$productDetails.Brand" },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "productDetails.category_ref",
+            foreignField: "_id",
+            as: "productDetails.category_ref"
+          }
+        },
+        { $unwind: "$productDetails.category_ref" },
+        {
+          $lookup: {
+            from: "subcategories",
+            localField: "productDetails.sub_category_ref", // array of ObjectIds
+            foreignField: "_id",
+            as: "productDetails.sub_category_ref"
+          }
+        },
+        { $unwind: "$productDetails.sub_category_ref" },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "productDetails.sub_category_ref.category_ref",
+            foreignField: "_id",
+            as: "productDetails.sub_category_ref.category_ref"
+          }
+        },
+        { $unwind: "$productDetails.sub_category_ref.category_ref" },
+      ]).exec();
+      topSellingProducts = await Product.populate(topSellingProducts, [
+        // { path: "Brand" },
+        { path: "category_ref" },
+        { path: "sub_category_ref" },
+        { path: "variations" },
+        { path: "warehouse_ref" },
+        { path: "review" },
+        // If you need nested populate:
+        {
+          path: "sub_category_ref",
+          populate: { path: "category_ref" }
+        }
+      ]);
+      topSellingProducts = await Product.populate(topSellingProducts, [
+        {
+          path: "sub_category_ref", // nested path
+          model: "SubCategory",                   // explicitly define model
+          populate: {
+            path: "category_ref",                 // if SubCategory has category_ref
+            model: "Category"
+          }
+        },
+      ]);
+      recommendedProducts = [...recommendedProducts, ...topSellingProducts.map(item => item.productDetails)];
+      if (topSellingProducts.length < 20) {
         const productsInWarehouse = await Product.aggregate([
           { $match: { warehouse_ref: warehouse._id } },
         ])
