@@ -889,10 +889,23 @@ exports.getRecomandedProducts = async (req, res) => {
       // const randomCategories = getRandomCategories(uniqueCategories, 4);
 
       for (const category of uniqueCategories) {
-        const productsInCategory = await Product.aggregate([
+        let productsInCategory = await Product.aggregate([
           { $match: { category_ref: new mongoose.Types.ObjectId(category), warehouse_ref: warehouse._id } },
           { $sample: { size: 10 } }
         ]).exec();
+        productsInCategory = await Product.populate(productsInCategory, [
+          { path: "Brand" },
+          { path: "category_ref" },
+          { path: "sub_category_ref" },
+          { path: "variations" },
+          { path: "warehouse_ref" },
+          { path: "review" },
+          // If you need nested populate:
+          {
+            path: "sub_category_ref",
+            populate: { path: "category_ref" }
+          }
+        ]);
         recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInCategory, 5)];
         // if (recommendedProducts.length >= 10) break;
       }
@@ -906,10 +919,23 @@ exports.getRecomandedProducts = async (req, res) => {
       // const randomCategoriesFromCart = getRandomCategories(uniqueCartCategories, 3); // Adjust number of categories as needed
 
       for (const category of uniqueCartCategories) {
-        const productsInCartCategory = await Product.aggregate([
+        let productsInCartCategory = await Product.aggregate([
           { $match: { category_ref: new mongoose.Types.ObjectId(category), warehouse_ref: warehouse._id } },
           { $sample: { size: 10 } }
         ]).exec();
+        productsInCartCategory = await Product.populate(productsInCartCategory, [
+          { path: "Brand" },
+          { path: "category_ref" },
+          { path: "sub_category_ref" },
+          { path: "variations" },
+          { path: "warehouse_ref" },
+          { path: "review" },
+          // If you need nested populate:
+          {
+            path: "sub_category_ref",
+            populate: { path: "category_ref" }
+          }
+        ]);
         recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInCartCategory, 5)];
         // if (recommendedProducts.length >= 10) break;
       }
@@ -919,7 +945,7 @@ exports.getRecomandedProducts = async (req, res) => {
       // }
     }
     if (user.current_pincode) {
-      const topSellingProducts = await Order.aggregate([
+      let topSellingProducts = await Order.aggregate([
         { $match: { warehouse_ref: warehouse._id } },
         { $unwind: "$products" },
         {
@@ -938,8 +964,58 @@ exports.getRecomandedProducts = async (req, res) => {
             as: "productDetails"
           }
         },
-        { $unwind: "$productDetails" }
+        { $unwind: "$productDetails" },
+        {
+          $lookup: {
+            from: "brands",
+            localField: "productDetails.Brand",
+            foreignField: "_id",
+            as: "productDetails.Brand"
+          }
+        },
+        { $unwind: "$productDetails.Brand" },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "productDetails.category_ref",
+            foreignField: "_id",
+            as: "productDetails.category_ref"
+          }
+        },
+        { $unwind: "$productDetails.category_ref" },
+        {
+          $lookup: {
+            from: "subcategories",
+            localField: "productDetails.sub_category_ref", // array of ObjectIds
+            foreignField: "_id",
+            as: "productDetails.sub_category_ref"
+          }
+        },
+        { $unwind: "$productDetails.sub_category_ref" },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "productDetails.sub_category_ref.category_ref",
+            foreignField: "_id",
+            as: "productDetails.sub_category_ref.category_ref"
+          }
+        },
+        { $unwind: "$productDetails.sub_category_ref.category_ref" },
+        
       ]).exec();
+      topSellingProducts = await Product.populate(topSellingProducts, [
+        { path: "Brand" },
+        { path: "category_ref" },
+        { path: "sub_category_ref" },
+        { path: "variations" },
+        { path: "warehouse_ref" },
+        { path: "review" },
+        // If you need nested populate:
+        {
+          path: "sub_category_ref",
+          populate: { path: "category_ref" }
+        }
+      ]);
 
       recommendedProducts = [...recommendedProducts, ...topSellingProducts.map(item => item.productDetails)];
 
@@ -950,10 +1026,23 @@ exports.getRecomandedProducts = async (req, res) => {
 
     const defaultCategory = await Category.findById(categoryId);
     if (defaultCategory) {
-      const productsInDefaultCategory = await Product.aggregate([
+      let productsInDefaultCategory = await Product.aggregate([
         { $match: { category_ref: defaultCategory._id, warehouse_ref: warehouse._id } },
         { $sample: { size: 20 } }
       ]).exec();
+      productsInDefaultCategory = await Product.populate(productsInDefaultCategory, [
+        { path: "Brand" },
+        { path: "category_ref" },
+        { path: "sub_category_ref" },
+        { path: "variations" },
+        { path: "warehouse_ref" },
+        { path: "review" },
+        // If you need nested populate:
+        {
+          path: "sub_category_ref",
+          populate: { path: "category_ref" }
+        }
+      ]);
       recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInDefaultCategory, 10)];
       //if (recommendedProducts.length >= 10) return 
       // res.status(200).json({ message: "Recomanded products retrieved successfully", data: getUniqueProducts(recommendedProducts).slice(0, 10) });
@@ -1078,7 +1167,6 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
           { $sample: { size: 10 } }
         ])
           .exec();
-        console.log("hbhbhub bjbj ", productsInCategory);
         productsInCategory = await Product.populate(productsInCategory, [
           { path: "Brand" },
           { path: "category_ref" },
@@ -1092,7 +1180,6 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
             populate: { path: "category_ref" }
           }
         ]);
-        console.log("bhbjhbj", productsInCategory);
         recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInCategory, 6)];
       }
 
@@ -1156,7 +1243,7 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
         { $unwind: "$productDetails.sub_category_ref.category_ref" },
       ]).exec();
       topSellingProducts = await Product.populate(topSellingProducts, [
-        // { path: "Brand" },
+        { path: "Brand" },
         { path: "category_ref" },
         { path: "sub_category_ref" },
         { path: "variations" },
@@ -1183,7 +1270,7 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
         const productsInWarehouse = await Product.aggregate([
           { $match: { warehouse_ref: warehouse._id } },
         ])
-        .exec();
+          .exec();
         const categoriesInWarehouse = [...new Set(productsInWarehouse.map(product => product.category_ref))];
         const uniqueCategoriesInWarehouse = [...new Set(categoriesInWarehouse.map(cat => cat.toString()))];
         for (const category of uniqueCategoriesInWarehouse) {
@@ -1233,29 +1320,22 @@ exports.searchProductsbyUserId = async (req, res) => {
     })
       .limit(20)
       .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .populate({
+        path: "sub_category_ref",
+        populate: { path: "category_ref" }
+      })
       .sort({ created_time: -1 });
-    const searchHistoryResult = products.map(product => {
-      return {
-        product_id: product._id,
-        product_name: product.product_name,
-        product_image: product.product_image,
-        Brand: product.Brand.brand_name,
-        category_ref: product.category_ref._id,
-        // sub_category_ref: product.sub_category_ref._id,
-        sku: product.sku
+
+      const searchHistory = {
+        query: query,
+        timestamp: new Date()
+      };
+      
+      const existingQuery = user.search_history.find(item => item.query === query);
+      
+      if (!existingQuery) {
+        user.search_history.push(searchHistory);
       }
-    })
-    const searchHistory = {
-      result: searchHistoryResult,
-      query: query,
-    }
-    console.log(searchHistory);
-    // if (!user.search_history) {
-    //   user.search_history = [searchHistory];
-    // } else {
-    user.search_history.push(searchHistory);
-    // }
-    console.log(user.search_history);
     await user.save();
     res.status(200).json({ success: true, message: "Products retrieved successfully", data: products });
   } catch (error) {

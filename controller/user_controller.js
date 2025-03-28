@@ -698,3 +698,35 @@ exports.updateCurrentPincode = async (req, res) => {
     return res.status(500).json({success: false, message: "Error", error: error.message });
   }
 }
+exports.getsearchHistoryByUserId = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const searchHistory = user.search_history;
+    return res.status(200).json({ message: "success", searchHistory });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+}
+exports.removeSearchHistoryByUserIdandQueryId = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const queryId = req.params.queryId;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const searchHistory = user.search_history;
+    const updatedSearchHistory = searchHistory.filter((item) => item._id.toString() !== queryId);
+    user.search_history = updatedSearchHistory;
+    const savedUser = await user.save();
+    return res.status(200).json({ message: "success",user: savedUser, searchHistory: savedUser.search_history });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+}

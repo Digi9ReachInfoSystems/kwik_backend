@@ -37,5 +37,7 @@ router.put("/select/address/change", userController.userSelectedAddressChange);
 router.get("/getUserCart/:userId", userController.getUserCartById);
 router.get("/get/userStats",userController.userStats);
 router.put("/update/currentPincode",userController.updateCurrentPincode);
+router.get("/get/searchHistory/:userId",userController.getsearchHistoryByUserId);
+router.delete("/delete/searchHistory/:userId/:queryId",userController.removeSearchHistoryByUserIdandQueryId);
 
 module.exports = router;

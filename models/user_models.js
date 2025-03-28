@@ -26,7 +26,10 @@ const userSchema = new mongoose.Schema({
   deliveryboy_account_ifsc: { type: String, required: false },
   deliveryboy_bike_number: { type: String, required: false },
   deliveryboy_bike_image: { type: String, required: false }, // URL for Bike image
-  search_history: [{ type: SearchHistory, required: false }],
+  search_history: [{ 
+    query: { type: String, required: false },
+    timestamp: { type: Date, required: false},
+   }],
   assigned_warehouse: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Warehouse",
