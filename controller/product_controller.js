@@ -196,7 +196,7 @@ exports.getProductsBySubCategories = async (req, res) => {
       .populate({
         path: "sub_category_ref",
         populate: {
-          path: "category_ref", 
+          path: "category_ref",
         }
       })
       .sort({ created_time: -1 })
@@ -1052,3 +1052,77 @@ exports.searchDrafts = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching draft products", error: error.message });
   }
 };
+exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findOne({ UID: userId })
+      .populate('cart_products.product_ref')
+      .exec();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const warehouse = await Warehouse.findOne({ picode: user.current_pincode }).exec();
+    const orders = await Order.find({ user_ref: user._id }).populate('products.product_ref').exec();
+    const cartProducts = user.cart_products;
+    let recommendedProducts = [];
+    if (orders.length > 0) {
+      const orderedCategories = orders.flatMap(order =>
+        order.products.map(product => product.product_ref.category_ref)
+      );
+      const uniqueCategories = [...new Set(orderedCategories.map(cat => cat.toString()))];
+
+      for (const category of uniqueCategories) {
+        const productsInCategory = await Product.aggregate([
+          { $match: { category_ref: new mongoose.Types.ObjectId(category), warehouse_ref: warehouse._id } },
+          { $sample: { size: 10 } }
+        ]).exec();
+        recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInCategory, 6)];
+      }
+
+    }
+    if (user.current_pincode) {
+      const topSellingProducts = await Order.aggregate([
+        { $match: { warehouse_ref: warehouse._id } },
+        { $unwind: "$products" },
+        {
+          $group: {
+            _id: "$products.product_ref",
+            totalQuantitySold: { $sum: "$products.quantity" }
+          }
+        },
+        { $sort: { totalQuantitySold: -1 } },
+        { $limit: 20 },
+        {
+          $lookup: {
+            from: "products",
+            localField: "_id",
+            foreignField: "_id",
+            as: "productDetails"
+          }
+        },
+        { $unwind: "$productDetails" }
+      ]).exec();
+      recommendedProducts = [...recommendedProducts, ...topSellingProducts.map(item => item.productDetails)];
+      if (topSellingProducts.length < 20) {
+        const productsInWarehouse = await Product.aggregate([
+          { $match: { warehouse_ref: warehouse._id } },
+        ]).exec();
+        const categoriesInWarehouse = [...new Set(productsInWarehouse.map(product => product.category_ref))];
+        const uniqueCategoriesInWarehouse = [...new Set(categoriesInWarehouse.map(cat => cat.toString()))];
+        for (const category of uniqueCategoriesInWarehouse) {
+          const productsInWarehouseCategory = await Product.aggregate([
+            { $match: { category_ref: new mongoose.Types.ObjectId(category), warehouse_ref: warehouse._id } },
+            { $sample: { size: 10 } }
+          ]).exec();
+          recommendedProducts = [...recommendedProducts, ...getRandomProducts(productsInWarehouseCategory, 3)];
+
+        }
+      }
+    }
+    return res.status(200).json({ message: "Recomanded products retrieved successfully", allProducts: getUniqueProducts(recommendedProducts) });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Error retrieving recomanded products", error: error.message });
+  }
+
+}
