@@ -1297,7 +1297,7 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
         }
       }
     }
-    return res.status(200).json({ message: "Recomanded products retrieved successfully", allProducts: getUniqueProducts(recommendedProducts) });
+    return res.status(200).json({ message: "Recomanded products retrieved successfully", allProducts: getUniqueProducts(recommendedProducts),user:user,searchHistory:user.search_history });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Error retrieving recomanded products", error: error.message });
