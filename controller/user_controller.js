@@ -730,3 +730,19 @@ exports.removeSearchHistoryByUserIdandQueryId = async (req, res) => {
     return res.status(500).json({ message: "Error", error });
   }
 }
+
+exports.removeSearchHistoryByUserId = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    user.search_history = [];
+    const savedUser = await user.save();
+    return res.status(200).json({ message: "success",user: savedUser, searchHistory: savedUser.search_history });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+}
