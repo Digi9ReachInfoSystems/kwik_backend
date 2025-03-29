@@ -39,5 +39,6 @@ router.get("/get/userStats",userController.userStats);
 router.put("/update/currentPincode",userController.updateCurrentPincode);
 router.get("/get/searchHistory/:userId",userController.getsearchHistoryByUserId);
 router.delete("/delete/searchHistory/:userId/:queryId",userController.removeSearchHistoryByUserIdandQueryId);
+router.delete("/delete/allSearchHistory/:userId",userController.removeSearchHistoryByUserId);
 
 module.exports = router;
