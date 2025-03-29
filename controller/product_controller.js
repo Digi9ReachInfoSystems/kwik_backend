@@ -71,7 +71,12 @@ exports.createProduct = async (req, res) => {
     })
     )
     productData.sub_category_ref = subCategoryIds;
-
+    if (productData.variations) {
+      productData.variations = productData.variations.map((variation) => {
+        const { _id, ...variationWithoutId } = variation; // Deconstruct and remove _id
+        return variationWithoutId;
+      });
+    }
     // Create a new product
     const newProduct = new Product(productData);
     const savedProduct = await newProduct.save();
@@ -890,12 +895,15 @@ exports.getRecomandedProducts = async (req, res) => {
 
       for (const category of uniqueCategories) {
         let productsInCategory = await Product.aggregate([
-          { $match: { category_ref: new mongoose.Types.ObjectId(category),
-             warehouse_ref: warehouse._id,
-             isDeleted: false,
-             qc_status: "approved",
-             draft: false
-            } },
+          {
+            $match: {
+              category_ref: new mongoose.Types.ObjectId(category),
+              warehouse_ref: warehouse._id,
+              isDeleted: false,
+              qc_status: "approved",
+              draft: false
+            }
+          },
           { $sample: { size: 10 } }
         ]).exec();
         productsInCategory = await Product.populate(productsInCategory, [
@@ -925,12 +933,15 @@ exports.getRecomandedProducts = async (req, res) => {
 
       for (const category of uniqueCartCategories) {
         let productsInCartCategory = await Product.aggregate([
-          { $match: { category_ref: new mongoose.Types.ObjectId(category),
-             warehouse_ref: warehouse._id,
-             isDeleted: false,
-             qc_status: "approved",
-             draft: false
-             } },
+          {
+            $match: {
+              category_ref: new mongoose.Types.ObjectId(category),
+              warehouse_ref: warehouse._id,
+              isDeleted: false,
+              qc_status: "approved",
+              draft: false
+            }
+          },
           { $sample: { size: 10 } }
         ]).exec();
         productsInCartCategory = await Product.populate(productsInCartCategory, [
@@ -977,9 +988,9 @@ exports.getRecomandedProducts = async (req, res) => {
         { $unwind: "$productDetails" },
         {
           $match: {
-            "productDetails.isDeleted": false,       
-            "productDetails.qc_status": "approved",   
-            "productDetails.draft": false             
+            "productDetails.isDeleted": false,
+            "productDetails.qc_status": "approved",
+            "productDetails.draft": false
           }
         },
         {
@@ -1044,12 +1055,15 @@ exports.getRecomandedProducts = async (req, res) => {
     const defaultCategory = await Category.findById(categoryId);
     if (defaultCategory) {
       let productsInDefaultCategory = await Product.aggregate([
-        { $match: { category_ref: defaultCategory._id,
-           warehouse_ref: warehouse._id,
-           isDeleted: false,
-           qc_status: "approved",
-           draft: false
-          } },
+        {
+          $match: {
+            category_ref: defaultCategory._id,
+            warehouse_ref: warehouse._id,
+            isDeleted: false,
+            qc_status: "approved",
+            draft: false
+          }
+        },
         { $sample: { size: 20 } }
       ]).exec();
       productsInDefaultCategory = await Product.populate(productsInDefaultCategory, [
@@ -1236,9 +1250,9 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
         { $unwind: "$productDetails" },
         {
           $match: {
-            "productDetails.isDeleted": false,       
-            "productDetails.qc_status": "approved",   
-            "productDetails.draft": false             
+            "productDetails.isDeleted": false,
+            "productDetails.qc_status": "approved",
+            "productDetails.draft": false
           }
         },
         {
@@ -1311,12 +1325,15 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
         const uniqueCategoriesInWarehouse = [...new Set(categoriesInWarehouse.map(cat => cat.toString()))];
         for (const category of uniqueCategoriesInWarehouse) {
           let productsInWarehouseCategory = await Product.aggregate([
-            { $match: { category_ref: new mongoose.Types.ObjectId(category),
-               warehouse_ref: warehouse._id,
-               isDeleted: false,
-               qc_status: "approved",
-               draft: false
-              } },
+            {
+              $match: {
+                category_ref: new mongoose.Types.ObjectId(category),
+                warehouse_ref: warehouse._id,
+                isDeleted: false,
+                qc_status: "approved",
+                draft: false
+              }
+            },
             { $sample: { size: 10 } }
           ])
             .exec();
