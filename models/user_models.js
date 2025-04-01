@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema({
   cart_products: [{ type: CartProduct, required: false }],
   cart_added_date: { type: Date, required: false },
   saved_cart_products: [{ type: CartProduct, required: false }],
-  is_deliveryboy: { type: Boolean, required: true,default:false },
+  is_deliveryboy: { type: Boolean, required: true, default: false },
   is_blocked: { type: Boolean, required: false, default: false },
   deliveryboy_aadhar: { type: String, required: false }, // URL for Aadhar image
   deliveryboy_aadhar_number: { type: String, required: false },
@@ -26,22 +26,35 @@ const userSchema = new mongoose.Schema({
   deliveryboy_account_ifsc: { type: String, required: false },
   deliveryboy_bike_number: { type: String, required: false },
   deliveryboy_bike_image: { type: String, required: false }, // URL for Bike image
-  search_history: [{ 
+  search_history: [{
     query: { type: String, required: false },
-    timestamp: { type: Date, required: false},
-   }],
+    timestamp: { type: Date, required: false },
+  }],
   assigned_warehouse: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Warehouse",
     required: false,
   },
-  isWarehouse:{type:Boolean ,required:true,default:false},
-  isUser:{type:Boolean ,required:true,default:false},
+  isWarehouse: { type: Boolean, required: true, default: false },
+  isUser: { type: Boolean, required: true, default: false },
   fcm_token: { type: String, required: false },
   device_number: { type: String, required: false },
   is_qc: { type: Boolean, required: true, default: false },
   created_time: { type: Date, required: true, default: Date.now },
   current_pincode: { type: String, required: false },
+  whishlist: [
+    {
+      product_ref: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+        required: false
+      },
+      variant_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: false
+      },
+    }
+  ],
 });
 
 // Create and export the User model

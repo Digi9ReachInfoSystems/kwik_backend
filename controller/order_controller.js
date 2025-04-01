@@ -18,6 +18,7 @@ function getISOWeek(date) {
 exports.createOrder = async (req, res) => {
   try {
     const {
+      delivery_instructions,
       pincode,
       user_ref,
       order_status,
@@ -78,6 +79,7 @@ exports.createOrder = async (req, res) => {
       type_of_delivery,
       selected_time_slot,
       delivery_charge,
+      delivery_instructions
     });
     // If the order status is out for delivery or completed, you can add timestamps for those statuses
     if (order_status === "Out for delivery") {
@@ -810,8 +812,8 @@ exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
 exports.getRecentOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ created_time: -1 }).limit(10)
-    .populate("warehouse_ref user_ref products.product_ref delivery_boy")
-    .exec();
+      .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+      .exec();
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
@@ -842,7 +844,7 @@ exports.getMonthlyOrderCount = async (req, res) => {
 
     const orders = await Order.find(filter).exec();
     const orderCounts = new Array(12).fill(0);
-    const finalOrders=[];
+    const finalOrders = [];
 
     orders.forEach(order => {
       const month = order.created_time.getMonth();
@@ -866,9 +868,9 @@ exports.getMonthlyOrderCount = async (req, res) => {
 exports.getTopSellingProducts = async (req, res) => {
   try {
     // 1. Extract warehouseId and year from query (or body/params if you prefer)
-    const { warehouseId } = req.query; 
-    
-    if (!warehouseId ) {
+    const { warehouseId } = req.query;
+
+    if (!warehouseId) {
       return res
         .status(400)
         .json({ message: "Missing warehouseId or year in request query" });
@@ -887,7 +889,7 @@ exports.getTopSellingProducts = async (req, res) => {
       { $unwind: "$products" },
       {
         $group: {
-          _id: "$products.product_ref", 
+          _id: "$products.product_ref",
           totalSold: { $sum: "$products.quantity" },
         },
       },
@@ -911,7 +913,7 @@ exports.getTopSellingProducts = async (req, res) => {
             _id: 1,
             product_name: 1,
             product_des: 1,
-            product_image:1,
+            product_image: 1,
           },
         },
       },
@@ -933,14 +935,14 @@ exports.getTopSellingProducts = async (req, res) => {
 exports.getRecentOrdersBywarehouseId = async (req, res) => {
   try {
     const { warehouseId } = req.params;
-    const warehouse= await Warehouse.findById(warehouseId);
-    if(!warehouse){
+    const warehouse = await Warehouse.findById(warehouseId);
+    if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
 
     const orders = await Order.find({ warehouse_ref: warehouse._id }).sort({ created_time: -1 }).limit(10)
-    .populate("warehouse_ref user_ref products.product_ref delivery_boy")
-    .exec();
+      .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+      .exec();
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
@@ -968,6 +970,52 @@ exports.searchOrderBycustomerNameStatus = async (req, res) => {
     }
     const userIds = users.map(user => user._id);
     const orders = await Order.find({ user_ref: { $in: userIds }, order_status: status, warehouse_ref: warehouseId }).populate('user_ref', 'displayName');
+
+    if (orders.length === 0) {
+      return res.status(404).json({ success: false, message: "No Orders found", data: orders });
+    }
+
+    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orders });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
+  try {
+    const { warehouseId,delivery_type } = req.params;
+
+    const warehouse = await Warehouse.findById(warehouseId);
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+    const orders = await Order.find({ warehouse_ref: warehouse._id, type_of_delivery: delivery_type })
+      .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+      .exec();
+    if (!orders) {
+      return res.status(404).json({ success: false, message: "Orders not found" });
+    }
+    res.status(200).json({ success: true, data: orders });
+  } catch (error) {
+    console.error("Error getting orders by warehouse ID:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
+  const { name } = req.query;
+  const { warehouseId,delivery_type } = req.params;
+
+  if (!name) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+
+  try {
+    const users = await User.find({ displayName: { $regex: `^${name}`, $options: "i" } });
+    if (!users) {
+      return res.status(404).json({ sucess: false, message: "Users not found" });
+    }
+    const userIds = users.map(user => user._id);
+    const orders = await Order.find({ user_ref: { $in: userIds },  warehouse_ref:warehouseId, type_of_delivery: delivery_type}).populate('user_ref', 'displayName');
 
     if (orders.length === 0) {
       return res.status(404).json({ success: false, message: "No Orders found", data: orders });

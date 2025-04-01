@@ -246,7 +246,7 @@ exports.addProductToCart = async (req, res) => {
   try {
     const { userId, product_ref, variant, pincode } = req.body;
     const quantity = 1;
-    console.log("one",req.body);
+    console.log("one", req.body);
     // Validate required fields
     if (!product_ref || !variant || !pincode || !userId) {
       return res.status(400).json({ message: "All fields are required" });
@@ -616,7 +616,9 @@ exports.getUserCartById = async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await User.findOne({ UID: userId })
-      .populate({ path: "cart_products.product_ref", });
+      .populate({ path: "cart_products.product_ref", })
+      // .populate({path:"whislist.product_ref"})
+      .exec();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -660,7 +662,7 @@ exports.getUserCartById = async (req, res) => {
 
     }));
     const userData = (await user.save());
-    return res.status(200).json({ message: "success", user: userData, cartProducts: userData.cart_products });
+    return res.status(200).json({ message: "success", user: userData, cartProducts: userData.cart_products,whishlist:userData.whishlist });
   } catch (error) {
     console.log(error)
   }
@@ -685,17 +687,17 @@ exports.updateCurrentPincode = async (req, res) => {
     const user = await User.findOne({ UID: userId });
     const warehouse = await Warehouse.findOne({ picode: pincode });
     if (!user) {
-      return res.status(404).json({success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
     if (!warehouse) {
-      return res.status(404).json({success: false, message: "Warehouse not found" });
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
     user.current_pincode = pincode;
     const savedUser = await user.save();
-    return res.status(200).json({success: true, message: "current pincode updated", user: savedUser });
+    return res.status(200).json({ success: true, message: "current pincode updated", user: savedUser });
   } catch (error) {
     console.log(error)
-    return res.status(500).json({success: false, message: "Error", error: error.message });
+    return res.status(500).json({ success: false, message: "Error", error: error.message });
   }
 }
 exports.getsearchHistoryByUserId = async (req, res) => {
@@ -724,7 +726,7 @@ exports.removeSearchHistoryByUserIdandQueryId = async (req, res) => {
     const updatedSearchHistory = searchHistory.filter((item) => item._id.toString() !== queryId);
     user.search_history = updatedSearchHistory;
     const savedUser = await user.save();
-    return res.status(200).json({ message: "success",user: savedUser, searchHistory: savedUser.search_history });
+    return res.status(200).json({ message: "success", user: savedUser, searchHistory: savedUser.search_history });
   } catch (error) {
     console.log(error)
     return res.status(500).json({ message: "Error", error });
@@ -740,7 +742,60 @@ exports.removeSearchHistoryByUserId = async (req, res) => {
     }
     user.search_history = [];
     const savedUser = await user.save();
-    return res.status(200).json({ message: "success",user: savedUser, searchHistory: savedUser.search_history });
+    return res.status(200).json({ message: "success", user: savedUser, searchHistory: savedUser.search_history });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+}
+exports.addProductToWhislist = async (req, res) => {
+  try {
+    const { userId, product_ref, variant } = req.body;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const cartProduct = user.cart_products.find((item) => item.product_ref == product_ref && item.variant._id == variant);
+    const product = await Product.findById(product_ref);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    const warehouse = await Warehouse.findOne({ picode: cartProduct.pincode });
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found for this variant" });
+    }
+
+    const variation = product.variations.find((item) => item._id.equals(cartProduct.variant._id));
+    if (!variation) {
+      return res.status(404).json({ message: "variation not found for this product" });
+    }
+
+    variation.stock.map((item) => {
+      if ((item.warehouse_ref.equals(warehouse._id))) {
+        const stockQty = item.stock_qty;
+
+        item.stock_qty += Number(cartProduct.quantity);
+        if (item.stock_qty == 0) {
+          item.visibility = false;
+        }
+
+      }
+    })
+    user.cart_products = user.cart_products.filter((item) => {
+      return (!(item.product_ref != product_ref)) && (!(item.variant._id != variant))
+    });
+
+    const exists = user.whishlist.some(item => item.product_ref === product_ref && item.variant_id === variant);
+
+    if (!exists) {
+
+      user.whishlist.push({
+        product_ref: product_ref,
+        variant_id: variant,
+      });
+    }
+    const savedUser = await user.save();
+    return res.status(200).json({ message: "success", user: savedUser,  wishlist: savedUser.whishlist });
   } catch (error) {
     console.log(error)
     return res.status(500).json({ message: "Error", error });
