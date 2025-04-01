@@ -983,15 +983,59 @@ exports.searchOrderBycustomerNameStatus = async (req, res) => {
 };
 exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
   try {
-    const { warehouseId,delivery_type } = req.params;
+    console.log(req.params);
+    const { warehouseId, delivery_type } = req.params;
 
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
-    const orders = await Order.find({ warehouse_ref: warehouse._id, type_of_delivery: delivery_type })
-      .populate("warehouse_ref user_ref products.product_ref delivery_boy")
-      .exec();
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          warehouse_ref: warehouse._id,
+          type_of_delivery: delivery_type,
+        },
+      },
+      {
+        $addFields: {
+          numberOfProducts: { $size: "$products" },
+        },
+      },
+      {
+        $lookup: {
+          from: "warehouses",
+          localField: "warehouse_ref",
+          foreignField: "_id",
+          as: "warehouse_ref",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_ref",
+          foreignField: "_id",
+          as: "user_ref",
+        },
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "products.product_ref",
+          foreignField: "_id",
+          as: "products.product_ref",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "delivery_boy",
+          foreignField: "_id",
+          as: "delivery_boy",
+        },
+      },
+    ]);
+    console.log(orders);
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
@@ -1003,23 +1047,85 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
 }
 exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
   const { name } = req.query;
-  const { warehouseId,delivery_type } = req.params;
+  const { warehouseId, delivery_type } = req.params;
 
   if (!name) {
     return res.status(400).json({ message: "Search term is required" });
   }
 
   try {
+    const warehouse = await Warehouse.findById(warehouseId);
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
     const users = await User.find({ displayName: { $regex: `^${name}`, $options: "i" } });
     if (!users) {
       return res.status(404).json({ sucess: false, message: "Users not found" });
     }
     const userIds = users.map(user => user._id);
-    const orders = await Order.find({ user_ref: { $in: userIds },  warehouse_ref:warehouseId, type_of_delivery: delivery_type}).populate('user_ref', 'displayName');
-
-    if (orders.length === 0) {
-      return res.status(404).json({ success: false, message: "No Orders found", data: orders });
-    }
+    // let orders = await Order.find({ user_ref: { $in: userIds }, warehouse_ref: warehouseId, type_of_delivery: delivery_type }).populate('user_ref', 'displayName');
+    // if (orders.length === 0) {
+    //   return res.status(404).json({ success: false, message: "No Orders found", data: orders });
+    // }
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          user_ref: { $in: userIds }, // Match orders based on user_ref
+          warehouse_ref: warehouse._id,
+          type_of_delivery: delivery_type, // Match orders based on type_of_delivery
+        },
+      },
+      {
+        $addFields: {
+          numberOfProducts: { $size: "$products" },  // Add the field to count the number of products
+        },
+      },
+      {
+        $lookup: {
+          from: "warehouses", 
+          localField: "warehouse_ref",
+          foreignField: "_id",
+          as: "warehouse_ref",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",  
+          localField: "user_ref",
+          foreignField: "_id",
+          as: "user_ref",
+        },
+      },
+      {
+        $lookup: {
+          from: "products",  
+          localField: "products.product_ref",
+          foreignField: "_id",
+          as: "products.product_ref",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",  
+          localField: "delivery_boy",
+          foreignField: "_id",
+          as: "delivery_boy",
+        },
+      },
+      {
+        $project: {
+          "user_ref.displayName": 1,  
+          numberOfProducts: 1,  
+          warehouse_ref: 1,  
+          products: 1,  
+          delivery_boy: 1,  
+          order_status: 1,
+          total_amount: 1,
+          payment_type: 1,
+          created_time: 1,
+        },
+      },
+    ]);
 
     return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orders });
   } catch (error) {
