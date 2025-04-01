@@ -617,7 +617,7 @@ exports.getUserCartById = async (req, res) => {
     const userId = req.params.userId;
     const user = await User.findOne({ UID: userId })
       .populate({ path: "cart_products.product_ref", })
-      // .populate({path:"whislist.product_ref"})
+      .populate({ path: "whishlist.product_ref" })
       .exec();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
