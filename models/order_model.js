@@ -195,6 +195,10 @@ const orderSchema = new mongoose.Schema({
     required: [true, "Delivery charge is required"],
     min: [0, "Delivery charge must be a positive number"],
   },
+  delivery_instructions: {
+    type: String,
+    required: [false, "Delivery instructions are required"],  
+  },
 
   created_time: {
     type: Date,
