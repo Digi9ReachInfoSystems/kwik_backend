@@ -18,7 +18,7 @@ router.post(
 router.get("/get/Drafts", ProductController.getDrafts);
 router.get("/get/lowStockProduct", ProductController.getLowStockProducts);
 router.get("/get/productsByPincode", ProductController.getProductsbyPincode);
-router.get("/get/productsByBrand", ProductController.getProductByBrand);
+router.get("/get/productsByBrand/:brandId", ProductController.getProductByBrand);
 router.put("/updateVariation", ProductController.updateVariation);
 router.delete("/softDelete/:productId", ProductController.softDeleteProduct);
 router.delete("/soft/delete/variation", ProductController.softDeleteVariation);

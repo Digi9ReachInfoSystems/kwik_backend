@@ -465,8 +465,12 @@ exports.getProductsbyPincode = async (req, res) => {
 
 exports.getProductByBrand = async (req, res) => {
   try {
-    const { brandId } = req.body;
+    const  brandId  = new mongoose.Types.ObjectId(req.params.brandId);
     const products = await Product.find({ Brand: brandId, isDeleted: false, draft: false, qc_status: "approved" }).populate("Brand category_ref sub_category_ref")
+    .populate({
+      path: "sub_category_ref",
+      populate: { path: "category_ref" }
+    })
       .sort({ created_time: -1 })
       .exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
