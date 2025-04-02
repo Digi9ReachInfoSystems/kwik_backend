@@ -1014,48 +1014,118 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       };
     }
     const orders = await Order.aggregate([
+      // Match by user, warehouse, delivery type
       {
         $match: {
-          warehouse_ref: warehouse._id,
+          // user_ref: { $in: userIds },
+          warehouse_ref:new  mongoose.Types.ObjectId(warehouseId),
           type_of_delivery: delivery_type,
+          order_status: "Order placed",
         },
       },
+      // Apply time filter
+      timeFilter,
+      // Count how many products are in each order
       {
         $addFields: {
           numberOfProducts: { $size: "$products" },
         },
       },
-      timeFilter,
-      {
-        $lookup: {
-          from: "warehouses",
-          localField: "warehouse_ref",
-          foreignField: "_id",
-          as: "warehouse_ref",
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "user_ref",
-          foreignField: "_id",
-          as: "user_ref",
-        },
-      },
+      // Lookup the "Product" documents associated to each product_ref
       {
         $lookup: {
           from: "products",
-          localField: "products.product_ref",
-          foreignField: "_id",
-          as: "products.product_ref",
+          localField: "products.product_ref", // Field(s) in this Order doc
+          foreignField: "_id",                // Field in the Product collection
+          as: "populatedProducts",            // Temporarily store them here
         },
       },
+      // Lookup to populate warehouse_ref from Warehouse collection
+      {
+        $lookup: {
+          from: "warehouses",
+          localField: "warehouse_ref",        // Reference to warehouse
+          foreignField: "_id",                // Match on warehouse _id
+          as: "warehouse_ref",                // Store result here
+        },
+      },
+      // Lookup to populate user_ref from User collection
       {
         $lookup: {
           from: "users",
-          localField: "delivery_boy",
-          foreignField: "_id",
-          as: "delivery_boy",
+          localField: "user_ref",             // Reference to user
+          foreignField: "_id",                // Match on user _id
+          as: "user_ref",                     // Store result here
+        },
+      },
+      // Re-map the products array so each product_ref is a single Product doc
+      {
+        $addFields: {
+          products: {
+            $map: {
+              input: "$products",
+              as: "oneProduct",
+              in: {
+                $mergeObjects: [
+                  // Keep all original fields in "oneProduct"
+                  "$$oneProduct",
+                  // Overwrite product_ref with the fully populated doc
+                  {
+                    product_ref: {
+                      // $arrayElemAt with $filter ensures we get a single matching doc
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$populatedProducts",
+                            as: "popProd",
+                            cond: { $eq: ["$$oneProduct.product_ref", "$$popProd._id"] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      // We no longer need "populatedProducts" after merging
+      {
+        $project: {
+          populatedProducts: 0,
+        },
+      },
+      // Optionally, you can include other fields in your projection
+      {
+        $project: {
+          warehouse_ref: 1,
+          user_ref: 1,
+          products: 1,
+          delivery_boy: 1,
+          order_status: 1,
+          user_address: 1,
+          user_contact_number: 1,
+          user_location: 1,
+          otp: 1,
+          order_placed_time: 1,
+          out_for_delivery_time: 1,
+          packing_time: 1,
+          completed_time: 1,
+          failed_time: 1,
+          payment_type: 1,
+          total_amount: 1,
+          total_saved: 1,
+          discount_price: 1,
+          profit: 1,
+          payment_id: 1,
+          type_of_delivery: 1,
+          selected_time_slot: 1,
+          delivery_charge: 1,
+          delivery_instructions: 1,
+          created_time: 1,
+          numberOfProducts: 1,
         },
       },
     ]);
@@ -1114,62 +1184,118 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
     //   return res.status(404).json({ success: false, message: "No Orders found", data: orders });
     // }
     const orders = await Order.aggregate([
+      // Match by user, warehouse, delivery type
       {
         $match: {
-          user_ref: { $in: userIds }, // Match orders based on user_ref
-          warehouse_ref: warehouse._id,
-          type_of_delivery: delivery_type, // Match orders based on type_of_delivery
+          user_ref: { $in: userIds },
+          warehouse_ref:new  mongoose.Types.ObjectId(warehouseId),
+          type_of_delivery: delivery_type,
+          order_status: "Order placed",
         },
       },
+      // Apply time filter
+      timeFilter,
+      // Count how many products are in each order
       {
         $addFields: {
-          numberOfProducts: { $size: "$products" },  // Add the field to count the number of products
+          numberOfProducts: { $size: "$products" },
         },
       },
-      timeFilter,
-      {
-        $lookup: {
-          from: "warehouses",
-          localField: "warehouse_ref",
-          foreignField: "_id",
-          as: "warehouse_ref",
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "user_ref",
-          foreignField: "_id",
-          as: "user_ref",
-        },
-      },
+      // Lookup the "Product" documents associated to each product_ref
       {
         $lookup: {
           from: "products",
-          localField: "products.product_ref",
-          foreignField: "_id",
-          as: "products.product_ref",
+          localField: "products.product_ref", // Field(s) in this Order doc
+          foreignField: "_id",                // Field in the Product collection
+          as: "populatedProducts",            // Temporarily store them here
         },
       },
+      // Lookup to populate warehouse_ref from Warehouse collection
+      {
+        $lookup: {
+          from: "warehouses",
+          localField: "warehouse_ref",        // Reference to warehouse
+          foreignField: "_id",                // Match on warehouse _id
+          as: "warehouse_ref",                // Store result here
+        },
+      },
+      // Lookup to populate user_ref from User collection
       {
         $lookup: {
           from: "users",
-          localField: "delivery_boy",
-          foreignField: "_id",
-          as: "delivery_boy",
+          localField: "user_ref",             // Reference to user
+          foreignField: "_id",                // Match on user _id
+          as: "user_ref",                     // Store result here
         },
       },
+      // Re-map the products array so each product_ref is a single Product doc
+      {
+        $addFields: {
+          products: {
+            $map: {
+              input: "$products",
+              as: "oneProduct",
+              in: {
+                $mergeObjects: [
+                  // Keep all original fields in "oneProduct"
+                  "$$oneProduct",
+                  // Overwrite product_ref with the fully populated doc
+                  {
+                    product_ref: {
+                      // $arrayElemAt with $filter ensures we get a single matching doc
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$populatedProducts",
+                            as: "popProd",
+                            cond: { $eq: ["$$oneProduct.product_ref", "$$popProd._id"] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      // We no longer need "populatedProducts" after merging
       {
         $project: {
-          "user_ref.displayName": 1,
-          numberOfProducts: 1,
+          populatedProducts: 0,
+        },
+      },
+      // Optionally, you can include other fields in your projection
+      {
+        $project: {
           warehouse_ref: 1,
+          user_ref: 1,
           products: 1,
           delivery_boy: 1,
           order_status: 1,
-          total_amount: 1,
+          user_address: 1,
+          user_contact_number: 1,
+          user_location: 1,
+          otp: 1,
+          order_placed_time: 1,
+          out_for_delivery_time: 1,
+          packing_time: 1,
+          completed_time: 1,
+          failed_time: 1,
           payment_type: 1,
+          total_amount: 1,
+          total_saved: 1,
+          discount_price: 1,
+          profit: 1,
+          payment_id: 1,
+          type_of_delivery: 1,
+          selected_time_slot: 1,
+          delivery_charge: 1,
+          delivery_instructions: 1,
           created_time: 1,
+          numberOfProducts: 1,
         },
       },
     ]);
