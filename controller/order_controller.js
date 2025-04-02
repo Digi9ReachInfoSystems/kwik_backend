@@ -1058,6 +1058,14 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
           as: "user_ref",                     // Store result here
         },
       },
+      {
+        $lookup: {
+          from: "users",
+          localField: "delivery_boy",         // Reference to delivery_boy
+          foreignField: "_id",                // Match on user _id
+          as: "delivery_boy",                 // Store result here
+        },
+      },
       // Re-map the products array so each product_ref is a single Product doc
       {
         $addFields: {
@@ -1226,6 +1234,14 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
           localField: "user_ref",             // Reference to user
           foreignField: "_id",                // Match on user _id
           as: "user_ref",                     // Store result here
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "delivery_boy",         // Reference to delivery_boy
+          foreignField: "_id",                // Match on user _id
+          as: "delivery_boy",                 // Store result here
         },
       },
       // Re-map the products array so each product_ref is a single Product doc
