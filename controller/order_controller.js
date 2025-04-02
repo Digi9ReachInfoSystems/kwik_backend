@@ -983,12 +983,35 @@ exports.searchOrderBycustomerNameStatus = async (req, res) => {
 };
 exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
   try {
-    console.log(req.params);
+    const { time } = req.query;
     const { warehouseId, delivery_type } = req.params;
 
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+    let timeFilter;
+
+    if (time != 'null') {
+      // If time is passed, set the time range for that specific hour
+      timeFilter = {
+        $match: {
+          selected_time_slot: {
+            $gte: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate(),
+            $lt: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").endOf('hour').local().toDate(),
+          },
+        },
+      };
+    } else {
+      console.log("hello");
+      timeFilter = {
+        $match: {
+          selected_time_slot: {
+            $gte: moment().startOf('day').local().toDate(),  // Start of the current day (00:00 AM)
+            $lt: moment().endOf('day').local().toDate(),    // End of the current day (11:59 PM)
+          },
+        },
+      };
     }
     const orders = await Order.aggregate([
       {
@@ -1002,6 +1025,7 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
           numberOfProducts: { $size: "$products" },
         },
       },
+      timeFilter,
       {
         $lookup: {
           from: "warehouses",
@@ -1046,13 +1070,35 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
   }
 }
 exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
-  const { name } = req.query;
+  const { name, time } = req.query;
   const { warehouseId, delivery_type } = req.params;
 
   if (!name) {
     return res.status(400).json({ message: "Search term is required" });
   }
+  let timeFilter;
 
+  if (time != 'null') {
+    // If time is passed, set the time range for that specific hour
+    timeFilter = {
+      $match: {
+        selected_time_slot: {
+          $gte: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate(),
+          $lt: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").endOf('hour').local().toDate(),
+        },
+      },
+    };
+  } else {
+    timeFilter = {
+      $match: {
+        selected_time_slot: {
+          $gte: moment().startOf('day').local().toDate(),  // Start of the current day (00:00 AM)
+          $lt: moment().endOf('day').local().toDate(),    // End of the current day (11:59 PM)
+        },
+      },
+    };
+  }
+  console.log(timeFilter);
   try {
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
@@ -1080,9 +1126,10 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
           numberOfProducts: { $size: "$products" },  // Add the field to count the number of products
         },
       },
+      timeFilter,
       {
         $lookup: {
-          from: "warehouses", 
+          from: "warehouses",
           localField: "warehouse_ref",
           foreignField: "_id",
           as: "warehouse_ref",
@@ -1090,7 +1137,7 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       },
       {
         $lookup: {
-          from: "users",  
+          from: "users",
           localField: "user_ref",
           foreignField: "_id",
           as: "user_ref",
@@ -1098,7 +1145,7 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       },
       {
         $lookup: {
-          from: "products",  
+          from: "products",
           localField: "products.product_ref",
           foreignField: "_id",
           as: "products.product_ref",
@@ -1106,7 +1153,7 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       },
       {
         $lookup: {
-          from: "users",  
+          from: "users",
           localField: "delivery_boy",
           foreignField: "_id",
           as: "delivery_boy",
@@ -1114,11 +1161,11 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       },
       {
         $project: {
-          "user_ref.displayName": 1,  
-          numberOfProducts: 1,  
-          warehouse_ref: 1,  
-          products: 1,  
-          delivery_boy: 1,  
+          "user_ref.displayName": 1,
+          numberOfProducts: 1,
+          warehouse_ref: 1,
+          products: 1,
+          delivery_boy: 1,
           order_status: 1,
           total_amount: 1,
           payment_type: 1,
