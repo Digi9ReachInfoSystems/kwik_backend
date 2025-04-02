@@ -616,9 +616,30 @@ exports.getUserCartById = async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await User.findOne({ UID: userId })
-      .populate({ path: "cart_products.product_ref", })
-      .populate({ path: "whishlist.product_ref" })
-      .exec();
+    .populate({
+        path: "cart_products.product_ref",
+        populate: [
+            { path: "category_ref", model: "Category" },  // Populate category for the product
+            { 
+                path: "sub_category_ref",
+                model: "SubCategory",
+                populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+            },
+            { path: "Brand", model: "Brand" }, 
+        ]
+    })
+    .populate({
+        path: "whishlist.product_ref",
+        populate: [
+            { path: "category_ref", model: "Category" },  // Populate category for the product
+            { 
+                path: "sub_category_ref",
+                model: "SubCategory",
+                populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+            },
+            { path: "Brand", model: "Brand" }, 
+        ]
+    });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
