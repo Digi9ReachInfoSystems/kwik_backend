@@ -225,7 +225,7 @@ exports.updateProduct = async (req, res) => {
   const isQcRequired = req.body.isQcRequired;
   console.dir(req.body, { depth: null });
 
-  if (isQcRequired) {
+  if (isQcRequired===true) {
     updatedData.qc_status = "revised";
   }
   try {
