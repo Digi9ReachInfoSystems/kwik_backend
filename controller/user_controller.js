@@ -460,14 +460,14 @@ exports.decreaseCartProductQuantity = async (req, res) => {
     variation.stock.map((item) => {
       if ((item.warehouse_ref.equals(warehouse._id))) {
         const stockQty = item.stock_qty;
-        if (stockQty < Number(quantity)) {
-          return res.status(400).json({ message: "Insufficient stock", setDecrease: false });
-        } else {
+        // if (stockQty < Number(quantity)) {
+        //   return res.status(400).json({ message: "Insufficient stock", setDecrease: false });
+        // } else {
           item.stock_qty += Number(quantity);
           if (item.stock_qty == 0) {
             item.visibility = false;
           }
-        }
+        // }
       }
     })
 
