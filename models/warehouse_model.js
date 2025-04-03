@@ -28,6 +28,7 @@ const warehouseSchema = new mongoose.Schema({
   warehouse_address: { type: String, required: true },
   tum_tumdelivery_start_time: { type: Date },
   tumtumdelivery_end_time: { type: Date },
+  under_maintance: { type: Boolean, required: true, default: false },
   created_time: { type: Date, required: true, default: Date.now },
 });
 
