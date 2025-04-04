@@ -1407,3 +1407,31 @@ exports.searchProductsbyUserId = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching products", error: error.message });
   }
 };
+exports.deleteProductWarehouse = async (req, res) => {
+  try {
+    const { productId ,warehouseId,variationId} = req.body;
+    const product = await Product.findById(productId).exec();
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    const variantIndex = product.variations.findIndex(variant => variant._id.toString() === variationId);
+    if (variantIndex === -1) {
+      return res.status(404).json({ message: "Variant not found" });
+    }
+   const stockIndex = product.variations[variantIndex].stock.findIndex(item => item.warehouse_ref.toString() === warehouseId);
+    product.variations[variantIndex].stock[stockIndex].isDeleted = true;
+    const allVariantsDeleted = product.variations.every(variant => 
+      variant.stock.every(stock => stock.warehouse_ref.toString() !== warehouseId || stock.isDeleted === true)
+    );
+    if (allVariantsDeleted) {
+      const warehouseIndex = product.warehouse_ref.indexOf(warehouseId);
+      if (warehouseIndex !== -1) {
+        product.warehouse_ref.splice(warehouseIndex, 1); // Removes the warehouseId from warehouse_ref
+      }
+    }
+    // await product.save();
+    res.status(200).json({ message: "Product warehouse deleted successfully" ,data:product});
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting product warehouse", error: error.message });
+  }
+};
