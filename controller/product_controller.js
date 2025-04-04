@@ -1429,7 +1429,7 @@ exports.deleteProductWarehouse = async (req, res) => {
         product.warehouse_ref.splice(warehouseIndex, 1); // Removes the warehouseId from warehouse_ref
       }
     }
-    // await product.save();
+    await product.save();
     res.status(200).json({ message: "Product warehouse deleted successfully" ,data:product});
   } catch (error) {
     res.status(500).json({ message: "Error deleting product warehouse", error: error.message });
