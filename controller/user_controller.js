@@ -4,6 +4,7 @@ const express = require("express");
 const router = express.Router();
 const Product = require("../models/product_model");
 const Warehouse = require("../models/warehouse_model");
+const ApplicationManagement= require("../models/applicationManagementModel");
 // Create a new user
 exports.createUser = async (req, res) => {
   try {
@@ -683,7 +684,15 @@ exports.getUserCartById = async (req, res) => {
 
     }));
     const userData = (await user.save());
-    return res.status(200).json({ message: "success", user: userData, cartProducts: userData.cart_products,whishlist:userData.whishlist });
+    const settings = await ApplicationManagement.findOne();
+    const necessarySettings = {
+      enable_cod: settings.enable_cod,
+      delivery_charge: settings.delivery_charge,
+      handling_charge: settings.handling_charge,
+      high_demand_charge: settings.high_demand_charge,
+   
+  }
+    return res.status(200).json({ message: "success", user: userData, cartProducts: userData.cart_products,whishlist:userData.whishlist,charges:necessarySettings });
   } catch (error) {
     console.log(error)
   }

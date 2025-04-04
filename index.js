@@ -23,6 +23,7 @@ const jobRoutes = require("./routes/jobs_Routes");
 const orderRoutes = require("./routes/order_Routes");
 const superSaverUiRoutes = require("./routes/superSaver_page_ui_Routes");
 const applicationManagementRoutes = require("./routes/applicationManagementRoutes");
+const complaintsRoutes = require("./routes/complaintRoutes");
 // MongoDB Connection
 connectDB();
 // test
@@ -64,6 +65,7 @@ app.use("/coupon", couonRoutes);
 app.use("/order", orderRoutes);
 app.use("/superSaver", superSaverUiRoutes);
 app.use("/applicationManagement", applicationManagementRoutes);
+app.use("/complaint", complaintsRoutes);
 const PORT = 3000;
 
 app.listen(PORT, () => {

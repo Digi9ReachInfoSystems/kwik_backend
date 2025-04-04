@@ -325,3 +325,15 @@ exports.searchWarehouse = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+exports.getWarehouseStatus = async (req, res) => {
+  try {
+    const { pincode } = req.params;
+    const warehouse = await Warehouse.findOne({ picode  : pincode }).exec();
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+    res.status(200).json({ success: true, message: "Warehouse found", warehouse: warehouse , maintance_status: warehouse.under_maintance });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching warehouse", error: error.message });
+  }
+}
