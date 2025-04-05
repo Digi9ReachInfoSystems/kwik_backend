@@ -29,4 +29,5 @@ router.get("/recent/orders/:warehouseId", orderController.getRecentOrdersBywareh
 router.get("/search/orderbywarehouse/:warehouseId/:status",orderController.searchOrderBycustomerNameStatus);
 router.get("/getOrders/byWarehouse/:warehouseId/:delivery_type", orderController.getOrdersByWarehouseByTypeOfDelivery);
 router.get("/search/Orders/byWarehouse/:warehouseId/:delivery_type", orderController.searchOrdersByWarehouseByTypeOfDelivery);
+router.get("/getUsers/byWarehouse/:warehouseId", orderController.getWarehouseUserCounts);
 module.exports = router;

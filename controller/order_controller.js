@@ -1351,3 +1351,29 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+exports.getWarehouseUserCounts = async (req, res) => {
+  try {
+    const warehouseId = req.params.warehouseId;
+    const warehouse = await Warehouse.findById(warehouseId);
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+    const users = await User.find({isUser: true, current_pincode:{ $in: warehouse.picode  } }).exec();
+    const userIds = users.map(user => user._id);
+    const orderDetails =await Promise.all(userIds.map(async (userId) => {
+      
+    const orders = await Order.find({ warehouse_ref: new mongoose.Types.ObjectId(warehouseId), user_ref: userId }).exec();
+    const user = await User.findById(userId);
+
+    return {
+      user: user,
+      orders: orders,
+      numberOfOrders: orders.length,
+    };
+    }))
+    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orderDetails});
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
