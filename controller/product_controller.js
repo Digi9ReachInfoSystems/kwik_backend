@@ -249,7 +249,7 @@ exports.updateProduct = async (req, res) => {
     }))
     updatedData.sub_category_ref = subcategory;
     updatedData.variations = updatedData.variations.map((variation) => {
-      if(variation._id){
+      if(mongoose.Types.ObjectId.isValid(variation._id)){
         return {
           ...variation,
           _id: variation._id,
