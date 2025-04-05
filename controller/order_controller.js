@@ -142,6 +142,21 @@ exports.getOrderByUserId = async (req, res) => {
     }
     const orders = await Order.find({ user_ref: user._id })
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+      .populate("warehouse_ref")
+      .populate("user_ref")
+      .populate({
+        path: "products.product_ref",
+        populate: [
+          { path: "category_ref", model: "Category" },  // Populate category for the product
+          {
+            path: "sub_category_ref",
+            model: "SubCategory",
+            populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+          },
+          { path: "Brand", model: "Brand" },
+        ]
+      })
+      .populate("delivery_boy")
       .exec();
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
@@ -186,7 +201,21 @@ exports.getOrdersByWarehouse = async (req, res) => {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
     const orders = await Order.find({ warehouse_ref: warehouse._id })
-      .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+      .populate("warehouse_ref")
+      .populate("user_ref")
+      .populate({
+        path: "products.product_ref",
+        populate: [
+          { path: "category_ref", model: "Category" },  // Populate category for the product
+          {
+            path: "sub_category_ref",
+            model: "SubCategory",
+            populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+          },
+          { path: "Brand", model: "Brand" },
+        ]
+      })
+      .populate("delivery_boy")
       .exec();
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
@@ -1018,7 +1047,7 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       {
         $match: {
           // user_ref: { $in: userIds },
-          warehouse_ref:new  mongoose.Types.ObjectId(warehouseId),
+          warehouse_ref: new mongoose.Types.ObjectId(warehouseId),
           type_of_delivery: delivery_type,
           order_status: "Order placed",
         },
@@ -1196,7 +1225,7 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       {
         $match: {
           user_ref: { $in: userIds },
-          warehouse_ref:new  mongoose.Types.ObjectId(warehouseId),
+          warehouse_ref: new mongoose.Types.ObjectId(warehouseId),
           type_of_delivery: delivery_type,
           order_status: "Order placed",
         },
