@@ -257,6 +257,7 @@ exports.updateProduct = async (req, res) => {
       }else{
         return {
           ...variation,
+          _id : new mongoose.Types.ObjectId(),
         };
       }
     });
