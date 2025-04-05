@@ -249,11 +249,16 @@ exports.updateProduct = async (req, res) => {
     }))
     updatedData.sub_category_ref = subcategory;
     updatedData.variations = updatedData.variations.map((variation) => {
-
-      return {
-        ...variation,
-        _id: variation._id,
-      };
+      if(variation._id){
+        return {
+          ...variation,
+          _id: variation._id,
+        };
+      }else{
+        return {
+          ...variation,
+        };
+      }
     });
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
