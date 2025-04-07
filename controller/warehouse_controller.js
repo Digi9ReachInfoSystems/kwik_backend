@@ -312,7 +312,7 @@ exports.searchWarehouse = async (req, res) => {
 
   try {
     const warehouses = await Warehouse.find({
-      warehouse_name: { $regex: `^${name}`, $options: "i" }
+      warehouse_name: { $regex: `${name}`, $options: "i" }
     });
 
     if (warehouses.length === 0) {
@@ -349,7 +349,7 @@ exports.searchUserByWarehouse = async (req, res) => {
     const users = await User.find({
       current_pincode:{$in:warehouse.picode},
       isUser: true,
-      displayName: { $regex: `^${name}`, $options: "i" }
+      displayName: { $regex: `${name}`, $options: "i" }
     }).exec();
 
     if (users.length === 0) {
