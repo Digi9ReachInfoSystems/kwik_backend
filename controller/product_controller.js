@@ -1060,10 +1060,13 @@ exports.getRecomandedProducts = async (req, res) => {
 
       // recommendedProducts = getUniqueProducts(recommendedProducts).slice(0, 10);
     }
+ 
 
-
-    const defaultCategory = await Category.findById(categoryId);
-    if (defaultCategory) {
+    let defaultCategory =null;
+    if(categoryId!="null"){
+      defaultCategory = await Category.findById(categoryId);
+    }
+    if (defaultCategory!=null) {
       let productsInDefaultCategory = await Product.aggregate([
         {
           $match: {
