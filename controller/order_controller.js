@@ -122,6 +122,22 @@ exports.getOrderById = async (req, res) => {
     const { id } = req.params;
     const order = await Order.findById(id)
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+      .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+      .populate("warehouse_ref")
+      .populate("user_ref")
+      .populate({
+        path: "products.product_ref",
+        populate: [
+          { path: "category_ref", model: "Category" },  // Populate category for the product
+          {
+            path: "sub_category_ref",
+            model: "SubCategory",
+            populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+          },
+          { path: "Brand", model: "Brand" },
+        ]
+      })
+      .populate("delivery_boy")
       .exec();
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
