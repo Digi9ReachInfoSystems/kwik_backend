@@ -1,6 +1,7 @@
 const Warehouse = require("../models/warehouse_model"); // Adjust the path as per your structure
 const User = require("../models/user_models");
 const Orders = require("../models/order_model");
+const mongoose = require("mongoose");
 // Get all warehouses
 exports.getAllWarehouses = async (req, res) => {
   try {
@@ -351,11 +352,20 @@ exports.searchUserByWarehouse = async (req, res) => {
       isUser: true,
       displayName: { $regex: `${name}`, $options: "i" }
     }).exec();
+     const orderDetails =await Promise.all(users.map(async (user) => {
+          
+        const orders = await Orders.find({ warehouse_ref: new mongoose.Types.ObjectId(warehouseId), user_ref: user._id }).exec();
+        return {
+          user: user,
+          orders: orders,
+          numberOfOrders: orders.length,
+        };
+        }))
 
     if (users.length === 0) {
       return res.status(404).json({ success: false, message: "No users found in the warehouse" });
     }
-    res.status(200).json({ success: true, message: "Users retrieved successfully", users: users });
+    res.status(200).json({ success: true, message: "Users retrieved successfully", orderDetails: orderDetails });
 
   } catch (error) {
     res.status(500).json({ success: false, message: "Error fetching users", error: error.message });
