@@ -226,7 +226,7 @@ exports.searchCategory = async (req, res) => {
     }
 
 
-    const categories = await Category.find({ category_name: { $regex: `^${name}`, $options: "i" }, isDeleted: false });
+    const categories = await Category.find({ category_name: { $regex: `${name}`, $options: "i" }, isDeleted: false });
     if (categories.length === 0) {
       return res.status(404).json({ success: false, message: "No categories found", data: categories });
     }

@@ -651,7 +651,7 @@ exports.searchProducts = async (req, res) => {
   try {
     // Case-insensitive search for products whose names start with the provided term
     const products = await Product.find({
-      product_name: { $regex: `^${name}`, $options: "i" },
+      product_name: { $regex: `${name}`, $options: "i" },
       isDeleted: false,
       draft: false,
       qc_status: "approved"
@@ -681,7 +681,7 @@ exports.searchProductsByWarehouse = async (req, res) => {
   try {
     // Case-insensitive search for products whose names start with the provided term
     const products = await Product.find({
-      product_name: { $regex: `^${name}`, $options: "i" },
+      product_name: { $regex: `${name}`, $options: "i" },
       warehouse_ref: warehouseId,
       isDeleted: false,
       draft: false,
@@ -1113,7 +1113,7 @@ exports.searchLowStockProducts = async (req, res) => {
 
     if (warehouseId) {
       filter = {
-        product_name: { $regex: `^${name}`, $options: "i" },
+        product_name: { $regex: `${name}`, $options: "i" },
         "variations.stock": {
           $elemMatch: {
             warehouse_ref: new mongoose.Types.ObjectId(warehouseId), // Match the warehouse reference
@@ -1174,7 +1174,7 @@ exports.searchDrafts = async (req, res) => {
     const { name } = req.query;
     const { warehouseId } = req.params;
     const drafts = await Product.find({
-      product_name: { $regex: `^${name}`, $options: "i" },
+      product_name: { $regex: `${name}`, $options: "i" },
       warehouse_ref: warehouseId,
       isDeleted: false,
       draft: true,
@@ -1383,7 +1383,7 @@ exports.searchProductsbyUserId = async (req, res) => {
     }
     const warehouse = await Warehouse.findOne({ picode: user.current_pincode }).exec();
     const products = await Product.find({
-      product_name: { $regex: `^${query}`, $options: "i" },
+      product_name: { $regex: `${query}`, $options: "i" },
       warehouse_ref: warehouse._id,
       isDeleted: false,
       qc_status: "approved",

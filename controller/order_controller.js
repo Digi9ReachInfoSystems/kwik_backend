@@ -751,7 +751,7 @@ exports.searchOrderBycustomerName = async (req, res) => {
   }
 
   try {
-    const users = await User.find({ displayName: { $regex: `^${name}`, $options: "i" } });
+    const users = await User.find({ displayName: { $regex: `${name}`, $options: "i" } });
     if (!users) {
       return res.status(404).json({ sucess: false, message: "Users not found" });
     }
@@ -778,7 +778,7 @@ exports.searchOrderByWarehouseCustomerName = async (req, res) => {
   }
 
   try {
-    const users = await User.find({ displayName: { $regex: `^${name}`, $options: "i" } });
+    const users = await User.find({ displayName: { $regex: `${name}`, $options: "i" } });
     if (!users) {
       return res.status(404).json({ sucess: false, message: "Users not found" });
     }
@@ -993,7 +993,7 @@ exports.searchOrderBycustomerNameStatus = async (req, res) => {
   }
 
   try {
-    const users = await User.find({ displayName: { $regex: `^${name}`, $options: "i" } });
+    const users = await User.find({ displayName: { $regex: `${name}`, $options: "i" } });
     if (!users) {
       return res.status(404).json({ sucess: false, message: "Users not found" });
     }
@@ -1211,7 +1211,7 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
-    const users = await User.find({ displayName: { $regex: `^${name}`, $options: "i" } });
+    const users = await User.find({ displayName: { $regex: `${name}`, $options: "i" } });
     if (!users) {
       return res.status(404).json({ sucess: false, message: "Users not found" });
     }

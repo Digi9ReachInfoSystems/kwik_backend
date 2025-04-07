@@ -135,7 +135,7 @@ exports.searchBrand = async (req, res) => {
   try {
     // Case-insensitive search for products whose names start with the provided term
     const brands = await Brand.find({
-      brand_name: { $regex: `^${name}`, $options: "i" },
+      brand_name: { $regex: `${name}`, $options: "i" },
       isDeleted: false
     });
 
