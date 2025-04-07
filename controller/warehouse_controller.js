@@ -230,7 +230,7 @@ exports.getWarehouseStats = async (req, res) => {
     let warehouse;
     if (id) {
       warehouse = await Warehouse.find({ _id: id }).exec();
-      
+
     } else {
       warehouse = await Warehouse.find().exec();
     }
@@ -238,17 +238,17 @@ exports.getWarehouseStats = async (req, res) => {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
     // console.log("warehouse", warehouse);
-    let main_delivery_boys = 0; 
-    let main_total_orders=0;
-    let main_total_failed =0
+    let main_delivery_boys = 0;
+    let main_total_orders = 0;
+    let main_total_failed = 0
     let main_total_amount = 0;
     let main_total_profit = 0;
     let main_total_delivered = 0;
     let main_total_users = 0;
 
-    let final_data=[];
+    let final_data = [];
     await Promise.all(warehouse.map(async (warehouse) => {
-      const users= await User.find({"selected_Address.pincode":warehouse.picode,isUser:true}).exec();
+      const users = await User.find({ "selected_Address.pincode": warehouse.picode, isUser: true }).exec();
       let total_users = users.length;
       let delivery_boys = warehouse.deliveryboys.length;
       const orders = await Orders.find({ warehouse_ref: warehouse._id }).exec();
@@ -287,18 +287,18 @@ exports.getWarehouseStats = async (req, res) => {
       final_data.push(data);
     }))
     // console.log("final_data", final_data);
-    res.status(200).json({ 
+    res.status(200).json({
       success: true,
-       message: "Warehouse stats fetched successfully", 
-       total_users:main_total_users,
-       total_delivery_boys:main_delivery_boys,
-       total_delivered:main_total_delivered,
-       total_orders:main_total_orders,
-       total_failed:main_total_failed,
-       total_amount:main_total_amount,
-       total_profit:main_total_profit,
-       warehouse: final_data 
-      });
+      message: "Warehouse stats fetched successfully",
+      total_users: main_total_users,
+      total_delivery_boys: main_delivery_boys,
+      total_delivered: main_total_delivered,
+      total_orders: main_total_orders,
+      total_failed: main_total_failed,
+      total_amount: main_total_amount,
+      total_profit: main_total_profit,
+      warehouse: final_data
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error fetching warehouse stats", error: error.message });
   }
@@ -328,12 +328,37 @@ exports.searchWarehouse = async (req, res) => {
 exports.getWarehouseStatus = async (req, res) => {
   try {
     const { pincode } = req.params;
-    const warehouse = await Warehouse.findOne({ picode  : pincode }).exec();
+    const warehouse = await Warehouse.findOne({ picode: pincode }).exec();
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
-    res.status(200).json({ success: true, message: "Warehouse found", warehouse: warehouse , maintance_status: warehouse.under_maintance });
+    res.status(200).json({ success: true, message: "Warehouse found", warehouse: warehouse, maintance_status: warehouse.under_maintance });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error fetching warehouse", error: error.message });
   }
 }
+exports.searchUserByWarehouse = async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    const { name } = req.query;
+    const warehouse = await Warehouse.findOne({ _id: warehouseId }).exec();
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found" });
+    }
+
+    const users = await User.find({
+      current_pincode:{$in:warehouse.picode},
+      isUser: true,
+      displayName: { $regex: `^${name}`, $options: "i" }
+    }).exec();
+
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: "No users found in the warehouse" });
+    }
+    res.status(200).json({ success: true, message: "Users retrieved successfully", users: users });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching users", error: error.message });
+
+  }
+};
