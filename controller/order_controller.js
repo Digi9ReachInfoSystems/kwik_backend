@@ -3,6 +3,7 @@ const User = require("../models/user_models");
 const Warehouse = require("../models/warehouse_model");
 const CartProduct = require("../models/cart_product_model");
 const Product = require("../models/product_model");
+const ApplicationManagement = require("../models/applicationManagement_model");
 const mongoose = require("mongoose");
 const moment = require("moment");
 
@@ -47,6 +48,7 @@ exports.createOrder = async (req, res) => {
     let total_amount = 0;
     let total_saved = 0;
     let profit = 0;
+    const appSettings = await ApplicationManagement.findOne({});
 
     // Validate each product reference (optional: you can add extra validation for products)
     for (const product of products) {
@@ -78,7 +80,9 @@ exports.createOrder = async (req, res) => {
       payment_id,
       type_of_delivery,
       selected_time_slot,
-      delivery_charge,
+      delivery_charge: delivery_charge||appSettings.delivery_charge,
+      handling_charge: appSettings.handling_charge,
+      high_demand_charge: appSettings.high_demand_charge,
       delivery_instructions
     });
     // If the order status is out for delivery or completed, you can add timestamps for those statuses
