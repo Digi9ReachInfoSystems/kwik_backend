@@ -41,5 +41,5 @@ router.get("/get/searchHistory/:userId",userController.getsearchHistoryByUserId)
 router.delete("/delete/searchHistory/:userId/:queryId",userController.removeSearchHistoryByUserIdandQueryId);
 router.delete("/delete/allSearchHistory/:userId",userController.removeSearchHistoryByUserId);
 router.post("/add/whislist",userController.addProductToWhislist);
-
+router.post("/orderAgain",userController.orderAgainUserOrderId);
 module.exports = router;

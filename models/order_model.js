@@ -172,7 +172,7 @@ const orderSchema = new mongoose.Schema({
   profit: {
     type: Number,
     required: [true, "Profit is required"],
-    min: [0, "Profit must be a positive number"],
+    // min: [0, "Profit must be a positive number"],
   }, // Profit calculation (selling price - (buying price + discount))
 
   payment_id: {

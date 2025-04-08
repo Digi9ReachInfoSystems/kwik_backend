@@ -93,6 +93,8 @@ exports.createOrder = async (req, res) => {
     }
 
     // Save the new order to the database
+    userData.cart_products = [];
+    await userData.save();
     await newOrder.save();
 
     // Return success response
@@ -1396,4 +1398,4 @@ exports.getWarehouseUserCounts = async (req, res) => {
     console.error(error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
-};
+};  

@@ -4,7 +4,8 @@ const express = require("express");
 const router = express.Router();
 const Product = require("../models/product_model");
 const Warehouse = require("../models/warehouse_model");
-const ApplicationManagement= require("../models/applicationManagementModel");
+const ApplicationManagement = require("../models/applicationManagementModel");
+const Order = require("../models/order_model");
 // Create a new user
 exports.createUser = async (req, res) => {
   try {
@@ -464,10 +465,10 @@ exports.decreaseCartProductQuantity = async (req, res) => {
         // if (stockQty < Number(quantity)) {
         //   return res.status(400).json({ message: "Insufficient stock", setDecrease: false });
         // } else {
-          item.stock_qty += Number(quantity);
-          if (item.stock_qty == 0) {
-            item.visibility = false;
-          }
+        item.stock_qty += Number(quantity);
+        if (item.stock_qty == 0) {
+          item.visibility = false;
+        }
         // }
       }
     })
@@ -617,30 +618,30 @@ exports.getUserCartById = async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await User.findOne({ UID: userId })
-    .populate({
+      .populate({
         path: "cart_products.product_ref",
         populate: [
-            { path: "category_ref", model: "Category" },  // Populate category for the product
-            { 
-                path: "sub_category_ref",
-                model: "SubCategory",
-                populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
-            },
-            { path: "Brand", model: "Brand" }, 
+          { path: "category_ref", model: "Category" },  // Populate category for the product
+          {
+            path: "sub_category_ref",
+            model: "SubCategory",
+            populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+          },
+          { path: "Brand", model: "Brand" },
         ]
-    })
-    .populate({
+      })
+      .populate({
         path: "whishlist.product_ref",
         populate: [
-            { path: "category_ref", model: "Category" },  // Populate category for the product
-            { 
-                path: "sub_category_ref",
-                model: "SubCategory",
-                populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
-            },
-            { path: "Brand", model: "Brand" }, 
+          { path: "category_ref", model: "Category" },  // Populate category for the product
+          {
+            path: "sub_category_ref",
+            model: "SubCategory",
+            populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+          },
+          { path: "Brand", model: "Brand" },
         ]
-    });
+      });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -691,9 +692,9 @@ exports.getUserCartById = async (req, res) => {
       delivery_charge: settings.delivery_charge,
       handling_charge: settings.handling_charge,
       high_demand_charge: settings.high_demand_charge,
-   
-  }
-    return res.status(200).json({ message: "success", user: userData, cartProducts: userData.cart_products,whishlist:userData.whishlist,charges:necessarySettings });
+
+    }
+    return res.status(200).json({ message: "success", user: userData, cartProducts: userData.cart_products, whishlist: userData.whishlist, charges: necessarySettings });
   } catch (error) {
     console.log(error)
   }
@@ -826,9 +827,59 @@ exports.addProductToWhislist = async (req, res) => {
       });
     }
     const savedUser = await user.save();
-    return res.status(200).json({ message: "success", user: savedUser,  wishlist: savedUser.whishlist });
+    return res.status(200).json({ message: "success", user: savedUser, wishlist: savedUser.whishlist });
   } catch (error) {
     console.log(error)
     return res.status(500).json({ message: "Error", error });
   }
 }
+exports.orderAgainUserOrderId = async (req, res) => {
+  try {
+    const { orderId, userId } = req.body;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const order = await Order.findOne({ _id: orderId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    await Promise.all(order.products.map(async (orderProduct) => {
+      const product = await Product.findOne({_id:orderProduct.product_ref,isDeleted:false,draft:false});
+      const warehouse = await Warehouse.findOne({ picode: orderProduct.pincode });
+      const variation = product.variations.find((item) => item._id.equals(orderProduct.variant._id));
+      let warehouseFound = false;
+      if (product) {
+
+        variation.stock.map((item) => {
+          if ((item.warehouse_ref.equals(warehouse._id))) {
+            if (item.stock_qty >= orderProduct.quantity && item.visibility == true) {
+              item.stock_qty -= Number(orderProduct.quantity);
+              if (item.stock_qty == 0) {
+                item.visibility = false;
+              }
+              warehouseFound = true;
+              orderProduct.selling_price = variation.selling_price * Number(orderProduct.quantity);
+              orderProduct.mrp = variation.MRP * Number(orderProduct.quantity);
+              orderProduct.buying_price = variation.buying_price * Number(orderProduct.quantity);
+              orderProduct.final_price = variation.selling_price * Number(orderProduct.quantity);
+            }
+          }
+        })
+      }
+      if (warehouseFound) {
+        const exists = user.cart_products.some(item => item.product_ref.equals(orderProduct.product_ref) && item.variant._id.equals(orderProduct.variant._id));
+        if (!exists) {
+          await product.save();
+          user.cart_products.push(orderProduct);
+        }
+       
+      }
+      await user.save();
+    }));
+    res.status(200).json({ message: "success", user: user, cartProducts: user.cart_products });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+};
