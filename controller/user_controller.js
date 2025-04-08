@@ -526,40 +526,49 @@ exports.userSelectedAddressChange = async (req, res) => {
 //functon to handle cart address change
 const cartUpdateOnAddressChange = async (pincode, userId) => {
   try {
-    const user = await User.findOne({ UID: userId })
+    const user = await User.findOne({ UID: userId });
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return { success: false, message: "User not found" };  // Return result instead of using res
     }
+
+    // Process cart items
     await Promise.all(user.cart_products.map(async (prodItem) => {
       const product = await Product.findById(prodItem.product_ref);
       if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+        return { success: false, message: "Product not found" };  // Return result instead of using res
       }
+
       const warehouse = await Warehouse.findOne({ picode: prodItem.pincode });
       if (!warehouse) {
-        return res.status(404).json({ message: "Warehouse not found for this variant" });
+        return { success: false, message: "Warehouse not found for this variant" };
       }
+
+      // Update stock in warehouse
       const variation = product.variations.find((item) => item._id.equals(prodItem.variant._id));
       if (!variation) {
-        return res.status(404).json({ message: "variation not found for this product" });
+        return { success: false, message: "Variation not found for this product" };
       }
+
       variation.stock.map((item) => {
         if ((item.warehouse_ref.equals(warehouse._id))) {
           if (prodItem.inStock !== false) {
             item.stock_qty += Number(prodItem.quantity);
           }
         }
-      })
+      });
 
       const newWarehouse = await Warehouse.findOne({ picode: pincode });
       if (!newWarehouse) {
-        return res.status(404).json({ message: "Warehouse not found for this variant" });
+        return { success: false, message: "Warehouse not found for this variant" };
       }
+
+      // Handle the stock update and item availability logic
+      let warehouseFound = false;
       const newVariation = product.variations.find((item) => item._id.equals(prodItem.variant._id));
       if (!newVariation) {
-        return res.status(404).json({ message: "variation not found for this product" });
+        return { success: false, message: "Variation not found for this product" };
       }
-      let warehouseFound = false;
+
       newVariation.stock.map((item) => {
         if ((item.warehouse_ref.equals(newWarehouse._id))) {
           warehouseFound = true;
@@ -593,7 +602,8 @@ const cartUpdateOnAddressChange = async (pincode, userId) => {
             }
           }
         }
-      })
+      });
+
       if (!warehouseFound) {
         prodItem.inStock = false;
         prodItem.selling_price = 0;
@@ -606,16 +616,17 @@ const cartUpdateOnAddressChange = async (pincode, userId) => {
 
       await product.save();
 
-    }))
+    }));
 
     user.cart_added_date = new Date();
     const savedUser = await user.save();
-    return savedUser;
-  } catch (error) {
-    console.log(error)
-  }
+    return { success: true, message: "Cart updated successfully" };  // Return success message
 
-}
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: 'Error updating cart' };  // Return error message
+  }
+};
 exports.getUserCartById = async (req, res) => {
   try {
     const userId = req.params.userId;
