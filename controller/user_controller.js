@@ -506,7 +506,9 @@ exports.decreaseCartProductQuantity = async (req, res) => {
 }
 exports.userSelectedAddressChange = async (req, res) => {
   try {
-    const { userId, Address } = req.body;
+    const { userId, AddressID } = req.body;
+    const userData = await User.findOne({ UID: userId });
+    const Address = userData.Address.find((item) => item._id == AddressID);
     const user = await User.findOneAndUpdate({ UID: userId }, { selected_Address: Address }, { new: true });
 
     if (!user) {
