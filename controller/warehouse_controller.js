@@ -372,3 +372,15 @@ exports.searchUserByWarehouse = async (req, res) => {
 
   }
 };
+exports.getWarehousesBypincode = async (req, res) => {
+  try {
+    const { pincode } = req.params;
+    const warehouses = await Warehouse.find({ picode: pincode }).exec();
+    if (!warehouses) {
+      return res.status(404).json({ success: false, message: "Warehouses not found" });
+    }
+    res.status(200).json({ success: true, message: "Warehouses retrieved successfully", warehouses: warehouses });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
+  }
+};
