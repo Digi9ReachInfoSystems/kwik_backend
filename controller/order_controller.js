@@ -3,7 +3,7 @@ const User = require("../models/user_models");
 const Warehouse = require("../models/warehouse_model");
 const CartProduct = require("../models/cart_product_model");
 const Product = require("../models/product_model");
-const ApplicationManagement = require("../models/applicationManagement_model");
+const ApplicationManagement = require("../models/applicationManagementModel");
 const mongoose = require("mongoose");
 const moment = require("moment");
 
