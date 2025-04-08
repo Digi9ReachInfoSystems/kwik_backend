@@ -896,3 +896,26 @@ exports.orderAgainUserOrderId = async (req, res) => {
     return res.status(500).json({ message: "Error", error });
   }
 };
+exports.editAddress = async (req, res) => {
+  try {
+    const { userId, addressId ,addressData} = req.body;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    user.Address = user.Address.map((item) => {
+      
+      if (item._id == addressId) {
+        return addressData;
+      }
+      return item;
+    });
+    const savedUser = await user.save();
+    return res.status(200).json({ message: "success", user: savedUser });
+
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+
+};
