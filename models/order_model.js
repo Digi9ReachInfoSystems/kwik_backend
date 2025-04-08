@@ -66,7 +66,7 @@ const orderSchema = new mongoose.Schema({
   order_status: {
     type: String,
     required: [true, "Order status is required"],
-    enum: ["Packing", "Out for delivery", "Delivered", "Delivery failed","Order placed"],
+    enum: ["Packing", "Out for delivery", "Delivered", "Delivery failed", "Order placed"],
   },
 
   user_address: {
@@ -195,9 +195,17 @@ const orderSchema = new mongoose.Schema({
     required: [true, "Delivery charge is required"],
     min: [0, "Delivery charge must be a positive number"],
   },
+  handling_charge: {
+    type: Number,
+    required: false
+  },
+  high_demand_charge: {
+    type: Number,
+    required: false
+  },
   delivery_instructions: {
     type: String,
-    required: [false, "Delivery instructions are required"],  
+    required: [false, "Delivery instructions are required"],
   },
 
   created_time: {
