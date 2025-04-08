@@ -656,6 +656,7 @@ exports.getUserCartById = async (req, res) => {
         return res.status(404).json({ message: "Warehouse not found for this variant" });
       }
       const variation = product.variations.find((item) => item._id.equals(prodItem.variant._id));
+      prodItem.variant = variation;
       console.log("variation", variation);
       if (!variation) {
         return res.status(404).json({ message: "variation not found for this product" });
