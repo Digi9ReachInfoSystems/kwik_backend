@@ -323,8 +323,8 @@ exports.getMonthlyRevenueByYear = async (req, res) => {
 
     orders.forEach(order => {
       const month = order.completed_time.getMonth();
-      monthlyRevenue[month] += order.total_amount;
-      total_amount += order.total_amount
+      monthlyRevenue[month] += order.profit;
+      total_amount += order.profit
 
     });
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
