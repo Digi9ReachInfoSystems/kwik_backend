@@ -225,7 +225,7 @@ exports.updateProduct = async (req, res) => {
   const isQcRequired = req.body.isQcRequired;
   console.dir(req.body, { depth: null });
 
-  if (isQcRequired===true) {
+  if (isQcRequired === true) {
     updatedData.qc_status = "revised";
   }
   try {
@@ -249,15 +249,15 @@ exports.updateProduct = async (req, res) => {
     }))
     updatedData.sub_category_ref = subcategory;
     updatedData.variations = updatedData.variations.map((variation) => {
-      if(mongoose.Types.ObjectId.isValid(variation._id)){
+      if (mongoose.Types.ObjectId.isValid(variation._id)) {
         return {
           ...variation,
           _id: variation._id,
         };
-      }else{
+      } else {
         return {
           ...variation,
-          _id : new mongoose.Types.ObjectId(),
+          _id: new mongoose.Types.ObjectId(),
         };
       }
     });
@@ -471,12 +471,12 @@ exports.getProductsbyPincode = async (req, res) => {
 
 exports.getProductByBrand = async (req, res) => {
   try {
-    const  brandId  = new mongoose.Types.ObjectId(req.params.brandId);
+    const brandId = new mongoose.Types.ObjectId(req.params.brandId);
     const products = await Product.find({ Brand: brandId, isDeleted: false, draft: false, qc_status: "approved" }).populate("Brand category_ref sub_category_ref")
-    .populate({
-      path: "sub_category_ref",
-      populate: { path: "category_ref" }
-    })
+      .populate({
+        path: "sub_category_ref",
+        populate: { path: "category_ref" }
+      })
       .sort({ created_time: -1 })
       .exec();
     res.status(200).json({ message: "Products retrieved successfully", data: products });
@@ -1060,13 +1060,13 @@ exports.getRecomandedProducts = async (req, res) => {
 
       // recommendedProducts = getUniqueProducts(recommendedProducts).slice(0, 10);
     }
- 
 
-    let defaultCategory =null;
-    if(categoryId!="null"){
+
+    let defaultCategory = null;
+    if (categoryId != "null") {
       defaultCategory = await Category.findById(categoryId);
     }
-    if (defaultCategory!=null) {
+    if (defaultCategory != null) {
       let productsInDefaultCategory = await Product.aggregate([
         {
           $match: {
@@ -1380,7 +1380,7 @@ exports.searchProductsbyUserId = async (req, res) => {
   try {
     const { userId } = req.params;
     const { query } = req.query;
-    const user = await User.findOne({UID: userId}).exec();
+    const user = await User.findOne({ UID: userId }).exec();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -1418,7 +1418,7 @@ exports.searchProductsbyUserId = async (req, res) => {
 };
 exports.deleteProductWarehouse = async (req, res) => {
   try {
-    const { productId ,warehouseId,variationId} = req.body;
+    const { productId, warehouseId, variationId } = req.body;
     const product = await Product.findById(productId).exec();
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -1427,9 +1427,9 @@ exports.deleteProductWarehouse = async (req, res) => {
     if (variantIndex === -1) {
       return res.status(404).json({ message: "Variant not found" });
     }
-   const stockIndex = product.variations[variantIndex].stock.findIndex(item => item.warehouse_ref.toString() === warehouseId);
+    const stockIndex = product.variations[variantIndex].stock.findIndex(item => item.warehouse_ref.toString() === warehouseId);
     product.variations[variantIndex].stock[stockIndex].isDeleted = true;
-    const allVariantsDeleted = product.variations.every(variant => 
+    const allVariantsDeleted = product.variations.every(variant =>
       variant.stock.every(stock => stock.warehouse_ref.toString() !== warehouseId || stock.isDeleted === true)
     );
     if (allVariantsDeleted) {
@@ -1439,8 +1439,47 @@ exports.deleteProductWarehouse = async (req, res) => {
       }
     }
     await product.save();
-    res.status(200).json({ message: "Product warehouse deleted successfully" ,data:product});
+    res.status(200).json({ message: "Product warehouse deleted successfully", data: product });
   } catch (error) {
     res.status(500).json({ message: "Error deleting product warehouse", error: error.message });
+  }
+};
+exports.searchProductSkuName = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ message: "Query parameter is required" });
+    }
+    let products = await Product.find({
+      sku: { $regex: `${query}`, $options: "i" },
+      isDeleted: false,
+      qc_status: "approved",
+      draft: false
+    })
+      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .populate({
+        path: "sub_category_ref",
+        populate: { path: "category_ref" }
+      })
+      .sort({ created_time: -1 });
+    if (products.length == 0) {
+
+      products = await Product.find({
+        product_name: { $regex: `${query}`, $options: "i" },
+        isDeleted: false,
+        qc_status: "approved",
+        draft: false
+      })
+        .populate("Brand category_ref sub_category_ref warehouse_ref")
+        .populate({
+          path: "sub_category_ref",
+          populate: { path: "category_ref" }
+        })
+        .sort({ created_time: -1 });
+    }
+
+    res.status(200).json({ success: true, message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching products", error: error.message });
   }
 };
