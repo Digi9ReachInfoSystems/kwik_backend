@@ -1670,27 +1670,31 @@ exports.groupRoutesController = async (req, res) => {
     let routeOptimisation = [];
     for (const route of routes) {
       const tempRoute = route;
+      console.log("tempRoute", tempRoute.length, "route", route)
 
       if (route.length > 1) {
-        console.log("tempRoute", tempRoute.length, "route", route)
+        
         // const waypoints = route.slice(0, -1).map((dest) => `${dest.lat},${dest.lng}`);
-        const waypoints = route.slice(0, -1).map(dest => {
-          const location = `${dest.latitude},${dest.longitude}`;
-          const stopover = true;
-          return { location, stopover };
-        });
-        console.log("waypoints", waypoints)
-        const intermediatePoints = route.slice(1, -1); 
+        // const waypoints = route.slice(0, -1).map(dest => {
+        //   const location = `${dest.latitude},${dest.longitude}`;
+        //   const stopover = true;
+        //   return { location, stopover };
+        // });
+        // console.log("waypoints", waypoints)
+        const intermediatePoints =route.slice(0, -1); 
+        console.log("intermediatePoints", intermediatePoints)
         const waypointsString = intermediatePoints
           .map(dest => `${dest.latitude},${dest.longitude}`)
           .join('|');
+          console.log("waypointsString", waypointsString)
           const waypointParam = waypointsString
           ? `&waypoints=optimize:true|${waypointsString}`
           : '';
+          console.log("waypointParam", waypointParam)
         const response = await axios.get(
           `https://maps.googleapis.com/maps/api/directions/json?` +
           `origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` + // Return to origin
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` + // Return to origin
           waypointParam+
           // `&waypoints[]:${waypoints}` +
           // `&optimizeWaypoints:true` +
@@ -1698,7 +1702,7 @@ exports.groupRoutesController = async (req, res) => {
         );
         console.log("map URL ",  `https://maps.googleapis.com/maps/api/directions/json?` +
           `origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` + // Return to origin
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` + // Return to origin
           waypointParam+
           // `&waypoints[]:${waypoints}` +
           `&optimizeWaypoints:true` +
@@ -1707,7 +1711,8 @@ exports.groupRoutesController = async (req, res) => {
         if (response.data.status === 'OK') {
           console.log("response", response.data)
           const optimizedOrder = response.data.routes[0].waypoint_order;
-          const optimizedDestinations = optimizedOrder.map(index => destinations[index]);
+          const optimizedDestinations = optimizedOrder.map(index => route[index]);
+          console.log("optimizedDestinations", optimizedDestinations)
           let totalDistance = 0;
           let totalDuration = 0;
 
@@ -1719,8 +1724,8 @@ exports.groupRoutesController = async (req, res) => {
           // Generate Google Maps URL
           const mapsUrl = `https://www.google.com/maps/dir/?api=1` +
             `&origin=${sourceLatitude},${sourceLongitude}` +
-            `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` +
-            `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
+            `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` +
+            `&waypoints=${optimizedDestinations.map(d => `${d.latitude},${d.longitude}`).join('|')}` +
             `&travelmode=driving` +
             `&dir_action=navigate`;
           console.log("mapsUrl", mapsUrl, "route", route)
@@ -1736,13 +1741,13 @@ exports.groupRoutesController = async (req, res) => {
       } else {
         const mapsUrl = `https://www.google.com/maps/dir/?api=1` +
           `&origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` +
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` +
           // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
           `&travelmode=driving` +
           `&dir_action=navigate`;
 
         routeOptimisation.push({
-          distance: 0,
+          distance: tempRoute[0].distance,
           duration: 0,
           // waypoints: optimizedDestinations,
           mapsUrl: mapsUrl,
