@@ -1446,12 +1446,14 @@ exports.deleteProductWarehouse = async (req, res) => {
 };
 exports.searchProductSkuName = async (req, res) => {
   try {
+    const{warehouseId} = req.params
     const { query } = req.query;
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
     let products = await Product.find({
       sku: { $regex: `${query}`, $options: "i" },
+      warehouse_ref: warehouseId,
       isDeleted: false,
       qc_status: "approved",
       draft: false
