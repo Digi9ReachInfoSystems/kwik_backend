@@ -1485,3 +1485,18 @@ exports.searchProductSkuName = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching products", error: error.message });
   }
 };
+
+exports.qcStats = async (req, res) => {
+  try {
+    let approvedCount,rejectedCount,pendingCount,totalCount;
+    approvedCount = await Product.countDocuments({ qc_status: "approved", draft: false ,isDeleted: false});
+    rejectedCount = await Product.countDocuments({ qc_status: "rejected", draft: false,isDeleted: false });
+    pendingCount = await Product.countDocuments({ qc_status: "pending", draft: false,isDeleted: false });
+    totalCount = await Product.countDocuments({ draft: false,isDeleted: false });
+
+
+    res.status(200).json({ success: true, message: "QC stats retrieved successfully", data: {approvedCount,rejectedCount,pendingCount,totalCount} });
+  } catch (error) { 
+    res.status(500).json({ success: false, message: "Error fetching QC stats", error: error.message });
+  }
+};

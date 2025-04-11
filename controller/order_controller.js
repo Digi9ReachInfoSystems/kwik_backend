@@ -1398,7 +1398,7 @@ exports.getWarehouseUserCounts = async (req, res) => {
         numberOfOrders: orders.length,
       };
     }))
-   
+
     return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orderDetails });
   } catch (error) {
     console.error(error);
@@ -1670,24 +1670,39 @@ exports.groupRoutesController = async (req, res) => {
     let routeOptimisation = [];
     for (const route of routes) {
       const tempRoute = route;
-      
+
       if (route.length > 1) {
         console.log("tempRoute", tempRoute.length, "route", route)
         // const waypoints = route.slice(0, -1).map((dest) => `${dest.lat},${dest.lng}`);
-        const waypoints =  route.slice(0, -1).map(dest => {
+        const waypoints = route.slice(0, -1).map(dest => {
           const location = `${dest.latitude},${dest.longitude}`;
           const stopover = true;
           return { location, stopover };
         });
         console.log("waypoints", waypoints)
+        const intermediatePoints = route.slice(1, -1); 
+        const waypointsString = intermediatePoints
+          .map(dest => `${dest.latitude},${dest.longitude}`)
+          .join('|');
+          const waypointParam = waypointsString
+          ? `&waypoints=optimize:true|${waypointsString}`
+          : '';
         const response = await axios.get(
           `https://maps.googleapis.com/maps/api/directions/json?` +
           `origin=${sourceLatitude},${sourceLongitude}` +
           `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` + // Return to origin
-          `&waypoints[]:${waypoints}` +
-          `&optimizeWaypoints:true` +
+          waypointParam+
+          // `&waypoints[]:${waypoints}` +
+          // `&optimizeWaypoints:true` +
           `&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
+        console.log("map URL ",  `https://maps.googleapis.com/maps/api/directions/json?` +
+          `origin=${sourceLatitude},${sourceLongitude}` +
+          `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` + // Return to origin
+          waypointParam+
+          // `&waypoints[]:${waypoints}` +
+          `&optimizeWaypoints:true` +
+          `&key=${process.env.GOOGLE_MAPS_API_KEY}`)
 
         if (response.data.status === 'OK') {
           console.log("response", response.data)
@@ -1695,12 +1710,12 @@ exports.groupRoutesController = async (req, res) => {
           const optimizedDestinations = optimizedOrder.map(index => destinations[index]);
           let totalDistance = 0;
           let totalDuration = 0;
-          
+
           response.data.routes[0].legs.forEach(leg => {
             totalDistance += leg.distance.value;
             totalDuration += leg.duration.value;
           });
-      
+
           // Generate Google Maps URL
           const mapsUrl = `https://www.google.com/maps/dir/?api=1` +
             `&origin=${sourceLatitude},${sourceLongitude}` +
@@ -1708,8 +1723,8 @@ exports.groupRoutesController = async (req, res) => {
             `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
             `&travelmode=driving` +
             `&dir_action=navigate`;
-            console.log("mapsUrl", mapsUrl,"route", route)
-      
+          console.log("mapsUrl", mapsUrl, "route", route)
+
           routeOptimisation.push({
             distance: totalDistance,
             duration: totalDuration,
@@ -1718,13 +1733,13 @@ exports.groupRoutesController = async (req, res) => {
             route: tempRoute
           });
         }
-      }else {
+      } else {
         const mapsUrl = `https://www.google.com/maps/dir/?api=1` +
-        `&origin=${sourceLatitude},${sourceLongitude}` +
-        `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` +
-        // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
-        `&travelmode=driving` +
-        `&dir_action=navigate`;
+          `&origin=${sourceLatitude},${sourceLongitude}` +
+          `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` +
+          // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
+          `&travelmode=driving` +
+          `&dir_action=navigate`;
 
         routeOptimisation.push({
           distance: 0,
