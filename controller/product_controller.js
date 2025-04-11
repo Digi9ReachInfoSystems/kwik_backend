@@ -1492,10 +1492,11 @@ exports.qcStats = async (req, res) => {
     approvedCount = await Product.countDocuments({ qc_status: "approved", draft: false ,isDeleted: false});
     rejectedCount = await Product.countDocuments({ qc_status: "rejected", draft: false,isDeleted: false });
     pendingCount = await Product.countDocuments({ qc_status: "pending", draft: false,isDeleted: false });
+    revisedCount = await Product.countDocuments({ qc_status: "revised", draft: false,isDeleted: false });
     totalCount = await Product.countDocuments({ draft: false,isDeleted: false });
 
 
-    res.status(200).json({ success: true, message: "QC stats retrieved successfully", data: {approvedCount,rejectedCount,pendingCount,totalCount} });
+    res.status(200).json({ success: true, message: "QC stats retrieved successfully", data: {approvedCount,rejectedCount,pendingCount,revisedCount,totalCount} });
   } catch (error) { 
     res.status(500).json({ success: false, message: "Error fetching QC stats", error: error.message });
   }
