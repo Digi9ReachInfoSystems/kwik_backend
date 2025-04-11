@@ -40,5 +40,5 @@ router.get("/search/draftProduct/:warehouseId", ProductController.searchDrafts);
 router.get("/get/recommendedProductsByUserOrder/:userId", ProductController.getRecomandedProductsBasedOnOrders);
 router.get("/search/product/user/:userId", ProductController.searchProductsbyUserId);
 router.put("/softDeleteStock/warehouse", ProductController.deleteProductWarehouse);
-router.get("/search/productBy/skuName", ProductController.searchProductSkuName);
+router.get("/search/productBy/skuName/:warehouseId", ProductController.searchProductSkuName);
 module.exports = router;

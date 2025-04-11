@@ -6,6 +6,11 @@ const Product = require("../models/product_model");
 const ApplicationManagement = require("../models/applicationManagementModel");
 const mongoose = require("mongoose");
 const moment = require("moment");
+const axios = require("axios");
+const DBSCAN = require('density-clustering').DBSCAN;
+// const haversine = require('haversine-distance');
+// const googleMapsClient = require('@googlemaps/google-maps-services-js').Client;
+// const haversine = require('haversine-distance').default;
 
 function getISOWeek(date) {
   const tempDate = new Date(date.getTime());
@@ -80,7 +85,7 @@ exports.createOrder = async (req, res) => {
       payment_id,
       type_of_delivery,
       selected_time_slot,
-      delivery_charge: delivery_charge||appSettings.delivery_charge,
+      delivery_charge: delivery_charge || appSettings.delivery_charge,
       handling_charge: appSettings.handling_charge,
       high_demand_charge: appSettings.high_demand_charge,
       delivery_instructions
@@ -1380,22 +1385,361 @@ exports.getWarehouseUserCounts = async (req, res) => {
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
-    const users = await User.find({isUser: true, current_pincode:{ $in: warehouse.picode  } }).exec();
+    const users = await User.find({ isUser: true, current_pincode: { $in: warehouse.picode } }).exec();
     const userIds = users.map(user => user._id);
-    const orderDetails =await Promise.all(userIds.map(async (userId) => {
-      
-    const orders = await Order.find({ warehouse_ref: new mongoose.Types.ObjectId(warehouseId), user_ref: userId }).exec();
-    const user = await User.findById(userId);
+    const orderDetails = await Promise.all(userIds.map(async (userId) => {
 
-    return {
-      user: user,
-      orders: orders,
-      numberOfOrders: orders.length,
-    };
+      const orders = await Order.find({ warehouse_ref: new mongoose.Types.ObjectId(warehouseId), user_ref: userId }).exec();
+      const user = await User.findById(userId);
+
+      return {
+        user: user,
+        orders: orders,
+        numberOfOrders: orders.length,
+      };
     }))
-    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orderDetails});
+   
+    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orderDetails });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
-};  
+};
+
+
+// function clusterRoutes(sourceLat, sourceLon, destinations, epsilonMeters = 7000) {
+//   if (!destinations || destinations.length === 0) {
+//     return [];
+//   }
+
+//   const dbscan = new DBSCAN();
+
+//   // Run DBSCAN clustering with Haversine distance
+//   const clustersIndices = dbscan.run(
+//     destinations,
+//     epsilonMeters,
+//     1, // minPoints (1 to allow single-point clusters)
+//     (p1, p2) => {
+//       // Convert [lat, lon] to { latitude, longitude } for haversine-distance
+//       const a = { latitude: p1[0], longitude: p1[1] };
+//       const b = { latitude: p2[0], longitude: p2[1] };
+//       return haversine(a, b); // Returns distance in meters
+//     }
+//   );
+
+//   // Map cluster indices to actual coordinates
+//   const clusters = clustersIndices.map(clusterIndices =>
+//     clusterIndices.map(idx => destinations[idx])
+//   );
+
+//   return clusters;
+// }
+
+// const haversine = require('haversine-distance').default;
+// const { Client: googleMapsClient } = require('@googlemaps/google-maps-services-js');
+
+// exports.groupRoutesController = async (req, res) => {
+//   try {
+//     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+//     const client = new googleMapsClient({});
+//     const { sourceLatitude, sourceLongitude, destinations, toleranceDistance } = req.body;
+
+//     if (!sourceLatitude || !sourceLongitude || !Array.isArray(destinations) || destinations.length === 0 || toleranceDistance === undefined) {
+//       return res.status(400).json({ error: 'Invalid request parameters.' });
+//     }
+
+//     const routes = [];
+
+//     for (const destination of destinations) {
+//       const [destLatitude, destLongitude] = destination;
+//       let isGrouped = false;
+
+//       for (const route of routes) {
+//         if (route.length > 0) {
+//           const [representativeLatitude, representativeLongitude] = route[0];
+
+//           try {
+//             const directionsRepPromise = client
+//               .directions({
+//                 params: {
+//                   origin: { lat: sourceLatitude, lng: sourceLongitude },
+//                   destination: { lat: representativeLatitude, lng: representativeLongitude },
+//                   mode: 'DRIVING',
+//                   key: apiKey,
+//                 },
+//                 timeout: 3000, // milliseconds
+//               })
+//               .then((r) => r.data);
+
+
+//             const directionsCurrentPromise = client
+//               .directions({
+//                 params: {
+//                   origin: { lat: sourceLatitude, lng: sourceLongitude },
+//                   destination: { lat: destLatitude, lng: destLongitude },
+//                   mode: 'DRIVING',
+//                   key: apiKey,
+//                 },
+//                 timeout: 3000, // milliseconds
+//               })
+//               .then((r) => r.data);
+
+//             const [directionsRep, directionsCurrent] = await Promise.all([directionsRepPromise, directionsCurrentPromise]);
+//             console.log("directionsRepPromise", directionsRep)
+//             if (directionsRep.routes.length > 0 && directionsCurrent.routes.length > 0) {
+//               const endLocationRep = directionsRep.routes[0].legs[0].end_location;
+//               const endLocationCurrent = directionsCurrent.routes[0].legs[0].end_location;
+//               console.log("executed")
+//               let distance ;
+//               const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${endLocationRep.lat},${endLocationRep.lng}&destination=${endLocationCurrent.lat},${endLocationCurrent.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+//               const response = await axios.get(directionsUrl);
+//               // console.dir(response,{depth: null})
+//               if (response.data.status === 'OK') {
+//                 distance = response.data.routes[0].legs[0].distance.value;
+//               }
+
+
+//               // haversine(
+//               //     { latitude: endLocationRep.lat, longitude: endLocationRep.lng },
+//               //     { latitude: endLocationCurrent.lat, longitude: endLocationCurrent.lng }
+//               // );
+//               console.log("not executed")
+//               if (distance <= toleranceDistance) {
+//                 route.push([destLatitude, destLongitude]);
+//                 isGrouped = true;
+//                 break;
+//               }
+//             }
+//           } catch (error) {
+//             console.error('Google Maps API error:', error);
+//             // Handle API errors appropriately (e.g., log, skip, or retry)
+//           }
+//         }
+//       }
+
+//       if (!isGrouped) {
+//         routes.push([[destLatitude, destLongitude]]);
+//       }
+//     }
+
+//     res.json({ routes });
+//   } catch (error) {
+//     console.error('Error processing request:', error);
+//     res.status(500).json({ error: 'Failed to group routes.' });
+//   }
+// };
+
+exports.groupRoutesController = async (req, res) => {
+  try {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+    const { sourceLatitude, sourceLongitude, destinations, toleranceDistance } = req.body;
+
+    if (!sourceLatitude || !sourceLongitude || !Array.isArray(destinations) || destinations.length === 0 || toleranceDistance === undefined) {
+      return res.status(400).json({ error: 'Invalid request parameters.' });
+    }
+    let distanceSource = [];
+    for (const destination of destinations) {
+      const [destLatitude, destLongitude] = destination;
+      const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${sourceLatitude},${sourceLongitude}&destination=${destLatitude},${destLongitude}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+      const response = await axios.get(directionsUrl);
+      distanceSource.push({
+        // url: directionsUrl,
+        latitude: destLatitude,
+        longitude: destLongitude,
+        distance: response.data.routes[0].legs[0].distance.value,
+        // geocoded_waypoints: response.data.geocoded_waypoints,
+        // legs: response.data.routes[0].legs,
+        allocated: false
+      });
+    }
+    let unallocatedItems = distanceSource.filter(item => !item.allocated);
+    const closestUnallocated = unallocatedItems.length > 0
+      ? unallocatedItems.reduce((closest, current) =>
+        current.distance < closest.distance ? current : closest
+      )
+      : null;
+    closestUnallocated.allocated = true;
+    const routes = [[closestUnallocated]];
+
+    unallocatedItems = distanceSource.filter(item => !item.allocated);
+    while (unallocatedItems.length !== 0) {
+      let lastRoute = routes[routes.length - 1][routes[routes.length - 1].length - 1];
+      console.log("loop 1 lastRoute", lastRoute, "unallocatedItems", unallocatedItems)
+      let routeDistances = [];
+      for (const item of unallocatedItems) {
+        const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${lastRoute.latitude},${lastRoute.longitude}&destination=${item.latitude},${item.longitude}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+        const response = await axios.get(directionsUrl);
+        routeDistances.push({
+          latitude: item.latitude,
+          longitude: item.longitude,
+          distance: response.data.routes[0].legs[0].distance.value,
+          allocated: false
+        });
+      }
+      const closestUnallocated = routeDistances.length > 0
+        ? routeDistances.reduce((closest, current) =>
+          current.distance < closest.distance ? current : closest
+        )
+        : null;
+      closestUnallocated.allocated = true;
+      routeDistances = routeDistances.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
+      distanceSource.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
+      routes[routes.length - 1].push(closestUnallocated);
+      unallocatedItems = distanceSource.filter(item => !item.allocated);
+      console.log("routes", routes, "distanceSource", distanceSource, "unallocatedItems", unallocatedItems)
+      // console.log("routes", routes, "distanceSource", distanceSource)
+      let runLoop = true;
+      while (runLoop && unallocatedItems.length !== 0) {
+        let lastRoute = routes[routes.length - 1][routes[routes.length - 1].length - 1];
+        // console.log("loop 2 lastRoute", lastRoute)
+        let routeDistances = [];
+        for (const item of unallocatedItems) {
+          const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${lastRoute.latitude},${lastRoute.longitude}&destination=${item.latitude},${item.longitude}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+          const response = await axios.get(directionsUrl);
+          if (response.data.status === 'OK') {
+            routeDistances.push({
+              latitude: item.latitude,
+              longitude: item.longitude,
+              distance: response.data.routes[0].legs[0].distance.value,
+              allocated: false,
+              allocatable: response.data.routes[0].legs[0].distance.value <= toleranceDistance
+            });
+          } else {
+            routeDistances.push({
+              latitude: item.latitude,
+              longitude: item.longitude,
+              // distance: response.data.routes[0].legs[0].distance.value,
+              distance: null,
+              allocated: false,
+              allocatable: false
+            });
+          }
+        }
+        const allNonAllocatable = routeDistances.every(item => !item.allocated && !item.allocatable);
+
+        if (allNonAllocatable) {
+
+          runLoop = false;
+          let unallocatedItems = distanceSource.filter(item => !item.allocated);
+          const closestUnallocated = unallocatedItems.length > 0
+            ? unallocatedItems.reduce((closest, current) =>
+              current.distance < closest.distance ? current : closest
+            )
+            : null;
+          if (unallocatedItems.length === 0) {
+            runLoop = false
+            continue;
+          }
+          closestUnallocated.allocated = true;
+          routes.push([closestUnallocated]);
+          unallocatedItems = distanceSource.filter(item => !item.allocated);
+          distanceSource.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
+          console.log("routes 22 ", routes, "unallocatedItems", unallocatedItems)
+
+
+          continue;
+
+        }
+        // console.log("routeDistances", routeDistances)
+        const validDistances = routeDistances.filter(item =>
+          item.allocatable &&
+          typeof item.distance === 'number'
+        );
+
+        let closestUnallocated;
+        if (validDistances.length > 0) {
+          closestUnallocated = validDistances.reduce((closest, current) =>
+            current.distance < closest.distance ? current : closest
+          );
+        }
+        // console.log("closestUnallocated", closestUnallocated)
+        if (closestUnallocated) {
+          closestUnallocated.allocated = true;
+          routes[routes.length - 1].push(closestUnallocated);
+          distanceSource.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
+
+          unallocatedItems = distanceSource.filter(item => !item.allocated);
+          console.log("routes 11 ", routes, "unallocatedItems", unallocatedItems)
+        }
+        distanceSource.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
+
+      }
+      unallocatedItems = distanceSource.filter(item => !item.allocated);
+    }
+    let routeOptimisation = [];
+    for (const route of routes) {
+      const tempRoute = route;
+      
+      if (route.length > 1) {
+        console.log("tempRoute", tempRoute.length, "route", route)
+        // const waypoints = route.slice(0, -1).map((dest) => `${dest.lat},${dest.lng}`);
+        const waypoints =  route.slice(0, -1).map(dest => {
+          const location = `${dest.latitude},${dest.longitude}`;
+          const stopover = true;
+          return { location, stopover };
+        });
+        console.log("waypoints", waypoints)
+        const response = await axios.get(
+          `https://maps.googleapis.com/maps/api/directions/json?` +
+          `origin=${sourceLatitude},${sourceLongitude}` +
+          `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` + // Return to origin
+          `&waypoints[]:${waypoints}` +
+          `&optimizeWaypoints:true` +
+          `&key=${process.env.GOOGLE_MAPS_API_KEY}`
+        );
+
+        if (response.data.status === 'OK') {
+          console.log("response", response.data)
+          const optimizedOrder = response.data.routes[0].waypoint_order;
+          const optimizedDestinations = optimizedOrder.map(index => destinations[index]);
+          let totalDistance = 0;
+          let totalDuration = 0;
+          
+          response.data.routes[0].legs.forEach(leg => {
+            totalDistance += leg.distance.value;
+            totalDuration += leg.duration.value;
+          });
+      
+          // Generate Google Maps URL
+          const mapsUrl = `https://www.google.com/maps/dir/?api=1` +
+            `&origin=${sourceLatitude},${sourceLongitude}` +
+            `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` +
+            `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
+            `&travelmode=driving` +
+            `&dir_action=navigate`;
+            console.log("mapsUrl", mapsUrl,"route", route)
+      
+          routeOptimisation.push({
+            distance: totalDistance,
+            duration: totalDuration,
+            waypoints: optimizedDestinations,
+            mapsUrl: mapsUrl,
+            route: tempRoute
+          });
+        }
+      }else {
+        const mapsUrl = `https://www.google.com/maps/dir/?api=1` +
+        `&origin=${sourceLatitude},${sourceLongitude}` +
+        `&destination=${route[route.length - 1].latitude},${route[route.length - 1].longitude}` +
+        // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
+        `&travelmode=driving` +
+        `&dir_action=navigate`;
+
+        routeOptimisation.push({
+          distance: 0,
+          duration: 0,
+          // waypoints: optimizedDestinations,
+          mapsUrl: mapsUrl,
+          route: tempRoute
+        });
+      }
+
+    }
+
+    res.json({ distanceSource, routes, routeOptimisation });
+  } catch (error) {
+    console.error('Error processing request:', error);
+    res.status(500).json({ error: 'Failed to group routes.' });
+  }
+};

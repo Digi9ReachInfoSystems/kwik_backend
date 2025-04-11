@@ -1,6 +1,7 @@
 const Warehouse = require("../models/warehouse_model"); // Adjust the path as per your structure
 const User = require("../models/user_models");
 const Orders = require("../models/order_model");
+const axios = require("axios");
 const mongoose = require("mongoose");
 // Get all warehouses
 exports.getAllWarehouses = async (req, res) => {
@@ -348,19 +349,19 @@ exports.searchUserByWarehouse = async (req, res) => {
     }
 
     const users = await User.find({
-      current_pincode:{$in:warehouse.picode},
+      current_pincode: { $in: warehouse.picode },
       isUser: true,
       displayName: { $regex: `${name}`, $options: "i" }
     }).exec();
-     const orderDetails =await Promise.all(users.map(async (user) => {
-          
-        const orders = await Orders.find({ warehouse_ref: new mongoose.Types.ObjectId(warehouseId), user_ref: user._id }).exec();
-        return {
-          user: user,
-          orders: orders,
-          numberOfOrders: orders.length,
-        };
-        }))
+    const orderDetails = await Promise.all(users.map(async (user) => {
+
+      const orders = await Orders.find({ warehouse_ref: new mongoose.Types.ObjectId(warehouseId), user_ref: user._id }).exec();
+      return {
+        user: user,
+        orders: orders,
+        numberOfOrders: orders.length,
+      };
+    }))
 
     if (users.length === 0) {
       return res.status(404).json({ success: false, message: "No users found in the warehouse" });
@@ -380,6 +381,62 @@ exports.getWarehousesBypincode = async (req, res) => {
       return res.status(404).json({ success: false, message: "Warehouses not found" });
     }
     res.status(200).json({ success: true, message: "Warehouses retrieved successfully", warehouses: warehouses });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
+  }
+};
+exports.getDeliveryServiceStatus = async (req, res) => {
+  try {
+    const { pincode, destinationLat, destinationLon } = req.body;
+    const warehouse = await Warehouse.findOne({ picode: pincode }).exec();
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouses not found" });
+    }
+    const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${warehouse.warehouse_location.lat},${warehouse.warehouse_location.lng}&destination=${destinationLat},${destinationLon}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+    const response = await axios.get(directionsUrl);
+    if (response.data.status === 'OK') {
+
+      
+  
+    const legs = response.data.routes[0].legs;
+    const distanceInMeters = response.data.routes[0].legs[0].distance.value;
+    const distanceInKilometers = distanceInMeters / 1000;
+    if (distanceInKilometers <= 7) {
+      return res.status(200).json({
+        success: true,
+        message: `The route exists and the distance is ${distanceInKilometers} km. `,
+        distance: distanceInKilometers,
+        route: legs,
+        warehouse: warehouse,
+        maintainance_status: warehouse.under_maintance,
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: `The distance is greater than 7 km. It is ${distanceInKilometers} km. we do not provide delivery service for more than 7 km`
+      });
+    }
+  }else if(response.data.status === 'ZERO_RESULTS'){
+    return res.status(400).json({
+      success: false,
+      message: `The route does not exist.`
+    });
+  }else if(response.data.status === 'OVER_QUERY_LIMIT'){
+    return res.status(400).json({
+      success: false,
+      message: `sent too many requests within the allowed time period.`
+    });
+  }else if(response.data.status === 'REQUEST_DENIED'){
+    return res.status(400).json({
+      success: false,
+      message: `Your request was denied.`
+    });
+  }else if(response.data.status === 'UNKNOWN_ERROR'){
+    return res.status(400).json({
+      success: false,
+      message: `An unknown error occurred.`
+    });
+  }
   } catch (error) {
     res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
   }
