@@ -719,6 +719,7 @@ exports.updateQcStatus = async (req, res) => {
     product.qc_status = product_qc_status;
     product.last_qc_done_by = user._id;
     product.qc_remarks = qc_remarks;
+    product.qc_date = Date.now();
     const updatedProduct = await product.save();
     return res.status(200).json({ message: "Product updated successfully", data: updatedProduct });
   } catch (error) {
@@ -1446,7 +1447,7 @@ exports.deleteProductWarehouse = async (req, res) => {
 };
 exports.searchProductSkuName = async (req, res) => {
   try {
-    const{warehouseId} = req.params
+    const { warehouseId } = req.params
     const { query } = req.query;
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
@@ -1488,16 +1489,124 @@ exports.searchProductSkuName = async (req, res) => {
 
 exports.qcStats = async (req, res) => {
   try {
-    let approvedCount,rejectedCount,pendingCount,totalCount;
-    approvedCount = await Product.countDocuments({ qc_status: "approved", draft: false ,isDeleted: false});
-    rejectedCount = await Product.countDocuments({ qc_status: "rejected", draft: false,isDeleted: false });
-    pendingCount = await Product.countDocuments({ qc_status: "pending", draft: false,isDeleted: false });
-    revisedCount = await Product.countDocuments({ qc_status: "revised", draft: false,isDeleted: false });
-    totalCount = await Product.countDocuments({ draft: false,isDeleted: false });
+    let approvedCount, rejectedCount, pendingCount, totalCount;
+    approvedCount = await Product.countDocuments({ qc_status: "approved", draft: false, isDeleted: false });
+    rejectedCount = await Product.countDocuments({ qc_status: "rejected", draft: false, isDeleted: false });
+    pendingCount = await Product.countDocuments({ qc_status: "pending", draft: false, isDeleted: false });
+    revisedCount = await Product.countDocuments({ qc_status: "revised", draft: false, isDeleted: false });
+    totalCount = await Product.countDocuments({ draft: false, isDeleted: false });
 
 
-    res.status(200).json({ success: true, message: "QC stats retrieved successfully", data: {approvedCount,rejectedCount,pendingCount,revisedCount,totalCount} });
-  } catch (error) { 
+    res.status(200).json({ success: true, message: "QC stats retrieved successfully", data: { approvedCount, rejectedCount, pendingCount, revisedCount, totalCount } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching QC stats", error: error.message });
+  }
+};
+exports.qcgraph = async (req, res) => {
+  try {
+    function getDayName(index) {
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      return dayNames[index] || "";
+    }
+    let product_count = await Product.countDocuments({ draft: false, isDeleted: false });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // normalize to midnight
+    const last7DaysArray = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+
+      last7DaysArray.push({
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        day: d.getDate(),
+        dateString: `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`,
+        dayName: getDayName(d.getDay()) // e.g. Monday, Tuesday, etc.
+      });
+    }
+
+    // 2) Calculate 7 days ago for aggregator
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    // The aggregator will match any qc_date >= (7 days ago at midnight)
+
+    // 3) Run the aggregator to group by year-month-day
+    const pipeline = [
+      {
+        $match: {
+          qc_date: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$qc_date" },
+            month: { $month: "$qc_date" },
+            day: { $dayOfMonth: "$qc_date" }
+          },
+          approvedCount: {
+            $sum: {
+              $cond: [
+                { $eq: ["$qc_status", "approved"] },
+                1,
+                0
+              ]
+            }
+          },
+          rejectedCount: {
+            $sum: {
+              $cond: [
+                { $eq: ["$qc_status", "rejected"] },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      // Sort by ascending date
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1,
+          "_id.day": 1
+        }
+      }
+    ];
+
+    const aggResults = await Product.aggregate(pipeline);
+    // aggResults is an array like:
+    // [
+    //   { _id: { year: 2023, month: 9, day: 14 }, approvedCount: 5, rejectedCount: 2 },
+    //   { _id: { year: 2023, month: 9, day: 15 }, approvedCount: 7, rejectedCount: 1 },
+    //   ...
+    // ]
+
+    // 4) Merge aggregator results with the last7DaysArray
+    //    For each date in last7DaysArray, find the aggregator item (if any)
+    //    Set counts or default to zero
+    const finalData = last7DaysArray.map(dayObj => {
+      // see if aggregator has an entry for this day
+      const foundAgg = aggResults.find(item =>
+        item._id.year === dayObj.year &&
+        item._id.month === dayObj.month &&
+        item._id.day === dayObj.day
+      );
+      return {
+        date: dayObj.dateString,
+        dayName: dayObj.dayName,
+        approvedCount: foundAgg ? foundAgg.approvedCount : 0,
+        rejectedCount: foundAgg ? foundAgg.rejectedCount : 0
+      };
+    });
+
+    // 5) Return final results
+    return res.status(200).json({
+      success: true,
+      message: "QC status counts for the last 7 days retrieved successfully",
+      data: { weeklyData: finalData, product_count }
+    });
+  } catch (error) {
     res.status(500).json({ success: false, message: "Error fetching QC stats", error: error.message });
   }
 };

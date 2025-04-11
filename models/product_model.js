@@ -130,6 +130,10 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: false,
   }],
+  qc_date: {
+    type: Date,
+    required: false,
+  },
 });
 
 // Create and export the Product model

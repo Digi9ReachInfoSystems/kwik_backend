@@ -42,4 +42,5 @@ router.get("/search/product/user/:userId", ProductController.searchProductsbyUse
 router.put("/softDeleteStock/warehouse", ProductController.deleteProductWarehouse);
 router.get("/search/productBy/skuName/:warehouseId", ProductController.searchProductSkuName);
 router.get("/qc/stats", ProductController.qcStats);
+router.get("/qc/bargraph", ProductController.qcgraph);
 module.exports = router;
