@@ -98,6 +98,7 @@ exports.editWarehouse = async (req, res) => {
   try {
     const warehouseId = req.params.id; // MongoDB Object ID of the warehouse to edit
     const updatedData = req.body;
+    console.dir(updatedData, { depth: null });
 
     const updatedWarehouse = await Warehouse.findByIdAndUpdate(
       warehouseId,
