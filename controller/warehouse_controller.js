@@ -152,7 +152,7 @@ exports.deleteWarehouse = async (req, res) => {
 exports.getWarehouseId = async (req, res) => {
   try {
     const { id } = req.params;
-    const warehouse = await Warehouse.findById(id);
+    const warehouse = await Warehouse.findById(id).populate("deliveryboys");
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
     }
@@ -442,3 +442,15 @@ exports.getDeliveryServiceStatus = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
   }
 };
+exports.getDeliveryBoys=async(req,res)=>{
+  try {
+    const { warehouseId } = req.params;
+    const warehouses = await Warehouse.findById(warehouseId ).populate('deliveryboys').select('deliveryboys').exec();
+    if (!warehouses) {
+      return res.status(404).json({ success: false, message: "Warehouses not found" });
+    }
+    res.status(200).json({ success: true, message: "Delivery Boys retrieved successfully", data: warehouses });
+  } catch (error) { 
+    res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
+  }
+}
