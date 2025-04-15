@@ -1,7 +1,14 @@
 const mongoose = require("mongoose");
 
 const homepageWidgetSchema = new mongoose.Schema({
-  categorylist: Object,
+  categorylist:  {
+    category_ref: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
+    background_color: { type: String, required: true },
+    title_color: { type: String, required: true },
+    subcategory_color: { type: String, required: true },
+    ui_order_number: { type: String, required: true },
+    show_Category: { type: Boolean, required: true },
+  },
   template2: {
     category_ref: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     background_color: { type: String, required: false },
