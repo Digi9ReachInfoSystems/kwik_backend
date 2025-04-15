@@ -20,7 +20,7 @@ const warehouseSchema = new mongoose.Schema({
   manager_email: { type: String, required: true },
   warehouse_email: { type: String, required: true },
   warehouse_password: { type: String, required: true },
-  deliveryboys: [{ type: userRefSchema }], // List of document references to User model for delivery boys
+  deliveryboys: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // List of document references to User model for delivery boys
   warehouse_location: {
     lat: { type: Number, required: true },
     lng: { type: Number, required: true },
