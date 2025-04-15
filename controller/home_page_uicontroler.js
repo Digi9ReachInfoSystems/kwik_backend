@@ -23,6 +23,7 @@ exports.updateWidgetTemplate = async (req, res) => {
   try {
     
     const {  template, value } = req.body;
+
     const widget = await HomepageWidget.findOne();
 
     if (!widget) {
@@ -31,9 +32,11 @@ exports.updateWidgetTemplate = async (req, res) => {
     if (!widget[template]) {
       return res.status(400).json({ success: false, message: `Template ${template} does not exist` });
     }
-
-    widget[template] = value;
-
+   
+    widget[template]={
+      ...widget[template],
+      ...value
+    };
   
     await widget.save();
 
