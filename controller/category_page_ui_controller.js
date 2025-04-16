@@ -57,3 +57,38 @@ exports.createcategorypageWidget = async (req, res) => {
     });
   }
 };
+
+exports.updatecategorypageWidget = async (req, res) => {
+  try {
+    const { template, value } = req.body;
+
+    const widget = await CategorypageWidget.findOne();
+
+    if (!widget) {
+      return res.status(404).json({ success: false, message: "Widget not found" });
+    }
+    if (!widget[template]) {
+      return res.status(400).json({ success: false, message: `Template ${template} does not exist` });
+    }
+
+    widget[template] = {
+      ...widget[template],
+      ...value,
+    };
+
+    await widget.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Widget updated successfully",
+      data: widget,
+    });
+  } catch (error) {
+    console.error("Error updating widget field:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error updating widget field",
+      error: error.message,
+    });
+  }
+}
