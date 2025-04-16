@@ -1610,3 +1610,40 @@ exports.qcgraph = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching QC stats", error: error.message });
   }
 };
+exports.searchQcProductsByWarehouseStatus = async (req, res) => {
+  const { name } = req.query;
+  const { warehouseId , status} = req.params;
+
+  if (!name) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+  if (!status) {
+    return res.status(400).json({ message: "Status is required" });
+  }
+  if (!warehouseId) {
+    return res.status(400).json({ message: "warehouseId is required" });
+  }
+
+  try {
+    // Case-insensitive search for products whose names start with the provided term
+    const products = await Product.find({
+      product_name: { $regex: `${name}`, $options: "i" },
+      warehouse_ref: warehouseId,
+      isDeleted: false,
+      draft: false,
+      qc_status: status
+    })
+      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 })
+      .exec();
+
+    if (products.length === 0) {
+      return res.status(404).json({ success: false, message: "No products found", data: products });
+    }
+
+    return res.status(200).json({ success: true, message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
