@@ -6,4 +6,5 @@ const categoryController = require("../controller/category_page_ui_controller");
 router.get("/getui", categoryController.getcategorypageWidget);
 // router.put("/editui", categoryController.updateHomepageWidget);
 router.post("/createui", categoryController.createcategorypageWidget);
+router.put("/editui", categoryController.updatecategorypageWidget);
 module.exports = router;
