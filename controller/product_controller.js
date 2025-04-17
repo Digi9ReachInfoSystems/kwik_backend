@@ -819,7 +819,7 @@ exports.getLowStockProductsByWarehuseCategorySubCategory = async (req, res) => {
     filter.isDeleted = false;
     filter.draft = false;
     filter.qc_status = "approved"
-    const products = await Product.find({ ...filter, "variations.stock.stock_qty": { $lt: 10 } }).populate("Brand category_ref sub_category_ref warehouse_ref")
+    const products = await Product.find({ ...filter, "variations.stock.stock_qty": { $lt: 10 } }).populate("Brand category_ref sub_category_ref ")
       .sort({ created_time: -1 })
       .exec();
     res.status(200).json({ message: "Low Stock Products retrieved successfully", data: products });
