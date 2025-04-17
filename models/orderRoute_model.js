@@ -22,7 +22,7 @@ const orderRouteSchema = new mongoose.Schema({
     },
     tum_tumdelivery_start_time: { type: Date },
     tumtumdelivery_end_time: { type: Date },
-    Routes: [
+    route: [
         {
             orders: [
                 {
