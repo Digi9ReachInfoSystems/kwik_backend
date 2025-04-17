@@ -26,4 +26,5 @@ router.get("/search/userByWarehouse/:warehouseId",warehouseController.searchUser
 router.get("/get/warehouseByPincode/:pincode",warehouseController.getWarehousesBypincode);
 router.post("/warehouseServiceStatus",warehouseController.getDeliveryServiceStatus);
 router.get("/get/DeliveryBoys/:warehouseId",warehouseController.getDeliveryBoys);
+router.get("/get/warehouseProductCount/:warehouseId",warehouseController.getWarehouseProductCounts);
 module.exports = router;

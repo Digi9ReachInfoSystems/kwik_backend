@@ -3,6 +3,7 @@ const User = require("../models/user_models");
 const Orders = require("../models/order_model");
 const axios = require("axios");
 const mongoose = require("mongoose");
+const Product = require("../models/product_model");
 // Get all warehouses
 exports.getAllWarehouses = async (req, res) => {
   try {
@@ -397,60 +398,100 @@ exports.getDeliveryServiceStatus = async (req, res) => {
     const response = await axios.get(directionsUrl);
     if (response.data.status === 'OK') {
 
-      
-  
-    const legs = response.data.routes[0].legs;
-    const distanceInMeters = response.data.routes[0].legs[0].distance.value;
-    const distanceInKilometers = distanceInMeters / 1000;
-    if (distanceInKilometers <= 7) {
-      return res.status(200).json({
-        success: true,
-        message: `The route exists and the distance is ${distanceInKilometers} km. `,
-        distance: distanceInKilometers,
-        route: legs,
-        warehouse: warehouse,
-        maintainance_status: warehouse.under_maintance,
-      });
-    } else {
+
+
+      const legs = response.data.routes[0].legs;
+      const distanceInMeters = response.data.routes[0].legs[0].distance.value;
+      const distanceInKilometers = distanceInMeters / 1000;
+      if (distanceInKilometers <= 7) {
+        return res.status(200).json({
+          success: true,
+          message: `The route exists and the distance is ${distanceInKilometers} km. `,
+          distance: distanceInKilometers,
+          route: legs,
+          warehouse: warehouse,
+          maintainance_status: warehouse.under_maintance,
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: `The distance is greater than 7 km. It is ${distanceInKilometers} km. we do not provide delivery service for more than 7 km`
+        });
+      }
+    } else if (response.data.status === 'ZERO_RESULTS') {
       return res.status(400).json({
         success: false,
-        message: `The distance is greater than 7 km. It is ${distanceInKilometers} km. we do not provide delivery service for more than 7 km`
+        message: `The route does not exist.`
+      });
+    } else if (response.data.status === 'OVER_QUERY_LIMIT') {
+      return res.status(400).json({
+        success: false,
+        message: `sent too many requests within the allowed time period.`
+      });
+    } else if (response.data.status === 'REQUEST_DENIED') {
+      return res.status(400).json({
+        success: false,
+        message: `Your request was denied.`
+      });
+    } else if (response.data.status === 'UNKNOWN_ERROR') {
+      return res.status(400).json({
+        success: false,
+        message: `An unknown error occurred.`
       });
     }
-  }else if(response.data.status === 'ZERO_RESULTS'){
-    return res.status(400).json({
-      success: false,
-      message: `The route does not exist.`
-    });
-  }else if(response.data.status === 'OVER_QUERY_LIMIT'){
-    return res.status(400).json({
-      success: false,
-      message: `sent too many requests within the allowed time period.`
-    });
-  }else if(response.data.status === 'REQUEST_DENIED'){
-    return res.status(400).json({
-      success: false,
-      message: `Your request was denied.`
-    });
-  }else if(response.data.status === 'UNKNOWN_ERROR'){
-    return res.status(400).json({
-      success: false,
-      message: `An unknown error occurred.`
-    });
-  }
   } catch (error) {
     res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
   }
 };
-exports.getDeliveryBoys=async(req,res)=>{
+exports.getDeliveryBoys = async (req, res) => {
   try {
     const { warehouseId } = req.params;
-    const warehouses = await Warehouse.findById(warehouseId ).populate('deliveryboys').select('deliveryboys').exec();
+    const warehouses = await Warehouse.findById(warehouseId).populate('deliveryboys').select('deliveryboys').exec();
     if (!warehouses) {
       return res.status(404).json({ success: false, message: "Warehouses not found" });
     }
     res.status(200).json({ success: true, message: "Delivery Boys retrieved successfully", data: warehouses });
-  } catch (error) { 
+  } catch (error) {
     res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
   }
 }
+
+exports.getWarehouseProductCounts = async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    const warehouse = await Warehouse.findById(warehouseId).exec();
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouses not found" });
+    }
+
+    const productCounts = await Product.countDocuments({ warehouse_ref: warehouse._id });
+    const draftCount = await Product.countDocuments({ warehouse_ref: warehouse._id, draft: true });
+    const publishedCount = await Product.countDocuments({ warehouse_ref: warehouse._id, draft: false });
+    const deletedCount = await Product.countDocuments({ warehouse_ref: warehouse._id, isDeleted: true });
+    const filter = {
+      "variations.stock": {
+        $elemMatch: {
+          warehouse_ref: new mongoose.Types.ObjectId(warehouseId), // Match the warehouse reference
+          stock_qty: { $lt: 10 }, // Check if stock quantity is less than 10
+        },
+      },
+      isDeleted: false,
+      draft: false,
+      qc_status: "approved",
+    };
+    const lowStockCount = await Product.countDocuments(filter);
+
+    res.status(200).json({
+       success: true,
+        message: "Product counts retrieved successfully", 
+        warehouse: warehouse,
+         AllProductsCount: productCounts ,
+         DraftProductsCount: draftCount,
+         PublishedProductsCount: publishedCount,
+         DeletedProductsCount: deletedCount,
+         LowStockProductsCount: lowStockCount
+        });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
+  }
+};

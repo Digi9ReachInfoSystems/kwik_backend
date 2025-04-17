@@ -24,6 +24,7 @@ const orderRoutes = require("./routes/order_Routes");
 const superSaverUiRoutes = require("./routes/superSaver_page_ui_Routes");
 const applicationManagementRoutes = require("./routes/applicationManagementRoutes");
 const complaintsRoutes = require("./routes/complaintRoutes");
+const orderRouteRoutes = require("./routes/orderRouteRoute");
 // MongoDB Connection
 connectDB();
 // test
@@ -66,6 +67,7 @@ app.use("/order", orderRoutes);
 app.use("/superSaver", superSaverUiRoutes);
 app.use("/applicationManagement", applicationManagementRoutes);
 app.use("/complaint", complaintsRoutes);
+app.use("/orderRoute", orderRouteRoutes);
 const PORT = 3000;
 
 app.listen(PORT, () => {
