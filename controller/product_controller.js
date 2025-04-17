@@ -313,22 +313,30 @@ exports.deleteProduct = async (req, res) => {
 // Update product stock
 exports.updateStock = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { stock } = req.body;
+    const { productId } = req.params;
+    const { stock, variationId, warehouseId } = req.body;
 
     if (stock === undefined) {
       return res.status(400).json({ message: "Stock value is required" });
     }
 
-    const product = await Product.findById(id);
+    const product = await Product.findById(productId);
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    if (stock > 0) {
 
-    product.stock = stock;
+
+      product.variations.find((variation) => variation._id == variationId).stock.find((item) => item.warehouse_ref == warehouseId).stock_qty = stock;
+      product.variations.find((variation) => variation._id == variationId).stock.find((item) => item.warehouse_ref == warehouseId).visibility = true;
+      // const updatedProduct = await product.save();
+    } else {
+
+      product.variations.find((variation) => variation._id == variationId).stock.find((item) => item.warehouse_ref == warehouseId).stock_qty = 0;
+      product.variations.find((variation) => variation._id == variationId).stock.find((item) => item.warehouse_ref == warehouseId).visibility = false;
+    }
     const updatedProduct = await product.save();
-
     res
       .status(200)
       .json({ message: "Stock updated successfully", data: updatedProduct });
@@ -1612,7 +1620,7 @@ exports.qcgraph = async (req, res) => {
 };
 exports.searchQcProductsByWarehouseStatus = async (req, res) => {
   const { name } = req.query;
-  const { warehouseId , status} = req.params;
+  const { warehouseId, status } = req.params;
 
   if (!name) {
     return res.status(400).json({ message: "Search term is required" });
