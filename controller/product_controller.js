@@ -426,12 +426,12 @@ exports.getLowStockProducts = async (req, res) => {
         qc_status: "approved",
       };
 
-      populateQuery = [
-        {
-          path: "variations.stock.warehouse_ref", // Populate warehouse reference
-          model: "Warehouse", // The model to populate (should match your Warehouse model)
-        },
-      ];
+      // populateQuery = [
+      //   {
+      //     path: "variations.stock.warehouse_ref", // Populate warehouse reference
+      //     model: "Warehouse", // The model to populate (should match your Warehouse model)
+      //   },
+      // ];
     }
 
     // Query products with the filter and populate warehouse_ref
