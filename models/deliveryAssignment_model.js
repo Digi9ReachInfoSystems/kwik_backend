@@ -37,6 +37,7 @@ const deliveryAssignmentSchema = new mongoose.Schema({
         type: String,
         required: [true, "Status is required"],
         enum: ["Pending", , "Completed"],
+        default: "Pending",
     },
     created_time: {
         type: Date,

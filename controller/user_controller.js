@@ -938,7 +938,7 @@ exports.getDeliveryApplicationByWarehouseId = async (req, res) => {
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
     }
-    const user = await User.findOne({ selected_warehouse: warehouseId, deliveryboy_application_status: status });
+    const user = await User.find({ selected_warehouse: warehouseId, deliveryboy_application_status: status });
     return res.status(200).json({ message: "success", deliveryApplications: user });
   } catch (error) {
     console.log(error)

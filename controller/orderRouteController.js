@@ -4,7 +4,8 @@ const User = require("../models/user_models");
 const Warehouse = require("../models/warehouse_model");
 const moment = require("moment");
 const Order = require("../models/order_model");
-const axios = require("axios")
+const axios = require("axios");
+const DeliveryAssignment = require("../models/deliveryAssignment_model");
 
 
 
@@ -445,7 +446,24 @@ exports.assignDeliveryBoys = async (req, res) => {
             await order.save();
         }))
 
+
         await orderRoute.save();
+
+        const  deliveryOrders=(updateRoute.orders.map(order => {
+            return {
+                orderId: order,
+                status: "Pending"
+            }
+        }))
+        const deliveryAssignment= new DeliveryAssignment({
+            tum_tumdelivery_start_time: orderRoute.tum_tumdelivery_start_time,
+            tumtumdelivery_end_time: orderRoute.tumtumdelivery_end_time,
+            map_url: updateRoute.map_url,
+            delivery_boy_ref: deliveryBoyId,
+            orders: deliveryOrders
+            
+        })
+        await deliveryAssignment.save();
         res.status(200).json({ success: true, message: "Delivery boys assigned successfully", data: orderRoute });
     } catch (error) {
         console.error("Error assigning delivery boys:", error);
