@@ -380,7 +380,7 @@ exports.getDrafts = async (req, res) => {
   try {
     const drafts = await Product.find({
       isDeleted: false,
-      draft: false,
+      draft: true,
       qc_status: "approved"
     })
       .populate("Brand category_ref sub_category_ref warehouse_ref")

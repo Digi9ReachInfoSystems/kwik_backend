@@ -29,7 +29,7 @@ const orderRouteSchema = new mongoose.Schema({
                     type: mongoose.Schema.Types.ObjectId,
                     ref: "Order",
 
-                },   
+                },
             ],
             assigned_delivery_boy: {
                 type: mongoose.Schema.Types.ObjectId,
@@ -42,6 +42,12 @@ const orderRouteSchema = new mongoose.Schema({
                 }
             },
             map_url: { type: String },
+            delivery_status: {
+                type: String,
+                required: [true, "Delivery status is required"],
+                enum: ["Pending", "Completed"],
+                default: "Pending",
+            }
         }
     ],
     assigned_delivery_boy: [{
@@ -58,8 +64,12 @@ const orderRouteSchema = new mongoose.Schema({
             message: "Invalid delivery boy reference",
         },
     }],
-
-
+    delivery_status: {
+        type: String,
+        required: [true, "Delivery status is required"],
+        enum: ["Pending", "Completed"],
+        default: "Pending",
+    },
     created_time: {
         type: Date,
         required: [true, "Creation time is required"],
