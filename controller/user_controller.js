@@ -968,3 +968,25 @@ exports.approveDeliveryApplication = async (req, res) => {
     return res.status(500).json({ message: "Error", error });
   }
 };
+exports.blockDeliveryBoy = async (req, res) => {
+  try {
+    const { deliveryBoyUSerId } = req.body;
+    const deliveryApplication = await User.findById(deliveryBoyUSerId);
+    if (!deliveryApplication) {
+      return res.status(404).json({ message: "Delivery application not found" });
+    }
+    deliveryApplication.deliveryboy_application_status = "blocked";
+    deliveryApplication.is_blocked = true;
+    deliveryApplication.assigned_warehouse = null;
+    const warehouse = await Warehouse.findById(deliveryApplication.selected_warehouse);
+    if (warehouse.deliveryboys.some((item) => item.equals(deliveryApplication._id))) {
+      warehouse.deliveryboys = warehouse.deliveryboys.filter((item) => !item.equals(deliveryApplication._id));
+    }
+    warehouse.save();
+    const savedDeliveryApplication = await deliveryApplication.save();
+    return res.status(200).json({ message: "success", deliveryApplication: savedDeliveryApplication });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+};
