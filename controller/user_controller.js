@@ -28,6 +28,10 @@ exports.createUser = async (req, res) => {
       deliveryboy_account_ifsc,
       deliveryboy_bike_number,
       deliveryboy_bike_image,
+      deliveryboy_rc_number,
+      deliveryboy_rc_image,
+      selected_warehouse,
+      is_inhouse_deliveryboy,
       assigned_warehouse,
       isWarehouse,
       is_qc,
@@ -61,6 +65,10 @@ exports.createUser = async (req, res) => {
       deliveryboy_account_ifsc,
       deliveryboy_bike_number,
       deliveryboy_bike_image,
+      deliveryboy_rc_number,
+      deliveryboy_rc_image,
+      selected_warehouse,
+      is_inhouse_deliveryboy,
       assigned_warehouse,
       isWarehouse,
       is_qc,
@@ -918,4 +926,39 @@ exports.editAddress = async (req, res) => {
     return res.status(500).json({ message: "Error", error });
   }
 
+};
+exports.getDeliveryApplicationByWarehouseId = async (req, res) => {
+  try {
+    const { warehouseId,status="pending" } = req.body;
+    const warehouse = await Warehouse.findOne({ _id: warehouseId });
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    const user= await User.findOne({selected_warehouse:warehouseId,deliveryboy_application_status:status});
+    return res.status(200).json({ message: "success", deliveryApplications: warehouse.delivery_applications });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+}
+exports.approveDeliveryApplication = async (req, res) => {
+  try {
+    const { deliveryApplicationId } = req.body;
+    const deliveryApplication = await User.findById(deliveryApplicationId);
+    if (!deliveryApplication) {
+      return res.status(404).json({ message: "Delivery application not found" });
+    }
+    deliveryApplication.deliveryboy_application_status = "approved";
+    deliveryApplication.assigned_warehouse=deliveryApplication.selected_warehouse;
+    const warehouse=await Warehouse.findById(deliveryApplication.selected_warehouse);
+    if(!warehouse.deliveryboys.some((item)=>item.equals(deliveryApplication._id))){
+      warehouse.deliveryboys.push(deliveryApplication._id);
+    }
+    warehouse.save();
+    const savedDeliveryApplication = await deliveryApplication.save();
+    return res.status(200).json({ message: "success", deliveryApplication: savedDeliveryApplication });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
 };
