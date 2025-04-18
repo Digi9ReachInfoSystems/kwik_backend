@@ -1,6 +1,20 @@
 const mongoose = require("mongoose");
 
 const deliveryAssignmentSchema = new mongoose.Schema({
+    orderRoute_ref: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "OrderRoute",
+        required: [true, "Order route reference is required"],
+        validate: {
+            validator: function (value) {
+                return mongoose.Types.ObjectId.isValid(value);
+            },
+            message: "Invalid order route reference",
+        },
+    },
+    route_id: {
+        type: mongoose.Schema.Types.ObjectId,
+    },
     orders: [{
         orderId: {
             type: mongoose.Schema.Types.ObjectId,
