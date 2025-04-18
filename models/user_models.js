@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
   deliveryboy_application_status: {
     type: String,
     required: false,
-    enum: ["pending", "approved", "rejected"],
+    enum: ["pending", "approved", "rejected","blocked"],
     default: "pending",
   },
   is_inhouse_deliveryboy: { type: Boolean, required: true, default: false },

@@ -45,5 +45,6 @@ router.post("/orderAgain",userController.orderAgainUserOrderId);
 router.put("/updateaddress",userController.editAddress);
 router.get("/get/deliveryboyApplicationByWarehouseId/:warehouseId/status/:status",userController.getDeliveryApplicationByWarehouseId);
 router.put("/update/approveAppliaction",userController.approveDeliveryApplication);
+router.put("/update/blockDeliveryboy",userController.blockDeliveryBoy);
 
 module.exports = router;
