@@ -1,6 +1,7 @@
 const DeliveryAssignment = require("../models/deliveryAssignment_model");
-const User = require("../models/user_models")
-const Order = require("../models/order_model")
+const User = require("../models/user_models");
+const Order = require("../models/order_model");
+const OrderRoute = require("../models/orderRoute_model");
 const moment = require("moment");
 
 exports.getOrdersByDeliveryBoy = async (req, res) => {
@@ -25,32 +26,57 @@ exports.getOrdersByDeliveryBoy = async (req, res) => {
     }
 };
 
-// exports.updateOrderStatus = async (req, res) => {
-//     try {
-//         const { orderId,otp, } = req.body;
-//         const user = await User.findOne({ UID: deliveryBoyId })
-//         if (!user) {
-//             return res.status(404).json({ success: false, message: "User not found" });
-//         }
-//         const assignment = await DeliveryAssignment.findOne({
-//             "orders.orderId": orderId
-//         });
-//         if (!assignment) {
-//             return res.status(404).json({ message: "Delivery assignment not found" });
-//         }
-//         const subOrder = assignment.orders.find(o => o.orderId.equals(orderId));
-//         subOrder.status = "Completed";
-//         const allDone = assignment.orders.every(o => o.status === "Completed");
-//         if (allDone) {
-//             assignment.status = "Completed";
-//         }
-//         await assignment.save();
-//         return res.json({
-//             message: "Order updated",
-//             assignment
-//         });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ success: false, message: error.message });
-//     }
-// };
+exports.deliverOrder = async (req, res) => {
+    try {
+        const { orderId,otp,deliveryBoyId } = req.body;
+        const user = await User.findOne({ UID: deliveryBoyId })
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        const order = await Order.findById( orderId );
+        if (!order) {
+            return res.status(404).json({  success: false,message: "Order not found" });
+        }
+        if(order.otp !== otp){
+            return res.status(200).json({ success: false, message: "Invalid OTP" });
+        }
+        order.order_status = "Delivered";
+        order.completed_time = new Date();
+        await order.save();
+        const assignment = await DeliveryAssignment.findOne({
+            delivery_boy_ref: user._id,
+            "orders.orderId": orderId
+        });
+        if (!assignment) {
+            return res.status(404).json({ message: "Delivery assignment not found" });
+        }
+        const subOrder = assignment.orders.find(o => o.orderId.equals(orderId));
+        subOrder.status = "Completed";
+        const allDone = assignment.orders.every(o => o.status === "Completed");
+        if (allDone) {
+            assignment.status = "Completed";
+        }
+        await assignment.save();
+        const orderRoute = await OrderRoute.findById(assignment.orderRoute_ref);
+        if (!orderRoute) {
+            return res.status(404).json({ message: "Order route not found" });
+        }
+        const route = orderRoute.route.find(route => route._id.equals(assignment.route_id));
+        if (!route) {
+            return res.status(404).json({ message: "Route not found" });
+        }
+        route.delivery_status = "Completed";
+        const allDoneRoute = orderRoute.route.every(o => o.delivery_status === "Completed");
+        if (allDoneRoute) {
+            assignment.delivery_status = "Completed";
+        }
+        await orderRoute.save();
+        return res.json({
+            message: "Order updated",
+            assignment
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
