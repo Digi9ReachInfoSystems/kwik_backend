@@ -990,3 +990,22 @@ exports.blockDeliveryBoy = async (req, res) => {
     return res.status(500).json({ message: "Error", error });
   }
 };
+exports.searchDeliveryBoyApplication = async (req, res) => {
+  try {
+    const { warehouseId, status = "pending" } = req.params;
+    const { name } = req.query
+    const warehouse = await Warehouse.findOne({ _id: warehouseId });
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    const user = await User.find({
+      displayName: { $regex: `${name}`, $options: "i" },
+      selected_warehouse: warehouseId,
+      deliveryboy_application_status: status
+    });
+    return res.status(200).json({ message: "success", deliveryApplications: user });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+};

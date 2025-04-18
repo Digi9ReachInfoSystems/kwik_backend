@@ -113,7 +113,7 @@ exports.editBanner = async (req, res) => {
       return res.status(404).json({ message: "Banner not found" });
     }
 
-    if (category_ref !== null) {
+    if (category_ref !== 'null') {
       const category = await Category.findOne({ category_name: category_ref });
 
       if (!category) {
@@ -123,7 +123,7 @@ exports.editBanner = async (req, res) => {
       }
     }
 
-    if (sub_category_ref !== null) {
+    if (sub_category_ref !== 'null') {
       const subCategory = await SubCategory.findById(sub_category_ref);
       if (!subCategory) {
         return res

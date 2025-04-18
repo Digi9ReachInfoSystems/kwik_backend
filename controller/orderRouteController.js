@@ -456,6 +456,8 @@ exports.assignDeliveryBoys = async (req, res) => {
             }
         }))
         const deliveryAssignment= new DeliveryAssignment({
+            orderRoute_ref: orderRouteId,
+            route_id: routeId,
             tum_tumdelivery_start_time: orderRoute.tum_tumdelivery_start_time,
             tumtumdelivery_end_time: orderRoute.tumtumdelivery_end_time,
             map_url: updateRoute.map_url,
