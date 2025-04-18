@@ -34,6 +34,8 @@ exports.createUser = async (req, res) => {
       is_inhouse_deliveryboy,
       assigned_warehouse,
       isWarehouse,
+      deliveryboy_pan_number,
+      deliveryboy_pan_image,
       is_qc,
     } = req.body;
 
@@ -71,6 +73,8 @@ exports.createUser = async (req, res) => {
       is_inhouse_deliveryboy,
       assigned_warehouse,
       isWarehouse,
+      deliveryboy_pan_number,
+      deliveryboy_pan_image,
       is_qc,
     });
 
@@ -866,7 +870,7 @@ exports.orderAgainUserOrderId = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
     await Promise.all(order.products.map(async (orderProduct) => {
-      const product = await Product.findOne({_id:orderProduct.product_ref,isDeleted:false,draft:false});
+      const product = await Product.findOne({ _id: orderProduct.product_ref, isDeleted: false, draft: false });
       const warehouse = await Warehouse.findOne({ picode: orderProduct.pincode });
       const variation = product.variations.find((item) => item._id.equals(orderProduct.variant._id));
       let warehouseFound = false;
@@ -894,7 +898,7 @@ exports.orderAgainUserOrderId = async (req, res) => {
           await product.save();
           user.cart_products.push(orderProduct);
         }
-       
+
       }
       await user.save();
     }));
@@ -906,13 +910,13 @@ exports.orderAgainUserOrderId = async (req, res) => {
 };
 exports.editAddress = async (req, res) => {
   try {
-    const { userId, addressId ,addressData} = req.body;
+    const { userId, addressId, addressData } = req.body;
     const user = await User.findOne({ UID: userId });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     user.Address = user.Address.map((item) => {
-      
+
       if (item._id == addressId) {
         return addressData;
       }
@@ -929,13 +933,13 @@ exports.editAddress = async (req, res) => {
 };
 exports.getDeliveryApplicationByWarehouseId = async (req, res) => {
   try {
-    const { warehouseId,status="pending" } = req.body;
+    const { warehouseId, status = "pending" } = req.params;
     const warehouse = await Warehouse.findOne({ _id: warehouseId });
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
     }
-    const user= await User.findOne({selected_warehouse:warehouseId,deliveryboy_application_status:status});
-    return res.status(200).json({ message: "success", deliveryApplications: warehouse.delivery_applications });
+    const user = await User.findOne({ selected_warehouse: warehouseId, deliveryboy_application_status: status });
+    return res.status(200).json({ message: "success", deliveryApplications: user });
   } catch (error) {
     console.log(error)
     return res.status(500).json({ message: "Error", error });
@@ -943,18 +947,20 @@ exports.getDeliveryApplicationByWarehouseId = async (req, res) => {
 }
 exports.approveDeliveryApplication = async (req, res) => {
   try {
-    const { deliveryApplicationId } = req.body;
-    const deliveryApplication = await User.findById(deliveryApplicationId);
+    const { deliveryBoyUSerId, status } = req.body;
+    const deliveryApplication = await User.findById(deliveryBoyUSerId);
     if (!deliveryApplication) {
       return res.status(404).json({ message: "Delivery application not found" });
     }
-    deliveryApplication.deliveryboy_application_status = "approved";
-    deliveryApplication.assigned_warehouse=deliveryApplication.selected_warehouse;
-    const warehouse=await Warehouse.findById(deliveryApplication.selected_warehouse);
-    if(!warehouse.deliveryboys.some((item)=>item.equals(deliveryApplication._id))){
-      warehouse.deliveryboys.push(deliveryApplication._id);
+    deliveryApplication.deliveryboy_application_status = status;
+    if (status == "approved") {
+      deliveryApplication.assigned_warehouse = deliveryApplication.selected_warehouse;
+      const warehouse = await Warehouse.findById(deliveryApplication.selected_warehouse);
+      if (!warehouse.deliveryboys.some((item) => item.equals(deliveryApplication._id))) {
+        warehouse.deliveryboys.push(deliveryApplication._id);
+      }
+      warehouse.save();
     }
-    warehouse.save();
     const savedDeliveryApplication = await deliveryApplication.save();
     return res.status(200).json({ message: "success", deliveryApplication: savedDeliveryApplication });
   } catch (error) {

@@ -43,7 +43,7 @@ router.delete("/delete/allSearchHistory/:userId",userController.removeSearchHist
 router.post("/add/whislist",userController.addProductToWhislist);
 router.post("/orderAgain",userController.orderAgainUserOrderId);
 router.put("/updateaddress",userController.editAddress);
-router.post("/get/deliveryboyApplicationByWarehouseId",userController.getDeliveryApplicationByWarehouseId);
+router.get("/get/deliveryboyApplicationByWarehouseId/:warehouseId/status/:status",userController.getDeliveryApplicationByWarehouseId);
 router.put("/update/approveAppliaction",userController.approveDeliveryApplication);
 
 module.exports = router;
