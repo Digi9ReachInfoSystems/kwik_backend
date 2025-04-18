@@ -28,6 +28,8 @@ const userSchema = new mongoose.Schema({
   deliveryboy_bike_image: [{ type: String, required: false }], // URL for Bike image
   deliveryboy_rc_number: { type: String, required: false },
   deliveryboy_rc_image: [{ type: String, required: false }], // URL for RC image
+  deliveryboy_pan_number: { type: String, required: false },
+  deliveryboy_pan_image: [{ type: String, required: false }], // URL for PAN image
   selected_warehouse: { type: mongoose.Schema.Types.ObjectId, ref: "Warehouse", required: false },
   deliveryboy_application_status: {
     type: String,
