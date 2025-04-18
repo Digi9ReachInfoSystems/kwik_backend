@@ -17,15 +17,25 @@ const userSchema = new mongoose.Schema({
   saved_cart_products: [{ type: CartProduct, required: false }],
   is_deliveryboy: { type: Boolean, required: true, default: false },
   is_blocked: { type: Boolean, required: false, default: false },
-  deliveryboy_aadhar: { type: String, required: false }, // URL for Aadhar image
+  deliveryboy_aadhar: [{ type: String, required: false }], // URL for Aadhar image
   deliveryboy_aadhar_number: { type: String, required: false },
-  deliveryboy_driving_licence: { type: String, required: false }, // URL for Driving License image
+  deliveryboy_driving_licence: [{ type: String, required: false }], // URL for Driving License image
   deliveryboy_driving_licence_number: { type: String, required: false },
-  deliveryboy_account: { type: String, required: false }, // URL for bank account details
+  deliveryboy_account: [{ type: String, required: false }], // URL for bank account details
   deliveryboy_account_number: { type: String, required: false },
   deliveryboy_account_ifsc: { type: String, required: false },
   deliveryboy_bike_number: { type: String, required: false },
-  deliveryboy_bike_image: { type: String, required: false }, // URL for Bike image
+  deliveryboy_bike_image: [{ type: String, required: false }], // URL for Bike image
+  deliveryboy_rc_number: { type: String, required: false },
+  deliveryboy_rc_image: [{ type: String, required: false }], // URL for RC image
+  selected_warehouse: { type: mongoose.Schema.Types.ObjectId, ref: "Warehouse", required: false },
+  deliveryboy_application_status: {
+    type: String,
+    required: false,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+  },
+  is_inhouse_deliveryboy: { type: Boolean, required: true, default: false },
   search_history: [{
     query: { type: String, required: false },
     timestamp: { type: Date, required: false },

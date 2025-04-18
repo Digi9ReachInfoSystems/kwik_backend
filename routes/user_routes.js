@@ -42,5 +42,8 @@ router.delete("/delete/searchHistory/:userId/:queryId",userController.removeSear
 router.delete("/delete/allSearchHistory/:userId",userController.removeSearchHistoryByUserId);
 router.post("/add/whislist",userController.addProductToWhislist);
 router.post("/orderAgain",userController.orderAgainUserOrderId);
-router.put("//updateaddress",userController.editAddress);
+router.put("/updateaddress",userController.editAddress);
+router.post("/get/deliveryboyApplicationByWarehouseId",userController.getDeliveryApplicationByWarehouseId);
+router.put("/update/approveAppliaction",userController.approveDeliveryApplication);
+
 module.exports = router;

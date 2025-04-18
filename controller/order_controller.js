@@ -783,7 +783,7 @@ exports.searchOrderBycustomerName = async (req, res) => {
       return res.status(404).json({ sucess: false, message: "Users not found" });
     }
     const userIds = users.map(user => user._id);
-    const orders = await Order.find({ user_ref: { $in: userIds } }).populate('user_ref', 'displayName');
+    const orders = await Order.find({ user_ref: { $in: userIds } }).populate('user_ref', 'displayName','delivery_boy');
 
     if (orders.length === 0) {
       return res.status(404).json({ success: false, message: "No Orders found", data: orders });

@@ -17,7 +17,7 @@ exports.createOrderRoute = async (req, res) => {
             tum_tumdelivery_start_time: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate(),
             tumtumdelivery_end_time: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").endOf('hour').local().toDate()
         })
-        if(found){
+        if (found) {
             return res.status(200).json({ success: true, message: "Order route already exists", data: found });
         }
 
@@ -416,10 +416,39 @@ exports.createOrderRoute = async (req, res) => {
 
         })
         await orderRoute.save();
-        res.json({ distanceSource, routes, routeOptimisation });
+        // res.json({ distanceSource, routes, routeOptimisation });
         // res.status(200).json({ success: true, data: orders });
+        res.status(200).json({ success: true, message: "Order route created successfully", data: orderRoute });
     } catch (error) {
         console.error("Error creating order route:", error);
         res.status(500).json({ message: "Failed to create order route", error: error.message });
+    }
+};
+
+exports.assignDeliveryBoys = async (req, res) => {
+    try {
+        const { orderRouteId, routeId, deliveryBoyId } = req.body;
+        const orderRoute = await OrderRoute.findById(orderRouteId).exec();
+        if (!orderRoute) {
+            return res.status(404).json({ success: false, message: "Order route not found" });
+        }
+        const route = orderRoute.route.find(route => route._id.equals(routeId)).assigned_delivery_boy = deliveryBoyId;
+        if (!orderRoute.assigned_delivery_boy?.some(w => w.toString() === deliveryBoyId.toString())) {
+            orderRoute.assigned_delivery_boy.push(deliveryBoyId);
+        }
+        const updateRoute = orderRoute.route.find(route => route._id.equals(routeId));
+        await Promise.all(updateRoute.orders.map(async (orderId) => {
+            const order = await Order.findById(orderId).exec();
+            order.delivery_boy = deliveryBoyId;
+            order.order_status = "Out for delivery",
+            order.out_for_delivery_time = new Date();
+            await order.save();
+        }))
+
+        await orderRoute.save();
+        res.status(200).json({ success: true, message: "Delivery boys assigned successfully", data: orderRoute });
+    } catch (error) {
+        console.error("Error assigning delivery boys:", error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };

@@ -7,8 +7,7 @@ const Product = require("../models/product_model");
 // Get all warehouses
 exports.getAllWarehouses = async (req, res) => {
   try {
-    const warehouses = await Warehouse.find(); // Fetch all warehouses from the database
-
+    const warehouses = await Warehouse.find().populate("deliveryboys").exec();
     res
       .status(200)
       .json({ message: "Warehouses retrieved successfully", data: warehouses });

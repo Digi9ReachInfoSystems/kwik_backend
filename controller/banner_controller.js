@@ -113,16 +113,17 @@ exports.editBanner = async (req, res) => {
       return res.status(404).json({ message: "Banner not found" });
     }
 
-    // Optionally, check if the category and sub-category exist (if not already validated)
-    const category = await Category.findOne({ category_name: category_ref });
+    if (category_ref !== null) {
+      const category = await Category.findOne({ category_name: category_ref });
 
-    if (!category) {
-      return res
-        .status(404)
-        .json({ message: " category reference does not exist" });
+      if (!category) {
+        return res
+          .status(404)
+          .json({ message: " category reference does not exist" });
+      }
     }
 
-    if (sub_category_ref) {
+    if (sub_category_ref !== null) {
       const subCategory = await SubCategory.findById(sub_category_ref);
       if (!subCategory) {
         return res
@@ -133,7 +134,7 @@ exports.editBanner = async (req, res) => {
 
     // Update the banner's properties
     banner.banner_image = banner_image || banner.banner_image;
-    banner.category_ref = category._id || banner.category_ref;
+    banner.category_ref = category_ref || banner.category_ref;
     banner.sub_category_ref = sub_category_ref || banner.sub_category_ref;
     banner.order_id = order_id || banner.order_id;
 
