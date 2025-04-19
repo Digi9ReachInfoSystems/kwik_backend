@@ -36,6 +36,7 @@ exports.createUser = async (req, res) => {
       isWarehouse,
       deliveryboy_pan_number,
       deliveryboy_pan_image,
+      vehicle_type,
       is_qc,
     } = req.body;
 
@@ -75,6 +76,7 @@ exports.createUser = async (req, res) => {
       isWarehouse,
       deliveryboy_pan_number,
       deliveryboy_pan_image,
+      vehicle_type,
       is_qc,
     });
 
@@ -1009,3 +1011,18 @@ exports.searchDeliveryBoyApplication = async (req, res) => {
     return res.status(500).json({ message: "Error", error });
   }
 };
+
+exports.getDeliveryBoyForTumTumByWarehouseId = async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    const warehouse = await Warehouse.findOne({ _id: warehouseId });
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    const user = await User.find({ assigned_warehouse: warehouseId, deliveryboy_application_status: "approved" ,deliveryboy_day_availability_status:true,"deliveryboy_order_availability_status.tum_tum":true});
+    return res.status(200).json({ message: "success", deliveryBoys: user });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+}

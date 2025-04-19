@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
   deliveryboy_application_status: {
     type: String,
     required: false,
-    enum: ["pending", "approved", "rejected","blocked"],
+    enum: ["pending", "approved", "rejected", "blocked"],
     default: "pending",
   },
   is_inhouse_deliveryboy: { type: Boolean, required: true, default: false },
@@ -67,6 +67,20 @@ const userSchema = new mongoose.Schema({
       },
     }
   ],
+  vehicle_type: {
+    type: String,
+    required: false,
+    enum: ["two_wheeler", "three_wheeler", "four_wheeler"],
+    default: "two_wheeler",
+  },
+  deliveryboy_day_availability_status: { type: Boolean, required: false, default: false },
+  deliveryboy_order_availability_status: {
+    tum_tum: { type: Boolean, required: false, default: false },
+    instant:{
+      status: { type: Boolean, required: false, default: false },
+      last_assigned_at: { type: Date, required: false },
+    },
+  },
 });
 
 // Create and export the User model
