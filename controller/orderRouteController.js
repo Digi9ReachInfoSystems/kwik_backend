@@ -18,6 +18,15 @@ exports.createOrderRoute = async (req, res) => {
             tum_tumdelivery_start_time: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate(),
             tumtumdelivery_end_time: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").endOf('hour').local().toDate()
         })
+            .populate({
+                path: "route.orders",
+                model: "Order",
+            })
+            .populate({
+                path: "route.assigned_delivery_boy",
+                model: "User",
+            })
+            .exec();
         if (found) {
             return res.status(200).json({ success: true, message: "Order route already exists", data: found });
         }
@@ -172,7 +181,7 @@ exports.createOrderRoute = async (req, res) => {
                 },
             },
         ]);
-        console.log(orders);
+        console.log("orders", orders);
         const apiKey = process.env.GOOGLE_MAPS_API_KEY;
         const sourceLatitude = warehouse.warehouse_location.lat;
         const sourceLongitude = warehouse.warehouse_location.lng;
@@ -416,7 +425,16 @@ exports.createOrderRoute = async (req, res) => {
             })),
 
         })
-        await orderRoute.save();
+        await orderRoute.save()
+        .populate({
+            path: "route.orders",
+            model: "Order",
+        })
+        .populate({
+            path: "route.assigned_delivery_boy",
+            model: "User",
+        })
+        .exec();
         // res.json({ distanceSource, routes, routeOptimisation });
         // res.status(200).json({ success: true, data: orders });
         res.status(200).json({ success: true, message: "Order route created successfully", data: orderRoute });
@@ -442,20 +460,20 @@ exports.assignDeliveryBoys = async (req, res) => {
             const order = await Order.findById(orderId).exec();
             order.delivery_boy = deliveryBoyId;
             order.order_status = "Out for delivery",
-            order.out_for_delivery_time = new Date();
+                order.out_for_delivery_time = new Date();
             await order.save();
         }))
 
 
         await orderRoute.save();
 
-        const  deliveryOrders=(updateRoute.orders.map(order => {
+        const deliveryOrders = (updateRoute.orders.map(order => {
             return {
                 orderId: order,
                 status: "Pending"
             }
         }))
-        const deliveryAssignment= new DeliveryAssignment({
+        const deliveryAssignment = new DeliveryAssignment({
             orderRoute_ref: orderRouteId,
             route_id: routeId,
             tum_tumdelivery_start_time: orderRoute.tum_tumdelivery_start_time,
@@ -463,9 +481,12 @@ exports.assignDeliveryBoys = async (req, res) => {
             map_url: updateRoute.map_url,
             delivery_boy_ref: deliveryBoyId,
             orders: deliveryOrders
-            
+
         })
         await deliveryAssignment.save();
+        const user = await User.findById(deliveryBoyId).exec();
+        user.deliveryboy_order_availability_status.tum_tum = false;
+        await user.save();
         res.status(200).json({ success: true, message: "Delivery boys assigned successfully", data: orderRoute });
     } catch (error) {
         console.error("Error assigning delivery boys:", error);

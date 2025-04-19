@@ -18,6 +18,7 @@ exports.getOrdersByDeliveryBoy = async (req, res) => {
                 $gte: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate(),
                 $lt: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").endOf('hour').local().toDate(),
             },
+            status: "Pending"
         }).exec();
         res.status(200).json({ success: true, data: deliveryAssignments });
     } catch (error) {
@@ -56,6 +57,7 @@ exports.deliverOrder = async (req, res) => {
         const allDone = newAssignment.orders.every(o => o.status === "Completed");
         if (allDone) {
             assignment.status = "Completed";
+            user.deliveryboy_order_availability_status.tum_tum = true;
         }
         await assignment.save();
         const orderRoute = await OrderRoute.findById(assignment.orderRoute_ref);
@@ -74,6 +76,7 @@ exports.deliverOrder = async (req, res) => {
             orderRoute.delivery_status = "Completed";
         }
         await orderRoute.save();
+        await user.save();
         return res.json({
             message: "Order updated",
             assignment
