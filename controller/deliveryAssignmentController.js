@@ -19,7 +19,16 @@ exports.getOrdersByDeliveryBoy = async (req, res) => {
                 $lt: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").endOf('hour').local().toDate(),
             },
             status: "Pending"
-        }).exec();
+        })
+        .populate({
+            path: "orders.orderId",
+            model: "Order",
+        })
+        // .populate({
+        //     path: "route.assigned_delivery_boy",
+        //     model: "User",
+        // })
+        .exec();
         res.status(200).json({ success: true, data: deliveryAssignments });
     } catch (error) {
         console.error(error);
