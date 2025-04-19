@@ -28,16 +28,16 @@ exports.getOrdersByDeliveryBoy = async (req, res) => {
 
 exports.deliverOrder = async (req, res) => {
     try {
-        const { orderId,otp,deliveryBoyId } = req.body;
+        const { orderId, otp, deliveryBoyId } = req.body;
         const user = await User.findOne({ UID: deliveryBoyId })
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
-        const order = await Order.findById( orderId );
+        const order = await Order.findById(orderId);
         if (!order) {
-            return res.status(404).json({  success: false,message: "Order not found" });
+            return res.status(404).json({ success: false, message: "Order not found" });
         }
-        if(order.otp !== otp){
+        if (order.otp !== otp) {
             return res.status(200).json({ success: false, message: "Invalid OTP" });
         }
         order.order_status = "Delivered";
@@ -52,7 +52,8 @@ exports.deliverOrder = async (req, res) => {
         }
         const subOrder = assignment.orders.find(o => o.orderId.equals(orderId));
         subOrder.status = "Completed";
-        const allDone = assignment.orders.every(o => o.status === "Completed");
+        const newAssignment = await assignment.save();
+        const allDone = newAssignment.orders.every(o => o.status === "Completed");
         if (allDone) {
             assignment.status = "Completed";
         }
@@ -66,9 +67,11 @@ exports.deliverOrder = async (req, res) => {
             return res.status(404).json({ message: "Route not found" });
         }
         route.delivery_status = "Completed";
-        const allDoneRoute = orderRoute.route.every(o => o.delivery_status === "Completed");
+        const newRoute = await orderRoute.save();
+
+        const allDoneRoute = newRoute.route.every(o => o.delivery_status === "Completed");
         if (allDoneRoute) {
-            assignment.delivery_status = "Completed";
+            orderRoute.delivery_status = "Completed";
         }
         await orderRoute.save();
         return res.json({
