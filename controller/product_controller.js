@@ -1497,13 +1497,22 @@ exports.searchProductSkuName = async (req, res) => {
 
 exports.qcStats = async (req, res) => {
   try {
-    let approvedCount, rejectedCount, pendingCount, totalCount;
-    approvedCount = await Product.countDocuments({ qc_status: "approved", draft: false, isDeleted: false });
-    rejectedCount = await Product.countDocuments({ qc_status: "rejected", draft: false, isDeleted: false });
-    pendingCount = await Product.countDocuments({ qc_status: "pending", draft: false, isDeleted: false });
-    revisedCount = await Product.countDocuments({ qc_status: "revised", draft: false, isDeleted: false });
-    totalCount = await Product.countDocuments({ draft: false, isDeleted: false });
+    const { warehouseId } = req.query;
 
+    let approvedCount, rejectedCount, pendingCount, totalCount;
+    if (warehouseId != 'null') {
+      approvedCount = await Product.countDocuments({ warehouse_ref: warehouseId, qc_status: "approved", warehouse_ref: warehouseId, draft: false, isDeleted: false });
+      rejectedCount = await Product.countDocuments({ warehouse_ref: warehouseId, qc_status: "rejected", warehouse_ref: warehouseId, draft: false, isDeleted: false });
+      pendingCount = await Product.countDocuments({ warehouse_ref: warehouseId, qc_status: "pending", warehouse_ref: warehouseId, draft: false, isDeleted: false });
+      revisedCount = await Product.countDocuments({ warehouse_ref: warehouseId, qc_status: "revised", warehouse_ref: warehouseId, draft: false, isDeleted: false });
+      totalCount = await Product.countDocuments({ warehouse_ref: warehouseId, draft: false, isDeleted: false });
+    } else {
+      approvedCount = await Product.countDocuments({ qc_status: "approved", draft: false, isDeleted: false });
+      rejectedCount = await Product.countDocuments({ qc_status: "rejected", draft: false, isDeleted: false });
+      pendingCount = await Product.countDocuments({ qc_status: "pending", draft: false, isDeleted: false });
+      revisedCount = await Product.countDocuments({ qc_status: "revised", draft: false, isDeleted: false });
+      totalCount = await Product.countDocuments({ draft: false, isDeleted: false });
+    }
 
     res.status(200).json({ success: true, message: "QC stats retrieved successfully", data: { approvedCount, rejectedCount, pendingCount, revisedCount, totalCount } });
   } catch (error) {
