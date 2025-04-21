@@ -426,8 +426,7 @@ exports.createOrderRoute = async (req, res) => {
             })),
 
         })
-        await orderRoute.save()
-            .exec();
+        await orderRoute.save();
         // res.json({ distanceSource, routes, routeOptimisation });
         // res.status(200).json({ success: true, data: orders });
         res.status(200).json({ success: true, message: "Order route created successfully", data: orderRoute });
