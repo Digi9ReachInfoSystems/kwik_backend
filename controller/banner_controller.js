@@ -105,7 +105,7 @@ exports.addBanner = async (req, res) => {
 exports.editBanner = async (req, res) => {
   const { id } = req.params; // Assuming banner_id is passed in the URL
   const { banner_image, category_ref, sub_category_ref, order_id } = req.body;
-
+  console.log(req.body)
   try {
     // Find the banner by banner_id
     const banner = await Banner.findById(id);
@@ -115,14 +115,14 @@ exports.editBanner = async (req, res) => {
     let category;
     if (category_ref !== 'null') {
       category = await Category.findOne({ category_name: category_ref });
-      banner.category_ref = category._id ;
+      banner.category_ref = category._id;
       if (!category) {
         return res
           .status(404)
           .json({ message: " category reference does not exist" });
       }
-    }else{
-      banner.category_ref =  banner.category_ref;
+    } else {
+      banner.category_ref = banner.category_ref;
     }
     let subCategory;
     if (sub_category_ref !== 'null') {
@@ -132,9 +132,9 @@ exports.editBanner = async (req, res) => {
           .status(400)
           .json({ message: "Invalid sub-category reference" });
       }
-      banner.sub_category_ref = subCategory._id ;
-    }else{
-      banner.sub_category_ref =  banner.sub_category_ref;
+      banner.sub_category_ref = subCategory._id;
+    } else {
+      banner.sub_category_ref = banner.sub_category_ref;
     }
 
     banner.banner_image = banner_image || banner.banner_image;
@@ -146,6 +146,7 @@ exports.editBanner = async (req, res) => {
       .status(200)
       .json({ message: "Banner updated successfully", updatedBanner });
   } catch (error) {
+    console.error(error);
     return res
       .status(500)
       .json({ message: "Server error", error: error.message });
