@@ -50,7 +50,7 @@ const orderSchema = new mongoose.Schema({
 
   delivery_boy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "User", 
     required: [false, "Delivery boy reference is required"],
     validate: {
       validator: async (v) => {
