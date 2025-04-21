@@ -2,9 +2,9 @@ const fs          = require('fs');
 const csv         = require('csv-parser');
 const mongoose    = require('mongoose');
 const Product     = require('../models/tempProduct_model');
-const Brand       = require('../models/Brand');
-const Category    = require('../models/Category');
-const SubCategory = require('../models/SubCategory');
+const Brand       = require('../models/brand_model');
+const Category    = require('../models/category_model');
+const SubCategory = require('../models/sub_category_model');
 
 exports.bulkUploadProducts = async (req, res) => {
   if (!req.file) {
