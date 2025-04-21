@@ -27,115 +27,117 @@ exports.bulkUploadProducts = async (req, res) => {
               brand_name,
               category_name,
               sub_category_name,
-              variationQty,
-              variationUnit,
-              variationMRP,
-              variationBuyingPrice,
-              variationSellingPrice,
-              warehouse_name,      // now a string
-              stockQty,
-              stockVisibility,
-              stockZone,
-              stockRack,
-              highlightJSON,
-              infoJSON,
+              variationsJSON,
               draft,
               sensible_product
             } = row;
   
-            // 1️⃣ Brand lookup
+            // Lookup Brand
             const brand = await Brand.findOne({ brand_name: brand_name.trim() });
             if (!brand) throw new Error(`Brand not found: ${brand_name}`);
   
-            // 2️⃣ Category lookup
+            // Lookup Category
             const category = await Category.findOne({ category_name: category_name.trim() });
             if (!category) throw new Error(`Category not found: ${category_name}`);
   
-            // 3️⃣ SubCategory lookups
-            const subNames = sub_category_name.split(';').map(s=>s.trim()).filter(Boolean);
+            // Lookup SubCategories
+            const subNames = sub_category_name.split(';').map(s => s.trim()).filter(Boolean);
             const subCats = await SubCategory.find({
               sub_category_name: { $in: subNames },
               category_ref: category._id
             });
             if (subCats.length !== subNames.length) {
-              const found = subCats.map(s=>s.sub_category_name);
-              const missing = subNames.filter(n=>!found.includes(n));
+              const found = subCats.map(s => s.sub_category_name);
+              const missing = subNames.filter(n => !found.includes(n));
               throw new Error(`SubCategory not found: ${missing.join(', ')}`);
             }
-            const subCatIds = subCats.map(sc=>sc._id);
+            const subCatIds = subCats.map(sc => sc._id);
   
-            // 4️⃣ Warehouse lookup
-            const warehouse = await Warehouse.findOne({ warehouse_name: warehouse_name.trim() });
-            if (!warehouse) throw new Error(`Warehouse not found: ${warehouse_name}`);
-            const warehouseId = warehouse._id;
+            // Parse multiple variations
+            const varEntries = JSON.parse(variationsJSON);
   
-            // 5️⃣ Build variation
-            const variationObj = {
-              Qty:           Number(variationQty),
-              unit:          variationUnit,
-              MRP:           Number(variationMRP),
-              buying_price:  Number(variationBuyingPrice),
-              selling_price: Number(variationSellingPrice),
-              stock: [{
-                warehouse_ref: warehouseId,
-                stock_qty:     Number(stockQty),
-                visibility:    stockVisibility === 'true',
-                zone:          stockZone,
-                rack:          stockRack
-              }],
-              Highlight: JSON.parse(highlightJSON || '[]'),
-              info:      JSON.parse(infoJSON      || '[]')
-            };
+            // Build variation objects with stock lookups
+            const variationObjs = [];
+            for (const v of varEntries) {
+              // Resolve multiple stock entries
+              const stocks = [];
+              for (const entry of v.stock) {
+                const wh = await Warehouse.findOne({ warehouse_name: entry.warehouse_name.trim() });
+                if (!wh) throw new Error(`Warehouse not found: ${entry.warehouse_name}`);
+                stocks.push({
+                  warehouse_ref: wh._id,
+                  stock_qty:     entry.stockQty,
+                  visibility:    entry.stockVisibility,
+                  zone:          entry.stockZone,
+                  rack:          entry.stockRack
+                });
+              }
   
-            // 6️⃣ Find or create product
+              variationObjs.push({
+                Qty:           v.Qty,
+                unit:          v.unit,
+                MRP:           v.MRP,
+                buying_price:  v.buying_price,
+                selling_price: v.selling_price,
+                stock:         stocks,
+                Highlight:     v.Highlight || [],
+                info:          v.info      || []
+              });
+            }
+  
+            // Find or create product by SKU
             let product = await Product.findOne({ sku });
-            const images = product_image.split(',').map(u=>u.trim()).filter(Boolean);
+            const images  = product_image.split(',').map(u => u.trim()).filter(Boolean);
             const isDraft = draft === 'true';
-            const isSensible = sensible_product === 'true';
+            const isSens  = sensible_product === 'true';
   
             if (product) {
-              // — update existing —
+              // Union images
               product.product_image = Array.from(new Set([
                 ...product.product_image,
                 ...images
               ]));
-              product.Brand        = brand._id;
-              product.category_ref = category._id;
+  
+              // Overwrite brand/category/sub-cats
+              product.Brand            = brand._1;
+              product.category_ref     = category._id;
               product.sub_category_ref = Array.from(new Set([
                 ...product.sub_category_ref.map(String),
                 ...subCatIds.map(String)
-              ])).map(id=>mongoose.Types.ObjectId(id));
-              product.warehouse_ref = Array.from(new Set([
-                ...product.warehouse_ref.map(String),
-                String(warehouseId)
-              ])).map(id=>mongoose.Types.ObjectId(id));
+              ])).map(id => mongoose.Types.ObjectId(id));
   
-              const existingVar = product.variations.find(v=>
-                v.unit === variationObj.unit && v.Qty === variationObj.Qty
-              );
-              if (existingVar) {
-                existingVar.stock.push(...variationObj.stock);
-                existingVar.Highlight = Array.from(
-                  new Set([
-                    ...existingVar.Highlight.map(JSON.stringify),
-                    ...variationObj.Highlight.map(JSON.stringify)
-                  ])
-                ).map(JSON.parse);
-                existingVar.info = Array.from(
-                  new Set([
-                    ...existingVar.info.map(JSON.stringify),
-                    ...variationObj.info.map(JSON.stringify)
-                  ])
-                ).map(JSON.parse);
-              } else {
-                product.variations.push(variationObj);
+              // Merge each variation
+              for (const varObj of variationObjs) {
+                const existingVar = product.variations.find(v =>
+                  v.unit === varObj.unit && v.Qty === varObj.Qty
+                );
+                if (existingVar) {
+                  // Append new stock entries
+                  existingVar.stock.push(...varObj.stock);
+                  // Merge highlights & info
+                  existingVar.Highlight = Array.from(
+                    new Set([
+                      ...existingVar.Highlight.map(JSON.stringify),
+                      ...varObj.Highlight.map(JSON.stringify)
+                    ])
+                  ).map(JSON.parse);
+                  existingVar.info = Array.from(
+                    new Set([
+                      ...existingVar.info.map(JSON.stringify),
+                      ...varObj.info.map(JSON.stringify)
+                    ])
+                  ).map(JSON.parse);
+                } else {
+                  product.variations.push(varObj);
+                }
               }
   
+              // Update flags
               product.draft            = isDraft;
-              product.sensible_product = isSensible;
+              product.sensible_product = isSens;
   
             } else {
-              // — create new —
+              // Create new product
               product = new Product({
                 sku,
                 product_name,
@@ -144,17 +146,16 @@ exports.bulkUploadProducts = async (req, res) => {
                 Brand:            brand._id,
                 category_ref:     category._id,
                 sub_category_ref: subCatIds,
-                warehouse_ref:    [warehouseId],
-                variations:       [variationObj],
+                variations:       variationObjs,
                 draft:            isDraft,
-                sensible_product: isSensible
+                sensible_product: isSens
               });
             }
   
             await product.save();
           }
   
-          // cleanup and respond
+          // Cleanup
           fs.unlinkSync(req.file.path);
           res.json({ message: 'Bulk upload completed.' });
   
