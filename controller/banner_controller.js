@@ -112,9 +112,9 @@ exports.editBanner = async (req, res) => {
     if (!banner) {
       return res.status(404).json({ message: "Banner not found" });
     }
-
+    let category;
     if (category_ref !== 'null') {
-      const category = await Category.findOne({ category_name: category_ref });
+      category = await Category.findOne({ category_name: category_ref });
 
       if (!category) {
         return res
@@ -122,9 +122,9 @@ exports.editBanner = async (req, res) => {
           .json({ message: " category reference does not exist" });
       }
     }
-
+    let subCategory;
     if (sub_category_ref !== 'null') {
-      const subCategory = await SubCategory.findById(sub_category_ref);
+      subCategory = await SubCategory.findOne({ sub_category_name: sub_category_ref });
       if (!subCategory) {
         return res
           .status(400)
@@ -134,8 +134,8 @@ exports.editBanner = async (req, res) => {
 
     // Update the banner's properties
     banner.banner_image = banner_image || banner.banner_image;
-    banner.category_ref = category_ref || banner.category_ref;
-    banner.sub_category_ref = sub_category_ref || banner.sub_category_ref;
+    banner.category_ref = category._id || banner.category_ref;
+    banner.sub_category_ref = subCategory._id || banner.sub_category_ref;
     banner.order_id = order_id || banner.order_id;
 
     // Save the updated banner
