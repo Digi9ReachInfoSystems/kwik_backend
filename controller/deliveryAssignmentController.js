@@ -20,11 +20,15 @@ exports.getOrdersByDeliveryBoy = async (req, res) => {
             },
             status: "Pending"
         })
-        .populate({
-            path: "orders.orderId",
-            model: "Order",
-        })
-        .exec();
+            .populate({
+                path: "orders.orderId",
+                model: "Order",
+                populate: {
+                    path: "products.product_ref",  
+                     model: "Product"
+                }
+            })
+            .exec();
         res.status(200).json({ success: true, data: deliveryAssignments });
     } catch (error) {
         console.error(error);
