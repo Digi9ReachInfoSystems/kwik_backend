@@ -30,6 +30,7 @@ const warehouseSchema = new mongoose.Schema({
   tumtumdelivery_end_time: { type: Date },
   under_maintance: { type: Boolean, required: true, default: false },
   created_time: { type: Date, required: true, default: Date.now },
+  isDeleted: { type: Boolean, required: true, default: false },
 });
 
 // Create and export the Warehouse model

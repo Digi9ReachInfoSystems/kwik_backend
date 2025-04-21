@@ -7,7 +7,9 @@ const Product = require("../models/product_model");
 // Get all warehouses
 exports.getAllWarehouses = async (req, res) => {
   try {
-    const warehouses = await Warehouse.find().populate("deliveryboys").exec();
+    const warehouses = await Warehouse.find({ isDeleted: false })
+    .populate("deliveryboys")
+    .exec();
     res
       .status(200)
       .json({ message: "Warehouses retrieved successfully", data: warehouses });
@@ -152,7 +154,9 @@ exports.deleteWarehouse = async (req, res) => {
 exports.getWarehouseId = async (req, res) => {
   try {
     const { id } = req.params;
-    const warehouse = await Warehouse.findById(id).populate("deliveryboys");
+    const warehouse = await Warehouse.findOne({ _id: id, isDeleted: false })
+    .populate("deliveryboys")
+    .exec();
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
     }
@@ -192,7 +196,7 @@ exports.getDeliveryBoysStats = async (req, res) => {
     console.log("pincode", pincode);
     let warehouse;
     if (pincode) {
-      warehouse = await Warehouse.find({ picode: pincode }).exec();
+      warehouse = await Warehouse.find({ picode: pincode, isDeleted: false }).exec();
     } else {
       warehouse = await Warehouse.find().exec();
     }
@@ -215,7 +219,9 @@ exports.getDeliveryBoysStats = async (req, res) => {
 exports.getWarehouseByUID = async (req, res) => {
   try {
     const { UID } = req.params;
-    const warehouse = await Warehouse.findOne({ UID: UID }).exec();
+    const warehouse = await Warehouse.findOne({ UID: UID, isDeleted: false })
+    .populate("deliveryboys")
+    .exec();
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
@@ -232,7 +238,7 @@ exports.getWarehouseStats = async (req, res) => {
     const { id } = req.query;
     let warehouse;
     if (id) {
-      warehouse = await Warehouse.find({ _id: id }).exec();
+      warehouse = await Warehouse.find({ _id: id, isDeleted: false }).exec();
 
     } else {
       warehouse = await Warehouse.find().exec();
@@ -315,8 +321,11 @@ exports.searchWarehouse = async (req, res) => {
 
   try {
     const warehouses = await Warehouse.find({
-      warehouse_name: { $regex: `${name}`, $options: "i" }
-    });
+      warehouse_name: { $regex: `${name}`, $options: "i" },
+      isDeleted: false
+    })
+    .populate("deliveryboys")
+    .exec();
 
     if (warehouses.length === 0) {
       return res.status(404).json({ success: false, message: "No Warehouse found", data: warehouses });
@@ -331,7 +340,9 @@ exports.searchWarehouse = async (req, res) => {
 exports.getWarehouseStatus = async (req, res) => {
   try {
     const { pincode } = req.params;
-    const warehouse = await Warehouse.findOne({ picode: pincode }).exec();
+    const warehouse = await Warehouse.findOne({ picode: pincode, isDeleted: false })
+    .populate("deliveryboys")
+    .exec();
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
@@ -344,7 +355,9 @@ exports.searchUserByWarehouse = async (req, res) => {
   try {
     const { warehouseId } = req.params;
     const { name } = req.query;
-    const warehouse = await Warehouse.findOne({ _id: warehouseId }).exec();
+    const warehouse = await Warehouse.findOne({ _id: warehouseId, isDeleted: false })
+    .populate("deliveryboys")
+    .exec();
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouse not found" });
     }
@@ -377,7 +390,9 @@ exports.searchUserByWarehouse = async (req, res) => {
 exports.getWarehousesBypincode = async (req, res) => {
   try {
     const { pincode } = req.params;
-    const warehouses = await Warehouse.find({ picode: pincode }).exec();
+    const warehouses = await Warehouse.find({ picode: pincode, isDeleted: false })
+    .populate("deliveryboys")
+    .exec();
     if (!warehouses) {
       return res.status(404).json({ success: false, message: "Warehouses not found" });
     }
@@ -389,7 +404,9 @@ exports.getWarehousesBypincode = async (req, res) => {
 exports.getDeliveryServiceStatus = async (req, res) => {
   try {
     const { pincode, destinationLat, destinationLon } = req.body;
-    const warehouse = await Warehouse.findOne({ picode: pincode }).exec();
+    const warehouse = await Warehouse.findOne({ picode: pincode, isDeleted: false })
+    .populate("deliveryboys")
+    .exec();
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouses not found" });
     }
@@ -445,7 +462,7 @@ exports.getDeliveryServiceStatus = async (req, res) => {
 exports.getDeliveryBoys = async (req, res) => {
   try {
     const { warehouseId } = req.params;
-    const warehouses = await Warehouse.findById(warehouseId).populate('deliveryboys').select('deliveryboys').exec();
+    const warehouses = await Warehouse.findOne({ _id: warehouseId, isDeleted: false }).populate('deliveryboys').select('deliveryboys').exec();
     if (!warehouses) {
       return res.status(404).json({ success: false, message: "Warehouses not found" });
     }
@@ -458,7 +475,7 @@ exports.getDeliveryBoys = async (req, res) => {
 exports.getWarehouseProductCounts = async (req, res) => {
   try {
     const { warehouseId } = req.params;
-    const warehouse = await Warehouse.findById(warehouseId).exec();
+    const warehouse = await Warehouse.findOne({_id:warehouseId,isDeleted:false}).exec();
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouses not found" });
     }
@@ -481,16 +498,30 @@ exports.getWarehouseProductCounts = async (req, res) => {
     const lowStockCount = await Product.countDocuments(filter);
 
     res.status(200).json({
-       success: true,
-        message: "Product counts retrieved successfully", 
-        warehouse: warehouse,
-         AllProductsCount: productCounts ,
-         DraftProductsCount: draftCount,
-         PublishedProductsCount: publishedCount,
-         DeletedProductsCount: deletedCount,
-         LowStockProductsCount: lowStockCount
-        });
+      success: true,
+      message: "Product counts retrieved successfully",
+      warehouse: warehouse,
+      AllProductsCount: productCounts,
+      DraftProductsCount: draftCount,
+      PublishedProductsCount: publishedCount,
+      DeletedProductsCount: deletedCount,
+      LowStockProductsCount: lowStockCount
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
+  }
+};
+exports.softDeleteWarehouse = async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    const warehouse = await Warehouse.findById(warehouseId).exec();
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouses not found" });
+    }
+    warehouse.isDeleted = true;
+    await warehouse.save();
+    res.status(200).json({ success: true, message: "Warehouse soft deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error soft deleting warehouse", error: error.message });
   }
 };
