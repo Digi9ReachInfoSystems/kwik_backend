@@ -115,12 +115,14 @@ exports.editBanner = async (req, res) => {
     let category;
     if (category_ref !== 'null') {
       category = await Category.findOne({ category_name: category_ref });
-
+      banner.category_ref = category._id ;
       if (!category) {
         return res
           .status(404)
           .json({ message: " category reference does not exist" });
       }
+    }else{
+      banner.category_ref =  banner.category_ref;
     }
     let subCategory;
     if (sub_category_ref !== 'null') {
@@ -130,12 +132,12 @@ exports.editBanner = async (req, res) => {
           .status(400)
           .json({ message: "Invalid sub-category reference" });
       }
+      banner.sub_category_ref = subCategory._id ;
+    }else{
+      banner.sub_category_ref =  banner.sub_category_ref;
     }
 
-    // Update the banner's properties
     banner.banner_image = banner_image || banner.banner_image;
-    banner.category_ref = category._id || banner.category_ref;
-    banner.sub_category_ref = subCategory._id || banner.sub_category_ref;
     banner.order_id = order_id || banner.order_id;
 
     // Save the updated banner
