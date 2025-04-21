@@ -13,8 +13,9 @@ exports.createOrderRoute = async (req, res) => {
     try {
         const { time } = req.query;
         const { warehouseId, delivery_type } = req.params;
-
+        console.log("time", moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate())
         const found = await OrderRoute.findOne({
+            warehouse_ref: warehouseId,
             tum_tumdelivery_start_time: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate(),
             tumtumdelivery_end_time: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").endOf('hour').local().toDate()
         })
@@ -426,15 +427,7 @@ exports.createOrderRoute = async (req, res) => {
 
         })
         await orderRoute.save()
-        .populate({
-            path: "route.orders",
-            model: "Order",
-        })
-        .populate({
-            path: "route.assigned_delivery_boy",
-            model: "User",
-        })
-        .exec();
+            .exec();
         // res.json({ distanceSource, routes, routeOptimisation });
         // res.status(200).json({ success: true, data: orders });
         res.status(200).json({ success: true, message: "Order route created successfully", data: orderRoute });
