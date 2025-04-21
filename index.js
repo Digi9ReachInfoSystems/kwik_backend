@@ -26,6 +26,7 @@ const applicationManagementRoutes = require("./routes/applicationManagementRoute
 const complaintsRoutes = require("./routes/complaintRoutes");
 const orderRouteRoutes = require("./routes/orderRouteRoute");
 const deliveryAssignmentRoutes = require("./routes/deliveryAssignmentRoutes");
+const tempProductRoutes = require("./routes/tempProductRoutes");
 // MongoDB Connection
 connectDB();
 // test
@@ -70,6 +71,7 @@ app.use("/applicationManagement", applicationManagementRoutes);
 app.use("/complaint", complaintsRoutes);
 app.use("/orderRoute", orderRouteRoutes);
 app.use("/deliveryAssignment", deliveryAssignmentRoutes);
+app.use("/tempProduct", tempProductRoutes);
 const PORT = 3000;
 
 app.listen(PORT, () => {
