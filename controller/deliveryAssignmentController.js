@@ -36,6 +36,14 @@ exports.getOrdersByDeliveryBoy = async (req, res) => {
                     model: "Warehouse"
                 },
             })
+            .populate({
+                path: "orders.orderId",
+                model: "Order",
+                populate: {
+                    path: "user_ref",
+                    model: "User"
+                },
+            })
             .exec();
         res.status(200).json({ success: true, data: deliveryAssignments });
     } catch (error) {
