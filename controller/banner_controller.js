@@ -105,7 +105,6 @@ exports.addBanner = async (req, res) => {
 exports.editBanner = async (req, res) => {
   const { id } = req.params; // Assuming banner_id is passed in the URL
   const { banner_image, category_ref, sub_category_ref, order_id } = req.body;
-  console.log(req.body)
   try {
     // Find the banner by banner_id
     const banner = await Banner.findById(id);
@@ -136,9 +135,16 @@ exports.editBanner = async (req, res) => {
     } else {
       banner.sub_category_ref = banner.sub_category_ref;
     }
-
-    banner.banner_image = banner_image || banner.banner_image;
-    banner.order_id = order_id || banner.order_id;
+    if (banner_image !== 'null') {
+      banner.banner_image = banner_image;
+    } else {
+      banner.banner_image = banner.banner_image;
+    }
+    if (order_id !== 'null') {
+      banner.order_id = order_id;
+    } else {
+      banner.order_id = banner.order_id;
+    }
 
     // Save the updated banner
     const updatedBanner = await banner.save();
