@@ -48,5 +48,8 @@ router.put("/update/approveAppliaction",userController.approveDeliveryApplicatio
 router.put("/update/blockDeliveryboy",userController.blockDeliveryBoy);
 router.get("/search/deliveryboyApplicationByWarehouseId/:warehouseId/status/:status",userController.searchDeliveryBoyApplication);
 router.get("/get/availableTumTumDeliveryboyByWarehouseId/:warehouseId",userController.getDeliveryBoyForTumTumByWarehouseId);
-
+router.get("/get/deliveryboys/admin",userController.getDeliveryboys);
+router.get("/search/deliveryboys/admin",userController.searchDeliveryBoys);
+router.get("/search/users",userController.searchUsers);
+router.get("/get/users/admin",userController.getUsersAdmin);
 module.exports = router;
