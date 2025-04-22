@@ -6,6 +6,8 @@ const Product = require("../models/product_model");
 const Warehouse = require("../models/warehouse_model");
 const ApplicationManagement = require("../models/applicationManagementModel");
 const Order = require("../models/order_model");
+const DeliveryAssignment = require("../models/deliveryAssignment_model");
+const moment = require("moment");
 // Create a new user
 exports.createUser = async (req, res) => {
   try {
@@ -1033,7 +1035,7 @@ exports.getDeliveryBoyForTumTumByWarehouseId = async (req, res) => {
 exports.getUsersAdmin = async (req, res) => {
   try {
     const users = await User.find({ isUser: true });
-    const finalData =await Promise.all(users.map(async (user) => {
+    const finalData = await Promise.all(users.map(async (user) => {
       const orders = await Order.find({ user_ref: user._id, order_status: "Delivered" })
       const total_orders = orders.length;
       const total_amount = orders.reduce((acc, order) => acc + order.total_amount, 0);
@@ -1055,7 +1057,7 @@ exports.searchUsers = async (req, res) => {
   try {
     const { name } = req.query
     const users = await User.find({ displayName: { $regex: `${name}`, $options: "i" }, isUser: true });
-    const finalData =await Promise.all(users.map(async (user) => {
+    const finalData = await Promise.all(users.map(async (user) => {
       const orders = await Order.find({ user_ref: user._id, order_status: "Delivered" })
       const total_orders = orders.length;
       const total_amount = orders.reduce((acc, order) => acc + order.total_amount, 0);
@@ -1128,3 +1130,30 @@ exports.unblockDeliveryBoy = async (req, res) => {
     return res.status(500).json({ message: "Error", error });
   }
 };
+exports.changeDeliveryBoyDayAvailibilityStatus = async (req, res) => {
+  try {
+    const { deliveryBoyUserId } = req.body;
+    const user = await User.findOne({ UID: deliveryBoyUserId });
+    if (!user) {
+      return res.status(404).json({success: false, message: "Delivery boy not found" });
+    }
+    const deliveryAssignments = await DeliveryAssignment.find({
+      delivery_boy_ref: user._id,
+      tum_tumdelivery_start_time: {
+        $gte: moment().startOf('day').local().toDate(),
+        $lt: moment().endOf('day').local().toDate(), 
+      },
+      status: "Pending"
+    })
+    if (deliveryAssignments.length > 0) { 
+      return res.status(400).json({ success: false, message: "Delivery boy is assigned to an order cannot change status" });
+    }
+
+    user.deliveryboy_day_availability_status = !user.deliveryboy_day_availability_status;
+    const savedDeliveryBoy = await user.save();
+    return res.status(200).json({success: true, message: "success", user: savedDeliveryBoy });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ success: false, message: "Error", error });
+  }
+}
