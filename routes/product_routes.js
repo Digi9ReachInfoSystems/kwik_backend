@@ -46,4 +46,5 @@ router.get("/qc/bargraph", ProductController.qcgraph);
 router.get("/search/qcProduct/:warehouseId/:status", ProductController.searchQcProductsByWarehouseStatus);
 router.get("/search/draftProduct", ProductController.searchDraftProducts);
 router.get("/search/lowStockProduct", ProductController.searchLowStockProducts);
+router.get("/search/qcProductByStatus/:status", ProductController.searchQcProductsByStatus);
 module.exports = router;

@@ -1763,3 +1763,37 @@ exports.searchLowStockProducts = async (req, res) => {
     });
   }
 };
+exports.searchQcProductsByStatus = async (req, res) => {
+  const { name } = req.query;
+  const {  status } = req.params;
+
+  if (!name) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+  if (!status) {
+    return res.status(400).json({ message: "Status is required" });
+  }
+  
+
+  try {
+    // Case-insensitive search for products whose names start with the provided term
+    const products = await Product.find({
+      product_name: { $regex: `${name}`, $options: "i" },
+      isDeleted: false,
+      draft: false,
+      qc_status: status
+    })
+      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .sort({ created_time: -1 })
+      .exec();
+
+    if (products.length === 0) {
+      return res.status(404).json({ success: false, message: "No products found", data: products });
+    }
+
+    return res.status(200).json({ success: true, message: "Products retrieved successfully", data: products });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
