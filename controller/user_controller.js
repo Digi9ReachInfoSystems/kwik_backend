@@ -394,12 +394,14 @@ exports.increseCartProductQuantity = async (req, res) => {
     if (!variation) {
       return res.status(404).json({ message: "variation not found for this product" });
     }
+    let insufficientStock = false;
 
     variation.stock.map((item) => {
       if ((item.warehouse_ref.equals(warehouse._id))) {
         const stockQty = item.stock_qty;
         if (stockQty < Number(quantity)) {
-          return res.status(400).json({ message: "Insufficient stock", setIncrease: false });
+          insufficientStock = true;
+          // return res.status(400).json({ message: "Insufficient stock", setIncrease: false });
         } else {
           item.stock_qty -= Number(quantity);
           if (item.stock_qty == 0) {
@@ -410,7 +412,9 @@ exports.increseCartProductQuantity = async (req, res) => {
       }
     })
 
-
+    if (insufficientStock) {
+      return res.status(400).json({ message: "Insufficient stock", setIncrease: false });
+    }
     // // Check if the product already exists in the cart
     if (cartProduct) {
       // If the product is already in the cart, update the quantity
@@ -1024,5 +1028,44 @@ exports.getDeliveryBoyForTumTumByWarehouseId = async (req, res) => {
   } catch (error) {
     console.log(error)
     return res.status(500).json({ message: "Error", error });
+  }
+}
+exports.getUsersAdmin = async (req, res) => {
+  try {
+    const users = await User.find({ isUser: true });
+    return res.status(200).json({ success: true, message: "success", users });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({success: false, message: "Error", error });
+  }
+}
+exports.searchUsers = async (req, res) => {
+  try {
+    const { name } = req.query
+    const user = await User.find({ displayName: { $regex: `${name}`, $options: "i" },isUser:true });
+    return res.status(200).json({  success: true,message: "success", users: user });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({success: false, message: "Error", error });
+  }
+}
+
+exports.getDeliveryboys=async(req,res)=>{
+  try {
+    const users = await User.find({ deliveryboy_application_status: "approved",is_deliveryboy: true }).populate('assigned_warehouse'); // Fetch all delivery boys
+    res.status(200).json({ success: true, message: "Delivery Boys retrieved successfully", data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching warehouses", error: error.message });
+  }
+}
+
+exports.searchDeliveryBoys = async (req, res) => {
+  try {
+    const { name } = req.query
+    const user = await User.find({ displayName: { $regex: `${name}`, $options: "i" },deliveryboy_application_status: "approved",is_deliveryboy: true }).populate('assigned_warehouse');
+    return res.status(200).json({ success: true, message: "success", users: user });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({success: false, message: "Error", error });
   }
 }

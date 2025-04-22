@@ -20,124 +20,50 @@ exports.bulkUploadProducts = async (req, res) => {
         try {
           for (const row of rows) {
             const {
-              sku,
-              product_name,
-              product_des,
-              product_image,
-              brand_name,
-              category_name,
-              sub_category_name,
-              variationsJSON,
-              draft,
-              sensible_product
+              sku, product_name, product_des, product_image,
+              brand_name, category_name, sub_category_name,
+              draft, sensible_product,
+              variationQty, variationUnit, variationMRP,
+              variationBuyingPrice, variationSellingPrice,
+              variationHighlight, variationInfo,
+              variationStockWarehouseName, variationStockStockQty,
+              variationStockStockVisibility, variationStockStockZone,
+              variationStockStockRack
             } = row;
   
-            // Lookup Brand
+            // 1) Brand
             const brand = await Brand.findOne({ brand_name: brand_name.trim() });
             if (!brand) throw new Error(`Brand not found: ${brand_name}`);
   
-            // Lookup Category
+            // 2) Category
             const category = await Category.findOne({ category_name: category_name.trim() });
             if (!category) throw new Error(`Category not found: ${category_name}`);
   
-            // Lookup SubCategories
-            const subNames = sub_category_name.split(';').map(s => s.trim()).filter(Boolean);
+            // 3) SubCategories
+            const subNames = sub_category_name.split(';').map(s=>s.trim()).filter(Boolean);
             const subCats = await SubCategory.find({
               sub_category_name: { $in: subNames },
               category_ref: category._id
             });
             if (subCats.length !== subNames.length) {
-              const found = subCats.map(s => s.sub_category_name);
-              const missing = subNames.filter(n => !found.includes(n));
+              const found = subCats.map(s=>s.sub_category_name);
+              const missing = subNames.filter(n=>!found.includes(n));
               throw new Error(`SubCategory not found: ${missing.join(', ')}`);
             }
-            const subCatIds = subCats.map(sc => sc._id);
+            const subCatIds = subCats.map(s=>s._id);
   
-            // Parse multiple variations
-            const varEntries = JSON.parse(variationsJSON);
+            // 4) Images
+            const images = (product_image || '')
+              .split(',')
+              .map(u => u.trim())
+              .filter(Boolean);
   
-            // Build variation objects with stock lookups
-            const variationObjs = [];
-            for (const v of varEntries) {
-              // Resolve multiple stock entries
-              const stocks = [];
-              for (const entry of v.stock) {
-                const wh = await Warehouse.findOne({ warehouse_name: entry.warehouse_name.trim() });
-                if (!wh) throw new Error(`Warehouse not found: ${entry.warehouse_name}`);
-                stocks.push({
-                  warehouse_ref: wh._id,
-                  stock_qty:     entry.stockQty,
-                  visibility:    entry.stockVisibility,
-                  zone:          entry.stockZone,
-                  rack:          entry.stockRack
-                });
-              }
-  
-              variationObjs.push({
-                Qty:           v.Qty,
-                unit:          v.unit,
-                MRP:           v.MRP,
-                buying_price:  v.buying_price,
-                selling_price: v.selling_price,
-                stock:         stocks,
-                Highlight:     v.Highlight || [],
-                info:          v.info      || []
-              });
-            }
-  
-            // Find or create product by SKU
+            // 5) Upsert product
             let product = await Product.findOne({ sku });
-            const images  = product_image.split(',').map(u => u.trim()).filter(Boolean);
             const isDraft = draft === 'true';
             const isSens  = sensible_product === 'true';
   
-            if (product) {
-              // Union images
-              product.product_image = Array.from(new Set([
-                ...product.product_image,
-                ...images
-              ]));
-  
-              // Overwrite brand/category/sub-cats
-              product.Brand            = brand._1;
-              product.category_ref     = category._id;
-              product.sub_category_ref = Array.from(new Set([
-                ...product.sub_category_ref.map(String),
-                ...subCatIds.map(String)
-              ])).map(id => mongoose.Types.ObjectId(id));
-  
-              // Merge each variation
-              for (const varObj of variationObjs) {
-                const existingVar = product.variations.find(v =>
-                  v.unit === varObj.unit && v.Qty === varObj.Qty
-                );
-                if (existingVar) {
-                  // Append new stock entries
-                  existingVar.stock.push(...varObj.stock);
-                  // Merge highlights & info
-                  existingVar.Highlight = Array.from(
-                    new Set([
-                      ...existingVar.Highlight.map(JSON.stringify),
-                      ...varObj.Highlight.map(JSON.stringify)
-                    ])
-                  ).map(JSON.parse);
-                  existingVar.info = Array.from(
-                    new Set([
-                      ...existingVar.info.map(JSON.stringify),
-                      ...varObj.info.map(JSON.stringify)
-                    ])
-                  ).map(JSON.parse);
-                } else {
-                  product.variations.push(varObj);
-                }
-              }
-  
-              // Update flags
-              product.draft            = isDraft;
-              product.sensible_product = isSens;
-  
-            } else {
-              // Create new product
+            if (!product) {
               product = new Product({
                 sku,
                 product_name,
@@ -146,19 +72,114 @@ exports.bulkUploadProducts = async (req, res) => {
                 Brand:            brand._id,
                 category_ref:     category._id,
                 sub_category_ref: subCatIds,
-                variations:       variationObjs,
+                variations:       [],
                 draft:            isDraft,
                 sensible_product: isSens
               });
+            } else {
+              product.product_image = Array.from(new Set([
+                ...product.product_image,
+                ...images
+              ]));
+              product.Brand            = brand._id;
+              product.category_ref     = category._id;
+              product.sub_category_ref = Array.from(new Set([
+                ...product.sub_category_ref.map(String),
+                ...subCatIds.map(String)
+              ])).map(id => new  mongoose.Types.ObjectId(id));
+              product.draft            = isDraft;
+              product.sensible_product = isSens;
             }
   
+            // 6) Variation
+            const qty  = Number(variationQty);
+            const unit = (variationUnit || '').trim();
+            if (qty > 0 && unit) {
+              let variation = product.variations.find(v =>
+                v.Qty === qty && v.unit === unit
+              );
+              if (!variation) {
+                variation = {
+                  Qty:           qty,
+                  unit,
+                  MRP:           Number(variationMRP),
+                  buying_price:  Number(variationBuyingPrice),
+                  selling_price: Number(variationSellingPrice),
+                  stock:         [],
+                  Highlight:     [{}],  // single object
+                  info:          [{}]
+                };
+                product.variations.push(variation);
+              } else {
+                variation.MRP           = Number(variationMRP);
+                variation.buying_price  = Number(variationBuyingPrice);
+                variation.selling_price = Number(variationSellingPrice);
+                // ensure single object slots exist
+                if (!variation.Highlight.length) variation.Highlight = [{}];
+                if (!variation.info.length)      variation.info      = [{}];
+              }
+  
+              // parse "Key: Value,Key2: Value2"
+              const parseKVList = str =>
+                (str || '')
+                  .split(',')
+                  .map(e => e.trim())
+                  .map(e => {
+                    const [k, ...rest] = e.split(':');
+                    return rest.length ? { [k.trim()]: rest.join(':').trim() } : null;
+                  })
+                  .filter(Boolean);
+  
+              // 7) Merge Highlights into single object
+              const hlObj = variation.Highlight[0];
+              for (const h of parseKVList(variationHighlight)) {
+                const key = Object.keys(h)[0];
+                hlObj[key] = h[key];
+              }
+              variation.Highlight[0] = hlObj;
+  
+              // 8) Merge Info into single object
+              const infoObj = variation.info[0];
+              for (const i of parseKVList(variationInfo)) {
+                const key = Object.keys(i)[0];
+                infoObj[key] = i[key];
+              }
+              variation.info[0] = infoObj;
+  
+              // 9) Stock
+              const whName = (variationStockWarehouseName || '').trim();
+              const stockQty = Number(variationStockStockQty);
+              if (whName && stockQty > 0) {
+                const wh = await Warehouse.findOne({ warehouse_name: whName });
+                console.log("whName", whName);
+                if (!wh) throw new Error(`Warehouse not found: ${whName}`);
+  
+                const existingStock = variation.stock.find(s =>
+                  s.warehouse_ref.equals(wh._id)
+                );
+                if (existingStock) {
+                  existingStock.stock_qty += stockQty;
+                  existingStock.visibility = variationStockStockVisibility === 'true';
+                  existingStock.zone       = variationStockStockZone;
+                  existingStock.rack       = variationStockStockRack;
+                } else {
+                  variation.stock.push({
+                    warehouse_ref: wh._id,
+                    stock_qty:     stockQty,
+                    visibility:    variationStockStockVisibility === 'true',
+                    zone:          variationStockStockZone,
+                    rack:          variationStockStockRack
+                  });
+                }
+              }
+            }
+  
+            // 10) Save product
             await product.save();
           }
   
-          // Cleanup
           fs.unlinkSync(req.file.path);
           res.json({ message: 'Bulk upload completed.' });
-  
         } catch (err) {
           console.error('Bulk upload error:', err);
           res.status(400).json({ message: err.message });
