@@ -75,9 +75,9 @@ const userSchema = new mongoose.Schema({
   },
   deliveryboy_day_availability_status: { type: Boolean, required: false, default: false },
   deliveryboy_order_availability_status: {
-    tum_tum: { type: Boolean, required: false, default: false },
+    tum_tum: { type: Boolean, required: false, default: true },
     instant:{
-      status: { type: Boolean, required: false, default: false },
+      status: { type: Boolean, required: false, default: true },
       last_assigned_at: { type: Date, required: false },
     },
   },

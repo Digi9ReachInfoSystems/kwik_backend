@@ -976,14 +976,14 @@ exports.approveDeliveryApplication = async (req, res) => {
 };
 exports.blockDeliveryBoy = async (req, res) => {
   try {
-    const { deliveryBoyUSerId } = req.body;
-    const deliveryApplication = await User.findById(deliveryBoyUSerId);
+    const { deliveryBoyUserId } = req.body;
+    const deliveryApplication = await User.findById(deliveryBoyUserId);
     if (!deliveryApplication) {
       return res.status(404).json({ message: "Delivery application not found" });
     }
     deliveryApplication.deliveryboy_application_status = "blocked";
     deliveryApplication.is_blocked = true;
-    deliveryApplication.assigned_warehouse = null;
+    // deliveryApplication.assigned_warehouse = null;
     const warehouse = await Warehouse.findById(deliveryApplication.selected_warehouse);
     if (warehouse.deliveryboys.some((item) => item.equals(deliveryApplication._id))) {
       warehouse.deliveryboys = warehouse.deliveryboys.filter((item) => !item.equals(deliveryApplication._id));
@@ -1023,7 +1023,7 @@ exports.getDeliveryBoyForTumTumByWarehouseId = async (req, res) => {
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
     }
-    const user = await User.find({ assigned_warehouse: warehouseId, deliveryboy_application_status: "approved" ,deliveryboy_day_availability_status:true,"deliveryboy_order_availability_status.tum_tum":true});
+    const user = await User.find({ assigned_warehouse: warehouseId, deliveryboy_application_status: "approved" ,deliveryboy_day_availability_status:true,"deliveryboy_order_availability_status.tum_tum":true,is_blocked:false});
     return res.status(200).json({ message: "success", deliveryBoys: user });
   } catch (error) {
     console.log(error)
@@ -1069,3 +1069,22 @@ exports.searchDeliveryBoys = async (req, res) => {
     return res.status(500).json({success: false, message: "Error", error });
   }
 }
+exports.unblockDeliveryBoy = async (req, res) => {
+  try {
+    const { deliveryBoyUserId } = req.body;
+    const deliveryApplication = await User.findById(deliveryBoyUserId);
+    deliveryApplication.deliveryboy_application_status = "approved";
+    deliveryApplication.is_blocked = false;
+    // deliveryApplication.assigned_warehouse = null;
+    const warehouse = await Warehouse.findById(deliveryApplication.selected_warehouse);
+    if (!warehouse.deliveryboys.some((item) => item.equals(deliveryApplication._id))) {
+      warehouse.deliveryboys.push(deliveryApplication._id);
+    }
+    warehouse.save();
+    const savedDeliveryApplication = await deliveryApplication.save();
+    return res.status(200).json({ message: "success", deliveryApplication: savedDeliveryApplication });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Error", error });
+  }
+};
