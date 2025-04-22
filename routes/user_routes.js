@@ -53,4 +53,5 @@ router.get("/search/deliveryboys/admin",userController.searchDeliveryBoys);
 router.get("/search/users",userController.searchUsers);
 router.get("/get/users/admin",userController.getUsersAdmin);
 router.put("/update/unblockDeliveryboy",userController.unblockDeliveryBoy);
+router.put("/update/deliveryBoyAvailiblityDay",userController.changeDeliveryBoyDayAvailibilityStatus);
 module.exports = router;
