@@ -23,4 +23,6 @@ router.get("/type/:type", couponController.getCouponsByType);
 
 router.post("/apply/validate", couponController.validateCoupon);
 
+router.get("/get/allCouponsGroupedByType", couponController.getAllCouponsGroupedByType);
+
 module.exports = router;
