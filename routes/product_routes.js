@@ -50,4 +50,5 @@ router.get("/search/qcProductByStatus/:status", ProductController.searchQcProduc
 router.get("/get/all/productsFilter/:categoryName/:subCategoryName/:warehouseName",ProductController.getProductsByCategorySubCategory);
 router.get("/get/draft/productsFilter/:categoryName/:subCategoryName/:warehouseName",ProductController.getDraftProductsByCategorySubCategory);
 router.get("/get/lowstock/productsFilter/:categoryName/:subCategoryName/:warehouseName",ProductController.getLowStockProductsByCategorySubCategory);
+router.get("/search/qcProductsBySKUorName/:status", ProductController.searchQcProductsByStatus);
 module.exports = router;
