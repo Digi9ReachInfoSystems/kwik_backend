@@ -111,7 +111,25 @@ const couponSchema = new mongoose.Schema({
       message: "User list must contain valid user references",
     },
   },
-
+  coupon_code: {
+    type: String,
+    required: [true, "Coupon code is required"],
+    validate: [
+      {
+        validator: function(value) {
+          return /^[A-Za-z0-9]{5}$/.test(value);
+        },
+        message: "Coupon code must be a 5-character alphanumeric string"
+      },
+      {
+        validator: async function(value) {
+          const coupon = await mongoose.model("Coupon").findOne({ coupon_code: value });
+          return !coupon;
+        },
+        message: "Coupon code already exists"
+      }
+    ],
+  },
   created_time: {
     type: Date,
     required: true,

@@ -85,12 +85,12 @@ exports.getCouponsByType = async (req, res) => {
 
 exports.validateCoupon = async (req, res) => {
   try {
-    const { coupon_id, user_id } = req.body; // Type should be passed in the URL
+    const { coupon_id, coupon_code, user_id } = req.body; // Type should be passed in the URL
     const user = await User.findOne({ UID: user_id });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    const coupons = await Coupon.findById(coupon_id);
+    const coupons = await Coupon.findOne({coupon_code: coupon_code});
     if (!coupons) {
       return res.status(404).json({ success: false, message: "Coupon not found" });
     }
