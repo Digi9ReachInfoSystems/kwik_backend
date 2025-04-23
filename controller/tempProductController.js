@@ -45,6 +45,7 @@ exports.bulkUploadProducts = async (req, res) => {
                     product_name,
                     product_des,
                     product_image,
+                    product_video,
                     brand_name,
                     category_name,
                     sub_category_name,
@@ -89,6 +90,7 @@ exports.bulkUploadProducts = async (req, res) => {
                         product_name,
                         product_des,
                         product_image: images,
+                        product_video: product_video,
                         Brand: brand._id,
                         category_ref: category._id,
                         sub_category_ref: subCatIds,
@@ -102,6 +104,7 @@ exports.bulkUploadProducts = async (req, res) => {
                         ...product.product_image,
                         ...images
                     ]));
+                    product.product_video = product_video;
                     product.Brand = brand._id;
                     product.category_ref = category._id;
                     product.sub_category_ref = Array.from(new Set([
