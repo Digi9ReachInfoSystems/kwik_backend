@@ -171,3 +171,17 @@ exports.validateCoupon = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 }
+
+exports.getAllCouponsGroupedByType = async (req, res) => {
+  try {
+    const All = await Coupon.find({ coupon_type: "All" })    ;
+    const normal = await Coupon.find({ coupon_type: "normal" });
+    const selected = await Coupon.find({ coupon_type: "Selected users" });
+    const newuser = await Coupon.find({ coupon_type: "new user" });
+    const individual = await Coupon.find({ coupon_type: "individual" });
+    return res.status(200).json({ success: true, data: { All, normal, selected, newuser, individual } });
+  } catch (error) {
+    console.error("Error getting coupons by type: ", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
