@@ -1700,7 +1700,7 @@ exports.searchLowStockProducts = async (req, res) => {
     if (!name) {
       return res.status(400).json({ message: "Search term is required" });
     }
-  
+
     const { warehouse_ref } = req.query; // Get warehouse_ref from the query string
 
     // If warehouse_ref is provided, filter based on that warehouse
@@ -1765,7 +1765,7 @@ exports.searchLowStockProducts = async (req, res) => {
 };
 exports.searchQcProductsByStatus = async (req, res) => {
   const { name } = req.query;
-  const {  status } = req.params;
+  const { status } = req.params;
 
   if (!name) {
     return res.status(400).json({ message: "Search term is required" });
@@ -1773,7 +1773,7 @@ exports.searchQcProductsByStatus = async (req, res) => {
   if (!status) {
     return res.status(400).json({ message: "Status is required" });
   }
-  
+
 
   try {
     // Case-insensitive search for products whose names start with the provided term
@@ -1800,8 +1800,15 @@ exports.searchQcProductsByStatus = async (req, res) => {
 
 exports.getDraftProductsByCategorySubCategory = async (req, res) => {
   try {
-    const { warehouseId, categoryName, subCategoryName } = req.params;
+    const { warehouseId, categoryName, subCategoryName, warehouseName } = req.params;
     const filter = {};
+    if (warehouseName) {
+      const warehouse = await Warehouse.find({ warehouse_name: warehouseName });
+      if (!warehouse) {
+        return res.status(404).json({ message: "Warehouse not found" });
+      }
+      filter.warehouse_ref = warehouse[0]._id;
+    }
     if (!categoryName) {
       return res.status(400).json({ message: "Category name is required" });
     }
@@ -1834,8 +1841,15 @@ exports.getDraftProductsByCategorySubCategory = async (req, res) => {
 };
 exports.getLowStockProductsByCategorySubCategory = async (req, res) => {
   try {
-    const {  categoryName, subCategoryName } = req.params;
+    const { categoryName, subCategoryName, warehouseName } = req.params;
     const filter = {};
+    if (warehouseName) {
+      const warehouse = await Warehouse.find({ warehouse_name: warehouseName });
+      if (!warehouse) {
+        return res.status(404).json({ message: "Warehouse not found" });
+      }
+      filter.warehouse_ref = warehouse[0]._id;
+    }
     if (!categoryName) {
       return res.status(400).json({ message: "Category name is required" });
     }
@@ -1866,8 +1880,15 @@ exports.getLowStockProductsByCategorySubCategory = async (req, res) => {
 
 exports.getProductsByCategorySubCategory = async (req, res) => {
   try {
-    const {  categoryName, subCategoryName } = req.params;
+    const { categoryName, subCategoryName, warehouseName } = req.params;
     const filter = {}
+    if (warehouseName) {
+      const warehouse = await Warehouse.find({ warehouse_name: warehouseName });
+      if (!warehouse) {
+        return res.status(404).json({ message: "Warehouse not found" });
+      }
+      filter.warehouse_ref = warehouse[0]._id;
+    }
     if (!categoryName) {
       return res.status(400).json({ message: "Category name is required" });
     }
