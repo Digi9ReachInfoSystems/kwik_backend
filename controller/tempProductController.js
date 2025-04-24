@@ -205,7 +205,7 @@ exports.bulkUploadProducts = async (req, res) => {
                     // 6) Tell Mongoose “variations” changed
                     product.markModified('variations');
                 }
-               
+
                 // 7) One final save
                 await product.save();
             } catch (error) {
@@ -269,10 +269,10 @@ exports.migrateTempToProduct = async (req, res) => {
 exports.getAllTempProducts = async (req, res) => {
     try {
         const products = await TempProduct.find()
-        .populate("Brand category_ref sub_category_ref warehouse_ref")
-        .sort({ created_time: -1 })
-        .exec();
-        res.status(200).json({success: true, message: "Products retrieved successfully", data: products});
+            .populate("Brand category_ref sub_category_ref warehouse_ref")
+            .sort({ created_time: -1 })
+            .exec();
+        res.status(200).json({ success: true, message: "Products retrieved successfully", data: products });
     } catch (error) {
         console.error("Error fetching products:", error);
         res.status(500).json({ success: false, message: "Error fetching products", error: error.message });
@@ -283,10 +283,10 @@ exports.getTempProductsById = async (req, res) => {
     try {
         const { productId } = req.params;
         const product = await TempProduct.findById(productId)
-        .populate("Brand category_ref sub_category_ref warehouse_ref")
-        .sort({ created_time: -1 })
-        .exec();
-        res.status(200).json({success: true, message: "Product retrieved successfully", data: product});
+            .populate("Brand category_ref sub_category_ref warehouse_ref")
+            .sort({ created_time: -1 })
+            .exec();
+        res.status(200).json({ success: true, message: "Product retrieved successfully", data: product });
     } catch (error) {
         console.error("Error fetching product:", error);
         res.status(500).json({ success: false, message: "Error fetching product", error: error.message });
@@ -294,95 +294,97 @@ exports.getTempProductsById = async (req, res) => {
 };
 
 exports.updateTempProduct = async (req, res) => {
-  const productId = req.params.productId;
-  const updatedData = req.body;
-  console.dir(req.body, { depth: null });
-  try {
-    const brand = await Brand.findOne({ brand_name: updatedData.Brand });
-    if (!brand) {
-      return res.status(400).json({ message: "Brand not found" });
-    }
-    updatedData.Brand = brand._id;
-    const category = await Category.findOne({
-      category_name: updatedData.category_ref,
-    });
-    if (!category) {
-      return res.status(400).json({ message: "Category not found" });
-    }
-    updatedData.category_ref = category._id;
-    const subcategory = await Promise.all(updatedData.sub_category_ref.map(async (sub) => {
-      const result = await SubCategory.findOne({
-        sub_category_name: sub,
-      });
-      return result._id;
-    }))
-    updatedData.sub_category_ref = subcategory;
-    updatedData.variations = updatedData.variations.map((variation) => {
-      if (mongoose.Types.ObjectId.isValid(variation._id)) {
-        return {
-          ...variation,
-          _id: variation._id,
-        };
-      } else {
-        return {
-          ...variation,
-          _id: new mongoose.Types.ObjectId(),
-        };
-      }
-    });
-    const updatedProduct = await TempProduct.findByIdAndUpdate(
-      productId,
-      updatedData,
-      {
-        new: true, // Return the updated document
-        runValidators: true, // Run validation on the updated data
-      }
-    );
+    const productId = req.params.productId;
+    const updatedData = req.body;
+    console.dir(req.body, { depth: null });
+    try {
+        const brand = await Brand.findOne({ brand_name: updatedData.Brand });
+        if (!brand) {
+            return res.status(400).json({ message: "Brand not found" });
+        }
+        updatedData.Brand = brand._id;
+        const category = await Category.findOne({
+            category_name: updatedData.category_ref,
+        });
+        if (!category) {
+            return res.status(400).json({ message: "Category not found" });
+        }
+        updatedData.category_ref = category._id;
+        const subcategory = await Promise.all(updatedData.sub_category_ref.map(async (sub) => {
+            const result = await SubCategory.findOne({
+                sub_category_name: sub,
+            });
+            return result._id;
+        }))
+        updatedData.sub_category_ref = subcategory;
+        updatedData.variations = updatedData.variations.map((variation) => {
+            if (mongoose.Types.ObjectId.isValid(variation._id)) {
+                return {
+                    ...variation,
+                    _id: variation._id,
+                };
+            } else {
+                return {
+                    ...variation,
+                    _id: new mongoose.Types.ObjectId(),
+                };
+            }
+        });
+        const updatedProduct = await TempProduct.findByIdAndUpdate(
+            productId,
+            updatedData,
+            {
+                new: true, // Return the updated document
+                runValidators: true, // Run validation on the updated data
+            }
+        );
 
-    if (!updatedProduct) {
-      return res.status(404).json({ success: false, message: "Product not found" });
-    }
+        if (!updatedProduct) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
 
-    res
-      .status(200)
-      .json({ message: "Product updated successfully", data: updatedProduct });
-  } catch (error) {
-    if (error.name === "ValidationError") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Validation failed", errors: error.errors });
+        res
+            .status(200)
+            .json({ message: "Product updated successfully", data: updatedProduct });
+    } catch (error) {
+        if (error.name === "ValidationError") {
+            return res
+                .status(400)
+                .json({ success: false, message: "Validation failed", errors: error.errors });
+        }
+        res
+            .status(500)
+            .json({ success: false, message: "Error updating product", error: error.message });
     }
-    res
-      .status(500)
-      .json({success: false, message: "Error updating product", error: error.message });
-  }
 };
 
 exports.deleteTempProduct = async (req, res) => {
-  const productId = req.params.productId;
-  try {
-    const deletedProduct = await TempProduct.findByIdAndDelete(productId);
-    if (!deletedProduct) {
-      return res.status(404).json({ message: "Product not found" });
+    const productId = req.params.productId;
+    try {
+        const deletedProduct = await TempProduct.findByIdAndDelete(productId);
+        if (!deletedProduct) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+        res
+            .status(200)
+            .json({ success: true, message: "Product deleted successfully", data: deletedProduct });
+    } catch (error) {
+        res
+            .status(500)
+            .json({ success: false, message: "Error deleting product", error: error.message });
     }
-    res
-      .status(200)
-      .json({ success: true, message: "Product deleted successfully", data: deletedProduct });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error deleting product", error: error.message });
-  }
 };
 exports.searchTempProduct = async (req, res) => {
-  try {
-    const {name} = req.query;
-    const product = await TempProduct.find({  product_name: { $regex: `${name}`, $options: "i" }, });
-    if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+    try {
+        const { name } = req.query;
+        const product = await TempProduct.find({ product_name: { $regex: `${name}`, $options: "i" }, })
+            .populate("Brand category_ref sub_category_ref warehouse_ref")
+            .exec();
+        if (!product) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+        res.status(200).json({ success: true, message: "Product retrieved successfully", data: product });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error searching product", error: error.message });
     }
-    res.status(200).json({ success: true, message: "Product retrieved successfully", data: product });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Error searching product", error: error.message });
-  }
 };
