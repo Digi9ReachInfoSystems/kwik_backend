@@ -83,7 +83,7 @@ exports.addSubCategory = async (req, res) => {
       !category_ref ||
       !sub_category_name ||
       !sub_category_des ||
-      !sub_category_image||
+      !sub_category_image ||
       !offer_percentage
     ) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -112,12 +112,14 @@ exports.addSubCategory = async (req, res) => {
     if (add_to_Category) {
       const updatedCategory = await Category.findByIdAndUpdate(categoryExists._id, { $push: { selected_sub_category_ref: savedSubCategory._id } }, { new: true });
     }
-    if(productId_list.length > 0){
-      for (const productId of productId_list) {
-        const product = await Product.findById(productId);
-        if (product) {
-          product.sub_category_ref.push(savedSubCategory._id);
-          await product.save();
+    if (productId_list){
+      if (productId_list.length > 0) {
+        for (const productId of productId_list) {
+          const product = await Product.findById(productId);
+          if (product) {
+            product.sub_category_ref.push(savedSubCategory._id);
+            await product.save();
+          }
         }
       }
     }
