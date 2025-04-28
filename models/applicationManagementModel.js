@@ -12,6 +12,7 @@ const applicationManagementSchema = new mongoose.Schema({
     terms_of_use: { type: String, required: false },
     enable_cod: { type: Boolean, required: false },
     delivery_charge: { type: Number, required: false },
+    delivery_charge_tum_tum: { type: Number, required: false },
     handling_charge: { type: Number, required: false },
     high_demand_charge: { type: Number, required: false },
     new_version_ios: { type: Number, required: false },
@@ -24,6 +25,9 @@ const applicationManagementSchema = new mongoose.Schema({
     new_update_image_ios: { type: String, required: false },
     new_update_title_ios: { type: String, required: false },
     new_update_des_ios: { type: String, required: false },
+    delivery_coverage_distance: { type: Number, required: false },
+    route_point_threshold: { type: Number, required: false },
+
 }, { modelName: 'ApplicationManagement' }); // Set model name to 'ApplicationManagement'
 
 // Create the model

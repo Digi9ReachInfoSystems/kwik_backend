@@ -55,4 +55,5 @@ router.get("/get/users/admin",userController.getUsersAdmin);
 router.put("/update/unblockDeliveryboy",userController.unblockDeliveryBoy);
 router.put("/update/deliveryBoyAvailiblityDay",userController.changeDeliveryBoyDayAvailibilityStatus);
 router.post("/move/whislistToCart",userController.moveProductFromWhishlistToCart);
+router.put("/remove/whislist",userController.removeWhishlistItem);   
 module.exports = router;

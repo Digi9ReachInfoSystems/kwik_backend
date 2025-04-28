@@ -4,6 +4,7 @@ const Orders = require("../models/order_model");
 const axios = require("axios");
 const mongoose = require("mongoose");
 const Product = require("../models/product_model");
+const ApplicationManagement = require("../models/applicationManagementModel");
 // Get all warehouses
 exports.getAllWarehouses = async (req, res) => {
   try {
@@ -236,9 +237,9 @@ exports.getWarehouseByUID = async (req, res) => {
 exports.getWarehouseStats = async (req, res) => {
   try {
     const { id } = req.query;
-    console.log("query ",req.query);
+    console.log("query ", req.query);
     let warehouse;
-    if (id ) {
+    if (id) {
       warehouse = await Warehouse.find({ _id: id, isDeleted: false }).exec();
 
     } else {
@@ -408,6 +409,7 @@ exports.getDeliveryServiceStatus = async (req, res) => {
     const warehouse = await Warehouse.findOne({ picode: pincode, isDeleted: false })
       .populate("deliveryboys")
       .exec();
+    const applicationManagement = await ApplicationManagement.findOne({}).exec();
     if (!warehouse) {
       return res.status(404).json({ success: false, message: "Warehouses not found" });
     }
@@ -420,7 +422,7 @@ exports.getDeliveryServiceStatus = async (req, res) => {
       const legs = response.data.routes[0].legs;
       const distanceInMeters = response.data.routes[0].legs[0].distance.value;
       const distanceInKilometers = distanceInMeters / 1000;
-      if (distanceInKilometers <= 7) {
+      if (distanceInKilometers <= applicationManagement.delivery_coverage_distance) {
         return res.status(200).json({
           success: true,
           message: `The route exists and the distance is ${distanceInKilometers} km. `,

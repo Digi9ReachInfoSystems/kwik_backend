@@ -6,6 +6,7 @@ const moment = require("moment");
 const Order = require("../models/order_model");
 const axios = require("axios");
 const DeliveryAssignment = require("../models/deliveryAssignment_model");
+const ApplicationManagement = require("../models/applicationManagementModel");
 
 
 
@@ -13,6 +14,7 @@ exports.createOrderRoute = async (req, res) => {
     try {
         const { time } = req.query;
         const { warehouseId, delivery_type } = req.params;
+        const applicationManagement = await ApplicationManagement.findOne({}).exec();
         console.log("time", moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate())
         const found = await OrderRoute.findOne({
             warehouse_ref: warehouseId,
@@ -186,7 +188,7 @@ exports.createOrderRoute = async (req, res) => {
         const apiKey = process.env.GOOGLE_MAPS_API_KEY;
         const sourceLatitude = warehouse.warehouse_location.lat;
         const sourceLongitude = warehouse.warehouse_location.lng;
-        const toleranceDistance = 1000;
+        const toleranceDistance = applicationManagement.route_point_threshold;
         const destinations = orders.map(order => [order.user_location.lat, order.user_location.lang, order._id]);
         // res.status(200).json({ success: true, data: orders,sourceLatitude, sourceLongitude, destinations, toleranceDistance });
         //  const { sourceLatitude, sourceLongitude, destinations, toleranceDistance } = req.body;

@@ -37,7 +37,7 @@ exports.createOrder = async (req, res) => {
       delivery_charge,
       selected_time_slot,
     } = req.body;
-  console.log(req.body);
+    console.log(req.body);
     // Validate if the warehouse and user exist
     const warehouse = await Warehouse.findOne({ picode: pincode });
     if (!warehouse) {
@@ -85,7 +85,7 @@ exports.createOrder = async (req, res) => {
       payment_id,
       type_of_delivery,
       selected_time_slot,
-      delivery_charge: delivery_charge || appSettings.delivery_charge,
+      delivery_charge: delivery_charge || type_of_delivery === "tum tum" ? appSettings.delivery_charge_tum_tum : appSettings.delivery_charge,
       handling_charge: appSettings.handling_charge,
       high_demand_charge: appSettings.high_demand_charge,
       delivery_instructions
@@ -824,7 +824,7 @@ exports.searchOrderByWarehouseCustomerName = async (req, res) => {
 
 exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
   try {
-    const { year,warehouseId } = req.query;
+    const { year, warehouseId } = req.query;
     const startDate = new Date(year, 0, 1);  // Start of the year
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);  // End of the year
     const orders = await Order.find({
@@ -1191,7 +1191,7 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
         },
       },
     ]);
-   
+
     if (!orders) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
@@ -1671,7 +1671,7 @@ exports.groupRoutesController = async (req, res) => {
       console.log("tempRoute", tempRoute.length, "route", route)
 
       if (route.length > 1) {
-        
+
         // const waypoints = route.slice(0, -1).map((dest) => `${dest.lat},${dest.lng}`);
         // const waypoints = route.slice(0, -1).map(dest => {
         //   const location = `${dest.latitude},${dest.longitude}`;
@@ -1679,29 +1679,29 @@ exports.groupRoutesController = async (req, res) => {
         //   return { location, stopover };
         // });
         // console.log("waypoints", waypoints)
-        const intermediatePoints =route.slice(0, -1); 
+        const intermediatePoints = route.slice(0, -1);
         console.log("intermediatePoints", intermediatePoints)
         const waypointsString = intermediatePoints
           .map(dest => `${dest.latitude},${dest.longitude}`)
           .join('|');
-          console.log("waypointsString", waypointsString)
-          const waypointParam = waypointsString
+        console.log("waypointsString", waypointsString)
+        const waypointParam = waypointsString
           ? `&waypoints=optimize:true|${waypointsString}`
           : '';
-          console.log("waypointParam", waypointParam)
+        console.log("waypointParam", waypointParam)
         const response = await axios.get(
           `https://maps.googleapis.com/maps/api/directions/json?` +
           `origin=${sourceLatitude},${sourceLongitude}` +
           `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` + // Return to origin
-          waypointParam+
+          waypointParam +
           // `&waypoints[]:${waypoints}` +
           // `&optimizeWaypoints:true` +
           `&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
-        console.log("map URL ",  `https://maps.googleapis.com/maps/api/directions/json?` +
+        console.log("map URL ", `https://maps.googleapis.com/maps/api/directions/json?` +
           `origin=${sourceLatitude},${sourceLongitude}` +
           `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` + // Return to origin
-          waypointParam+
+          waypointParam +
           // `&waypoints[]:${waypoints}` +
           `&optimizeWaypoints:true` +
           `&key=${process.env.GOOGLE_MAPS_API_KEY}`)
@@ -1761,7 +1761,30 @@ exports.groupRoutesController = async (req, res) => {
     res.status(500).json({ error: 'Failed to group routes.' });
   }
 };
-
+exports.getUserTodaysOrder = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const orders = await Order.find({
+      user_ref: user._id,
+      created_time: { $gte: today },
+      order_status: {
+        $nin: ["Delivered", "Delivery failed"]
+      }
+    })
+      .populate("warehouse_ref user_ref products.product_ref delivery_boy")
+      .exec();
+    res.json({ success: true, message: 'Orders retrieved successfully', data: orders });
+  } catch (error) {
+    console.error('Error processing request:', error);
+    res.status(500).json({ success: false, mesage: 'Failed to fetch orders.', error: error });
+  }
+};
 
 // {
 //   "success": true,
