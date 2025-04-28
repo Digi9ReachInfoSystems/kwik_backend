@@ -238,7 +238,7 @@ exports.getWarehouseStats = async (req, res) => {
     const { id } = req.query;
     console.log("query ",req.query);
     let warehouse;
-    if (id != 'null') {
+    if (id ) {
       warehouse = await Warehouse.find({ _id: id, isDeleted: false }).exec();
 
     } else {

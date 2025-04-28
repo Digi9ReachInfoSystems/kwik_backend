@@ -285,12 +285,13 @@ exports.addProductToCart = async (req, res) => {
     if (!variation) {
       return res.status(404).json({ message: "variation not found for this product" });
     }
-
+    let insufficientStock = false;
     variation.stock.map((item) => {
       if ((item.warehouse_ref.equals(warehouse._id))) {
         const stockQty = item.stock_qty;
         if (stockQty < Number(quantity)) {
-          return res.status(400).json({ message: "Insufficient stock" });
+          insufficientStock = true;
+          // return res.status(400).json({ message: "Insufficient stock" });
         } else {
           item.stock_qty -= Number(quantity);
           if (item.stock_qty == 0) {
@@ -299,7 +300,9 @@ exports.addProductToCart = async (req, res) => {
         }
       }
     })
-
+    if (insufficientStock) {
+      return res.status(400).json({ message: "Insufficient stock", setIncrease: false });
+    }
     product.variations = product.variations.map((item) => {
       if (item._id == variant) {
         item.variation = variation;
@@ -847,11 +850,10 @@ exports.addProductToWhislist = async (req, res) => {
       }
     })
     user.cart_products = user.cart_products.filter((item) => {
-      return (!(item.product_ref != product_ref)) && (!(item.variant._id != variant))
+      return (!(item.product_ref.equals(product_ref)) && !(item.variant._id.equals(variant)) )
     });
 
-    const exists = user.whishlist.some(item => item.product_ref === product_ref && item.variant_id === variant);
-
+    const exists = user.whishlist.some(item => item.product_ref.equals(product_ref) && item.variant_id.equals(variant) || item.product_ref === product_ref && item.variant_id === variant);
     if (!exists) {
 
       user.whishlist.push({
@@ -1164,12 +1166,96 @@ exports.changeDeliveryBoyDayAvailibilityStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: "Error", error });
   }
 }
-// exports.moveProductFromWhishlistToCart = async (req, res) => {
-//   try {
+exports.moveProductFromWhishlistToCart = async (req, res) => {
+  try {
+    const { whishlist_itemId, user_ref, pincode } = req.body;
+    const quantity = 1;
+    const user = await User.findOne({ UID: user_ref });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const whishlist_item = user.whishlist.find((item) => item._id.equals(whishlist_itemId));
+    if (!whishlist_item) {
+      return res.status(404).json({ success: false, message: "Whishlist item not found" });
+    }
+    const product = await Product.findOne({ _id: whishlist_item.product_ref, isDeleted: false, draft: false });
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+    const variation = product.variations.find((item) => { return item._id.equals(whishlist_item.variant_id) });
+    if (!variation) {
+      return res.status(404).json({ success: false, message: "variant not found" });
+    }
+    const warehouse = await Warehouse.findOne({ picode: pincode });
+    if (!warehouse) {
+      return res.status(404).json({ success: false, message: "Warehouse not found for this variant" });
+    }
+    let insufficientStock = false;
+    variation.stock.map((item) => {
+      if ((item.warehouse_ref.equals(warehouse._id))) {
+        const stockQty = item.stock_qty;
+        if (stockQty < Number(quantity)) {
+          insufficientStock = true;
+          // return res.status(400).json({ message: "Insufficient stock" });
+        } else {
+          item.stock_qty -= Number(quantity);
+          if (item.stock_qty == 0) {
+            item.visibility = false;
+          }
+        }
+      }
+    })
+    if (insufficientStock) {
+      return res.status(400).json({ message: "Insufficient stock", setIncrease: false });
+    }
+    product.variations = product.variations.map((item) => {
+      if (item._id == variation._id) {
+        item.variation = variation;
+        return item;
+      } else {
+        return item;
+      }
+    })
 
+    await product.save();
+    const cartProductData = {
+      product_ref: whishlist_item.product_ref,
+      variant: variation,
+      quantity,
+      pincode,
+      selling_price: variation.selling_price * quantity,
+      mrp: variation.MRP * quantity,
+      buying_price: variation.buying_price * quantity,
+      inStock: true,
+      final_price: variation.selling_price * quantity,
+      variation_visibility: true,
+      cart_added_date: new Date(),
+    };
+    cartProductData.variant._id = variation._id;
 
-//   } catch (error) {
-//     console.log("error", error);
-//     res.status(500).json({ success: false, message: "error moving item from whishlist to cart ", error: error });
-//   }
-// }
+    const cartProduct = user.cart_products.find((item) => item.product_ref == whishlist_item.product_ref && item.pincode == pincode && item.variant._id == variation._id);
+    if (cartProduct) {
+      // If the product is already in the cart, update the quantity
+      user.cart_products.map((item) => {
+        if (item.product_ref.equals(whishlist_item.product_ref) && item.pincode == pincode && item.variant._id.equals(variation._id)) {
+          item.quantity += Number(quantity);
+          item.selling_price = item.quantity * variation.selling_price
+          item.mrp = item.quantity * variation.MRP
+          item.buying_price = item.quantity * variation.buying_price
+          item.final_price = item.quantity * variation.selling_price
+          item.cart_added_date = new Date();
+        }
+      })
+    } else {
+      user.cart_products.push(cartProductData);
+    }
+    user.cart_added_date = new Date();
+    user.whishlist = user.whishlist.filter((item) => !item._id.equals(whishlist_itemId));
+    const savedUser = await user.save();
+    return res.status(201).json({ message: "Product added to cart", data: savedUser });
+
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({ success: false, message: "error moving item from whishlist to cart ", error: error });
+  }
+}
