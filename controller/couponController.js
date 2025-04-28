@@ -190,7 +190,7 @@ exports.sarchCoupon = async (req, res) => {
   try {
     const { coupon_type } = req.params;
     const { name } = req.query;
-    const coupons = await Coupon.find({ $text: { $search: name } ,coupon_type:coupon_type});
+    const coupons = await Coupon.find({ coupon_name: { $regex: `${name}`, $options: "i" } ,coupon_type:coupon_type});
     res.status(200).json({ success: true, data: coupons });
   } catch (error) {
     console.error("Error getting coupons by type: ", error);

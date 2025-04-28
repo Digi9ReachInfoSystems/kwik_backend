@@ -710,7 +710,6 @@ exports.getWeeklyDeliveredOrderCount = async (req, res) => {
     const startDate = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`);
     const endDate = new Date(year, month, 1);
     const totalWeeks = Math.ceil((endDate.getDate() - startDate.getDate() + 1) / 7);
-    console.log("totalWeeks",);
     const pipeline = [
       {
         $match: {
@@ -719,7 +718,7 @@ exports.getWeeklyDeliveredOrderCount = async (req, res) => {
             $gte: startDate,
             $lt: endDate,
           },
-          ...(warehouseId && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
+          ...(warehouseId!=='null' && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
         },
       },
       {
@@ -825,13 +824,13 @@ exports.searchOrderByWarehouseCustomerName = async (req, res) => {
 
 exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
   try {
-    const { year } = req.query;
+    const { year,warehouseId } = req.query;
     const startDate = new Date(year, 0, 1);  // Start of the year
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);  // End of the year
-
     const orders = await Order.find({
       completed_time: { $gte: startDate, $lte: endDate },
       order_status: 'Delivered',
+      ...(warehouseId!=='null' && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
     }).exec();
     let total_amount = 0;
     let maxAmount = 0;
