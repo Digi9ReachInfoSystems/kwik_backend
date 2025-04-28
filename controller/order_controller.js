@@ -718,7 +718,7 @@ exports.getWeeklyDeliveredOrderCount = async (req, res) => {
             $gte: startDate,
             $lt: endDate,
           },
-          ...(warehouseId!=='null' && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
+          ...(warehouseId && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
         },
       },
       {
@@ -830,7 +830,7 @@ exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
     const orders = await Order.find({
       completed_time: { $gte: startDate, $lte: endDate },
       order_status: 'Delivered',
-      ...(warehouseId!=='null' && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
+      ...(warehouseId && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
     }).exec();
     let total_amount = 0;
     let maxAmount = 0;
