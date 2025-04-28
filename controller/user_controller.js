@@ -879,8 +879,15 @@ exports.orderAgainUserOrderId = async (req, res) => {
     }
     await Promise.all(order.products.map(async (orderProduct) => {
       const product = await Product.findOne({ _id: orderProduct.product_ref, isDeleted: false, draft: false });
+      if (!product) {
+        console.log("product not found");
+        return;
+      }
       const warehouse = await Warehouse.findOne({ picode: orderProduct.pincode });
-      const variation = product.variations.find((item) => item._id.equals(orderProduct.variant._id));
+      const variation = product.variations.find((item) => {
+        console.log("item", item._id)
+        return item._id.equals(orderProduct.variant._id)
+      });
       let warehouseFound = false;
       if (product) {
 
@@ -1135,23 +1142,23 @@ exports.changeDeliveryBoyDayAvailibilityStatus = async (req, res) => {
     const { deliveryBoyUserId } = req.body;
     const user = await User.findOne({ UID: deliveryBoyUserId });
     if (!user) {
-      return res.status(404).json({success: false, message: "Delivery boy not found" });
+      return res.status(404).json({ success: false, message: "Delivery boy not found" });
     }
     const deliveryAssignments = await DeliveryAssignment.find({
       delivery_boy_ref: user._id,
       tum_tumdelivery_start_time: {
         $gte: moment().startOf('day').local().toDate(),
-        $lt: moment().endOf('day').local().toDate(), 
+        $lt: moment().endOf('day').local().toDate(),
       },
       status: "Pending"
     })
-    if (deliveryAssignments.length > 0) { 
+    if (deliveryAssignments.length > 0) {
       return res.status(400).json({ success: false, message: "Delivery boy is assigned to an order cannot change status" });
     }
 
     user.deliveryboy_day_availability_status = !user.deliveryboy_day_availability_status;
     const savedDeliveryBoy = await user.save();
-    return res.status(200).json({success: true, message: "success", user: savedDeliveryBoy });
+    return res.status(200).json({ success: true, message: "success", user: savedDeliveryBoy });
   } catch (error) {
     console.log(error)
     return res.status(500).json({ success: false, message: "Error", error });
