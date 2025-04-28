@@ -74,7 +74,8 @@ exports.addSubCategory = async (req, res) => {
       sub_category_des,
       sub_category_image,
       add_to_Category,
-      productId_list
+      productId_list,
+      offer_percentage
     } = req.body;
     // Validate required fields
     if (
@@ -82,7 +83,8 @@ exports.addSubCategory = async (req, res) => {
       !category_ref ||
       !sub_category_name ||
       !sub_category_des ||
-      !sub_category_image
+      !sub_category_image||
+      !offer_percentage
     ) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -103,6 +105,7 @@ exports.addSubCategory = async (req, res) => {
       sub_category_name,
       sub_category_des,
       sub_category_image,
+      offer_percentage,
     });
 
     const savedSubCategory = await newSubCategory.save();

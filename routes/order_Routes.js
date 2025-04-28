@@ -31,4 +31,5 @@ router.get("/getOrders/byWarehouse/:warehouseId/:delivery_type", orderController
 router.get("/search/Orders/byWarehouse/:warehouseId/:delivery_type", orderController.searchOrdersByWarehouseByTypeOfDelivery);
 router.get("/getUsers/byWarehouse/:warehouseId", orderController.getWarehouseUserCounts);
 router.post('/group-routes', orderController.groupRoutesController);
+router.get("/get/userTodaysOrders/:userId", orderController.getUserTodaysOrder);
 module.exports = router;

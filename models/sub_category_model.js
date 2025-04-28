@@ -49,6 +49,10 @@ const subCategorySchema = new mongoose.Schema({
     required: [true, "Is deleted status is required"],
     default: false,
   },
+  offer_percentage: {
+    type: String,
+    required: false,
+  },
 });
 
 // Create and export the SubCategory model

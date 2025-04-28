@@ -1259,3 +1259,23 @@ exports.moveProductFromWhishlistToCart = async (req, res) => {
     res.status(500).json({ success: false, message: "error moving item from whishlist to cart ", error: error });
   }
 }
+
+exports.removeWhishlistItem = async (req, res) => {
+  try {
+    const { whishlist_itemId, user_ref } = req.body;
+    const user = await User.findOne({ UID: user_ref });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const whishlist_item = user.whishlist.find((item) => item._id.equals(whishlist_itemId));
+    if (!whishlist_item) {
+      return res.status(404).json({ success: false, message: "Whishlist item not found" });
+    }
+    user.whishlist = user.whishlist.filter((item) => !item._id.equals(whishlist_itemId));
+    // const savedUser = await user.save();
+    return res.status(201).json({ message: "Whishlist item removed", data: user });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({ success: false, message: "error removing item from whishlist ", error: error });
+  }
+}
