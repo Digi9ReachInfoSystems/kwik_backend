@@ -90,7 +90,7 @@ exports.validateCoupon = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    const coupons = await Coupon.findOne({coupon_code: coupon_code});
+    const coupons = await Coupon.findOne({ coupon_code: coupon_code });
     if (!coupons) {
       return res.status(404).json({ success: false, message: "Coupon not found" });
     }
@@ -174,12 +174,24 @@ exports.validateCoupon = async (req, res) => {
 
 exports.getAllCouponsGroupedByType = async (req, res) => {
   try {
-    const All = await Coupon.find({ coupon_type: "All" })    ;
+    const All = await Coupon.find({ coupon_type: "All" });
     const normal = await Coupon.find({ coupon_type: "normal" });
     const selected = await Coupon.find({ coupon_type: "Selected users" });
     const newuser = await Coupon.find({ coupon_type: "new user" });
     const individual = await Coupon.find({ coupon_type: "individual" });
     return res.status(200).json({ success: true, data: { All, normal, selected, newuser, individual } });
+  } catch (error) {
+    console.error("Error getting coupons by type: ", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.sarchCoupon = async (req, res) => {
+  try {
+    const { coupon_type } = req.params;
+    const { name } = req.query;
+    const coupons = await Coupon.find({ $text: { $search: name } ,coupon_type:coupon_type});
+    res.status(200).json({ success: true, data: coupons });
   } catch (error) {
     console.error("Error getting coupons by type: ", error);
     res.status(500).json({ success: false, message: error.message });
