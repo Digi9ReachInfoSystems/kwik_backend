@@ -37,7 +37,7 @@ exports.createOrder = async (req, res) => {
       delivery_charge,
       selected_time_slot,
     } = req.body;
-
+  console.log(req.body);
     // Validate if the warehouse and user exist
     const warehouse = await Warehouse.findOne({ picode: pincode });
     if (!warehouse) {
