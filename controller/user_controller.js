@@ -1164,3 +1164,12 @@ exports.changeDeliveryBoyDayAvailibilityStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: "Error", error });
   }
 }
+// exports.moveProductFromWhishlistToCart = async (req, res) => {
+//   try {
+
+
+//   } catch (error) {
+//     console.log("error", error);
+//     res.status(500).json({ success: false, message: "error moving item from whishlist to cart ", error: error });
+//   }
+// }
