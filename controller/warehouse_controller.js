@@ -236,6 +236,7 @@ exports.getWarehouseByUID = async (req, res) => {
 exports.getWarehouseStats = async (req, res) => {
   try {
     const { id } = req.query;
+    console.log("query ",req.query);
     let warehouse;
     if (id != 'null') {
       warehouse = await Warehouse.find({ _id: id, isDeleted: false }).exec();
