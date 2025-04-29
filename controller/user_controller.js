@@ -1169,6 +1169,7 @@ exports.changeDeliveryBoyDayAvailibilityStatus = async (req, res) => {
 exports.moveProductFromWhishlistToCart = async (req, res) => {
   try {
     const { whishlist_itemId, user_ref, pincode } = req.body;
+    console.log("req.body", req.body);
     const quantity = 1;
     const user = await User.findOne({ UID: user_ref });
     if (!user) {
