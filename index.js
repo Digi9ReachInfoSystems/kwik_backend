@@ -28,6 +28,11 @@ const orderRouteRoutes = require("./routes/orderRouteRoute");
 const deliveryAssignmentRoutes = require("./routes/deliveryAssignmentRoutes");
 const tempProductRoutes = require("./routes/tempProductRoutes");
 // MongoDB Connection
+// In your main server file (e.g., server.js or app.js)
+const { agenda, startAgenda } = require("./utils/agenda");
+
+startAgenda(); // Start agenda as soon as the app initializes
+
 connectDB();
 // test
 
@@ -43,11 +48,17 @@ app.use(
     // allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
   })
 );
+startAgenda().catch((err) => {
+  console.error("Agenda failed to start", err);
+});
+
+require("./utils/scheduler"); // This will start the cron job
+
 // Middleware to parse JSON body data
 app.use(express.json());
 
 // Apply checkApiKey middleware for all routes (or you can apply it selectively)
-app.use(checkApiKey);
+// app.use(checkApiKey);
 //
 // Use user routes
 app.use("/users", userRoutes);
@@ -72,6 +83,7 @@ app.use("/complaint", complaintsRoutes);
 app.use("/orderRoute", orderRouteRoutes);
 app.use("/deliveryAssignment", deliveryAssignmentRoutes);
 app.use("/tempProduct", tempProductRoutes);
+app.use("/api/v1/notifications", require("./routes/notificationRoutes"));
 const PORT = 3000;
 
 app.listen(PORT, () => {

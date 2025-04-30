@@ -7,7 +7,12 @@ const ApplicationManagement = require("../models/applicationManagementModel");
 const mongoose = require("mongoose");
 const moment = require("moment");
 const axios = require("axios");
-const DBSCAN = require('density-clustering').DBSCAN;
+const DBSCAN = require("density-clustering").DBSCAN;
+const {
+  generateAndSendNotificationNew,
+} = require("../controller/notificationController");
+const Notification = require("../models/notifications_model");
+
 // const haversine = require('haversine-distance');
 // const googleMapsClient = require('@googlemaps/google-maps-services-js').Client;
 // const haversine = require('haversine-distance').default;
@@ -41,12 +46,16 @@ exports.createOrder = async (req, res) => {
     // Validate if the warehouse and user exist
     const warehouse = await Warehouse.findOne({ picode: pincode });
     if (!warehouse) {
-      return res.status(400).json({ success: false, message: "Warehouse not found" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Warehouse not found" });
     }
 
     const userData = await User.findOne({ UID: user_ref });
     if (!userData) {
-      return res.status(400).json({ success: false, message: "Invalid user reference" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid user reference" });
     }
 
     const products = userData.cart_products;
@@ -59,11 +68,18 @@ exports.createOrder = async (req, res) => {
     for (const product of products) {
       const productExists = await Product.exists({ _id: product.product_ref });
       if (!productExists) {
-        return res.status(400).json({ success: false, message: `Product with ID ${product.product_ref} is invalid` });
+        return res.status(400).json({
+          success: false,
+          message: `Product with ID ${product.product_ref} is invalid`,
+        });
       }
       total_amount += Number(product.selling_price * product.quantity);
-      total_saved += Number(product.mrp * product.quantity) - Number(product.selling_price * product.quantity);
-      profit += Number(product.selling_price * product.quantity) - Number(product.buying_price * product.quantity);
+      total_saved +=
+        Number(product.mrp * product.quantity) -
+        Number(product.selling_price * product.quantity);
+      profit +=
+        Number(product.selling_price * product.quantity) -
+        Number(product.buying_price * product.quantity);
     }
     profit -= discount_price;
     // Create a new order object
@@ -85,10 +101,13 @@ exports.createOrder = async (req, res) => {
       payment_id,
       type_of_delivery,
       selected_time_slot,
-      delivery_charge: delivery_charge || type_of_delivery === "tum tum" ? appSettings.delivery_charge_tum_tum : appSettings.delivery_charge,
+      delivery_charge:
+        delivery_charge || type_of_delivery === "tum tum"
+          ? appSettings.delivery_charge_tum_tum
+          : appSettings.delivery_charge,
       handling_charge: appSettings.handling_charge,
       high_demand_charge: appSettings.high_demand_charge,
-      delivery_instructions
+      delivery_instructions,
     });
     // If the order status is out for delivery or completed, you can add timestamps for those statuses
     if (order_status === "Out for delivery") {
@@ -101,6 +120,37 @@ exports.createOrder = async (req, res) => {
     userData.cart_products = [];
     await userData.save();
     await newOrder.save();
+
+    const userref1 = userData._id;
+    const title = "Order Placed Successfully!";
+    const message = `Your order has been successfully placed and is now being processed.`;
+    const redirectUrl = `/orders/${newOrder._id}`;
+    const redirectType = "order"; // This could be dynamic based on your requirements
+    const extraData = { orderId: newOrder._id };
+
+    await Notification.updateMany(
+      {
+        user_ref: userref1,
+        redirect_type: "cart",
+        scheduled_time: { $gte: new Date() },
+        isDeleted: false,
+        isRead: false,
+      },
+      {
+        $set: { isDeleted: true },
+      }
+    );
+
+    // Call the generateAndSendNotification function to send the notification
+    await generateAndSendNotificationNew(
+      title,
+      message,
+      userref1,
+      redirectUrl,
+      null, // Optional: add image URL if needed
+      redirectType,
+      extraData
+    );
 
     // Return success response
     return res.status(201).json({
@@ -118,7 +168,8 @@ exports.createOrder = async (req, res) => {
 };
 exports.getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 })
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
       .exec();
     res.status(200).json({ success: true, data: orders });
@@ -139,33 +190,37 @@ exports.getOrderById = async (req, res) => {
       .populate({
         path: "products.product_ref",
         populate: [
-          { path: "category_ref", model: "Category" },  // Populate category for the product
+          { path: "category_ref", model: "Category" }, // Populate category for the product
           {
             path: "sub_category_ref",
             model: "SubCategory",
-            populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+            populate: { path: "category_ref", model: "Category" }, // Populate category inside sub-category
           },
           { path: "Brand", model: "Brand" },
-        ]
+        ],
       })
       .populate("delivery_boy")
       .exec();
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
     res.status(200).json({ success: true, data: order });
   } catch (error) {
     console.error("Error getting order by ID:", error);
     res.status(500).json({ success: false, message: error.message });
   }
-}
+};
 
 exports.getOrderByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
     const user = await User.findOne({ UID: userId }).sort({ createdAt: -1 });
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
     const orders = await Order.find({ user_ref: user._id })
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
@@ -174,19 +229,21 @@ exports.getOrderByUserId = async (req, res) => {
       .populate({
         path: "products.product_ref",
         populate: [
-          { path: "category_ref", model: "Category" },  // Populate category for the product
+          { path: "category_ref", model: "Category" }, // Populate category for the product
           {
             path: "sub_category_ref",
             model: "SubCategory",
-            populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+            populate: { path: "category_ref", model: "Category" }, // Populate category inside sub-category
           },
           { path: "Brand", model: "Brand" },
-        ]
+        ],
       })
       .populate("delivery_boy")
       .exec();
     if (!orders) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
@@ -201,19 +258,30 @@ exports.updateOrder = async (req, res) => {
     let updates = req.body;
     const order = await Order.findById(id);
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
     updates.order_status = updates.order_status || order.order_status;
     updates.delivery_boy = updates.delivery_boy || order.delivery_boy;
-    updates.out_for_delivery_time = updates.out_for_delivery_time || order.out_for_delivery_time;
+    updates.out_for_delivery_time =
+      updates.out_for_delivery_time || order.out_for_delivery_time;
     updates.completed_time = updates.completed_time || order.completed_time;
     updates.failed_time = updates.failed_time || order.failed_time;
     updates.packing_time = updates.packing_time || order.packing_time;
-    const updatedOrder = await Order.findByIdAndUpdate(id, updates, { new: true });
+    const updatedOrder = await Order.findByIdAndUpdate(id, updates, {
+      new: true,
+    });
     if (!updatedOrder) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
-    res.status(200).json({ success: true, message: "Order updated successfully", data: updatedOrder });
+    res.status(200).json({
+      success: true,
+      message: "Order updated successfully",
+      data: updatedOrder,
+    });
   } catch (error) {
     console.error("Error updating order:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -225,7 +293,9 @@ exports.getOrdersByWarehouse = async (req, res) => {
     const { pincode } = req.params;
     const warehouse = await Warehouse.findOne({ picode: pincode });
     if (!warehouse) {
-      return res.status(404).json({ success: false, message: "Warehouse not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Warehouse not found" });
     }
     const orders = await Order.find({ warehouse_ref: warehouse._id })
       .populate("warehouse_ref")
@@ -233,19 +303,21 @@ exports.getOrdersByWarehouse = async (req, res) => {
       .populate({
         path: "products.product_ref",
         populate: [
-          { path: "category_ref", model: "Category" },  // Populate category for the product
+          { path: "category_ref", model: "Category" }, // Populate category for the product
           {
             path: "sub_category_ref",
             model: "SubCategory",
-            populate: { path: "category_ref", model: "Category" } // Populate category inside sub-category
+            populate: { path: "category_ref", model: "Category" }, // Populate category inside sub-category
           },
           { path: "Brand", model: "Brand" },
-        ]
+        ],
       })
       .populate("delivery_boy")
       .exec();
     if (!orders) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     res.status(200).json({ success: true, data: orders, warehouse: warehouse });
   } catch (error) {
@@ -259,14 +331,19 @@ exports.getWeeklyOrdersByMonthAndYear = async (req, res) => {
     const { month, year } = req.query;
 
     if (!month || !year) {
-      return res.status(400).json({ success: false, message: 'Month and Year are required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Month and Year are required" });
     }
 
     const parsedMonth = parseInt(month, 10);
     const parsedYear = parseInt(year, 10);
 
     if (parsedMonth < 1 || parsedMonth > 12) {
-      return res.status(400).json({ success: false, message: 'Invalid month value. It should be between 1 and 12.' });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid month value. It should be between 1 and 12.",
+      });
     }
 
     const startDate = new Date(parsedYear, parsedMonth - 1, 1);
@@ -285,13 +362,12 @@ exports.getWeeklyOrdersByMonthAndYear = async (req, res) => {
       const weekEnd = new Date(startDate);
       weekEnd.setDate(startDate.getDate() + (week + 1) * 7 - 1);
 
-
       if (weekEnd > endDate) {
         weekEnd.setDate(endDate.getDate());
       }
       const orders = await Order.find({
         completed_time: { $gte: weekStart, $lte: weekEnd },
-        order_status: 'Delivered',
+        order_status: "Delivered",
       }).exec();
       if (orders.length > maxOrderCount) {
         maxOrderCount = orders.length;
@@ -305,84 +381,115 @@ exports.getWeeklyOrdersByMonthAndYear = async (req, res) => {
       });
     }
 
-    res.status(200).json({ success: true, data: weeklyCounts, maxOrderCount: maxOrderCount });
+    res.status(200).json({
+      success: true,
+      data: weeklyCounts,
+      maxOrderCount: maxOrderCount,
+    });
   } catch (error) {
-    console.error('Error fetching weekly orders by month and year:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    console.error("Error fetching weekly orders by month and year:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };
 
 exports.getMonthlyRevenueByYear = async (req, res) => {
   try {
     const { year, warehouseId } = req.query;
-    const startDate = new Date(year, 0, 1);  // Start of the year
-    const endDate = new Date(year, 11, 31, 23, 59, 59, 999);  // End of the year
+    const startDate = new Date(year, 0, 1); // Start of the year
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999); // End of the year
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
-      return res.status(404).json({ success: false, message: "Warehouse not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Warehouse not found" });
     }
 
     const orders = await Order.find({
       completed_time: { $gte: startDate, $lte: endDate },
-      order_status: 'Delivered',
-      warehouse_ref: warehouse._id
+      order_status: "Delivered",
+      warehouse_ref: warehouse._id,
     }).exec();
     let total_amount = 0;
     let maxAmount = 0;
 
     const monthlyRevenue = Array(12).fill(0);
 
-    orders.forEach(order => {
+    orders.forEach((order) => {
       const month = order.completed_time.getMonth();
       monthlyRevenue[month] += order.profit;
-      total_amount += order.profit
-
+      total_amount += order.profit;
     });
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
 
     const responseData = monthlyRevenue.map((revenue, index) => {
       if (revenue > maxAmount) {
         maxAmount = revenue;
       }
-      return ({
+      return {
         month: months[index],
-        revenue: revenue
-      })
+        revenue: revenue,
+      };
     });
 
-
-    res.status(200).json({ success: true, data: responseData, total_Revenue: total_amount, MaxAmount: (maxAmount * 1.2) });
+    res.status(200).json({
+      success: true,
+      data: responseData,
+      total_Revenue: total_amount,
+      MaxAmount: maxAmount * 1.2,
+    });
   } catch (error) {
-    console.error('Error fetching monthly revenue by year:', error);
-    res.status(500).json({ success: false, message: 'Error fetching data' });
+    console.error("Error fetching monthly revenue by year:", error);
+    res.status(500).json({ success: false, message: "Error fetching data" });
   }
 };
 
 exports.getOrderByWarehouseAndStatus = async (req, res) => {
   try {
     const { warehouse_id, order_status } = req.params;
-    const orders = await Order.find({ warehouse_ref: warehouse_id, order_status: order_status })
+    const orders = await Order.find({
+      warehouse_ref: warehouse_id,
+      order_status: order_status,
+    })
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
       .exec();
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
-    console.error('Error fetching orders by warehouse ID and status:', error);
-    res.status(500).json({ success: false, message: 'Error fetching data' });
+    console.error("Error fetching orders by warehouse ID and status:", error);
+    res.status(500).json({ success: false, message: "Error fetching data" });
   }
-}
+};
 
 exports.getOrdersByWarehouseId = async (req, res) => {
   try {
     const { warehouse_id } = req.params;
     const warehouse = await Warehouse.findById(warehouse_id);
     if (!warehouse) {
-      return res.status(404).json({ success: false, message: "Warehouse not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Warehouse not found" });
     }
     const orders = await Order.find({ warehouse_ref: warehouse._id })
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
       .exec();
     if (!orders) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
@@ -398,31 +505,45 @@ exports.deleteOrderById = async (req, res) => {
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
       .exec();
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
-    res.status(200).json({ success: true, message: "Order deleted successfully", data: order });
+    res.status(200).json({
+      success: true,
+      message: "Order deleted successfully",
+      data: order,
+    });
   } catch (error) {
     console.error("Error deleting order by ID:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
 exports.getDeliveredOrderByWarehouseId = async (req, res) => {
   try {
     const { warehouseId } = req.params;
     if (!warehouseId) {
-      return res.status(400).json({ success: false, message: "warehouseId is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "warehouseId is required" });
     }
-    const orders = await Order.find({ warehouse_ref: warehouseId, order_status: "Delivered" }).populate("warehouse_ref user_ref products.product_ref").exec();
+    const orders = await Order.find({
+      warehouse_ref: warehouseId,
+      order_status: "Delivered",
+    })
+      .populate("warehouse_ref user_ref products.product_ref")
+      .exec();
     if (!orders) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-}
+};
 
 exports.getOrdersByStatus = async (req, res) => {
   try {
@@ -431,10 +552,14 @@ exports.getOrdersByStatus = async (req, res) => {
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
       .exec();
     if (!orders) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     if (orders.length === 0) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
@@ -448,39 +573,50 @@ exports.getOrderStatsByWareHouseYear = async (req, res) => {
     const { warehouseId, year, month } = req.query;
 
     if (!warehouseId || !year) {
-      return res.status(400).json({ success: false, message: "Warehouse ID and year are required" });
+      return res.status(400).json({
+        success: false,
+        message: "Warehouse ID and year are required",
+      });
     }
-
 
     const query = {
       warehouse_ref: warehouseId,
       order_status: "Delivered",
       order_placed_time: {
         $gte: new Date(`${year}-01-01T00:00:00Z`),
-        $lt: new Date(`${parseInt(year) + 1}-01-01T00:00:00Z`),  // Start of the next year
+        $lt: new Date(`${parseInt(year) + 1}-01-01T00:00:00Z`), // Start of the next year
       },
     };
 
     if (month) {
-
       if (parseInt(month) < 1 || parseInt(month) > 12) {
-        return res.status(400).json({ success: false, message: "Invalid month. Please provide a month between 1 and 12." });
+        return res.status(400).json({
+          success: false,
+          message: "Invalid month. Please provide a month between 1 and 12.",
+        });
       }
 
-      const startOfMonth = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`); // Ensure two-digit month
-      const endOfMonth = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`);
+      const startOfMonth = new Date(
+        `${year}-${String(month).padStart(2, "0")}-01T00:00:00Z`
+      ); // Ensure two-digit month
+      const endOfMonth = new Date(
+        `${year}-${String(month).padStart(2, "0")}-01T00:00:00Z`
+      );
       endOfMonth.setMonth(endOfMonth.getMonth() + 1);
       if (isNaN(startOfMonth) || isNaN(endOfMonth)) {
-        return res.status(400).json({ success: false, message: "Invalid date provided for the month." });
+        return res.status(400).json({
+          success: false,
+          message: "Invalid date provided for the month.",
+        });
       }
 
       query.order_placed_time = { $gte: startOfMonth, $lt: endOfMonth };
     }
 
-    const result1 = await Order.find(
-      query,
-    )
-    let groupBy = month ? { $dayOfMonth: "$order_placed_time" } : { $month: "$order_placed_time" };
+    const result1 = await Order.find(query);
+    let groupBy = month
+      ? { $dayOfMonth: "$order_placed_time" }
+      : { $month: "$order_placed_time" };
     // const result = await Order.aggregate([
     //   // {
     //   //   $match:
@@ -502,7 +638,7 @@ exports.getOrderStatsByWareHouseYear = async (req, res) => {
       if (month) {
         key = new Date(order.order_placed_time).getDate();
       } else {
-        key = new Date(order.order_placed_time).getMonth() + 1;  // JavaScript months are 0-indexed
+        key = new Date(order.order_placed_time).getMonth() + 1; // JavaScript months are 0-indexed
       }
 
       if (!acc[key]) {
@@ -536,7 +672,20 @@ exports.getOrderStatsByWareHouseYear = async (req, res) => {
         });
       }
     } else {
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
       for (let i = 1; i <= 12; i++) {
         if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
           maxTotalAmount = aggregatedResult[i]?.totalAmount;
@@ -554,20 +703,26 @@ exports.getOrderStatsByWareHouseYear = async (req, res) => {
     }
     if (!result || result.length === 0) {
       return res.status(404).json({
-        success: false, message: "No orders found for the given criteria",
+        success: false,
+        message: "No orders found for the given criteria",
         data: result,
-        maxXAxis: maxTotalAmount > maxTotalProfit ? (maxTotalAmount + (maxTotalAmount * 0.2)) : (maxTotalProfit + (maxTotalProfit * 0.2)),
+        maxXAxis:
+          maxTotalAmount > maxTotalProfit
+            ? maxTotalAmount + maxTotalAmount * 0.2
+            : maxTotalProfit + maxTotalProfit * 0.2,
         maxYAxis: month ? result[result.length - 1]._id : 12,
       });
     }
 
     return res.status(200).json({
       success: true,
-      maxXAxis: maxTotalAmount > maxTotalProfit ? (maxTotalAmount + (maxTotalAmount * 0.2)) : (maxTotalProfit + (maxTotalProfit * 0.2)),
+      maxXAxis:
+        maxTotalAmount > maxTotalProfit
+          ? maxTotalAmount + maxTotalAmount * 0.2
+          : maxTotalProfit + maxTotalProfit * 0.2,
       maxYAxis: month ? result[result.length - 1]._id : 12,
       data: result,
     });
-
   } catch (error) {
     console.error("Error fetching order stats:", error);
     return res.status(500).json({ success: false, message: "Server error" });
@@ -578,39 +733,49 @@ exports.getOrderStatsByYear = async (req, res) => {
     const { year, month } = req.query;
 
     if (!year) {
-      return res.status(400).json({ success: false, message: "year is  required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "year is  required" });
     }
-
 
     const query = {
       // warehouse_ref: warehouseId,
       order_status: "Delivered",
       order_placed_time: {
         $gte: new Date(`${year}-01-01T00:00:00Z`),
-        $lt: new Date(`${parseInt(year) + 1}-01-01T00:00:00Z`),  // Start of the next year
+        $lt: new Date(`${parseInt(year) + 1}-01-01T00:00:00Z`), // Start of the next year
       },
     };
 
     if (month) {
-
       if (parseInt(month) < 1 || parseInt(month) > 12) {
-        return res.status(400).json({ success: false, message: "Invalid month. Please provide a month between 1 and 12." });
+        return res.status(400).json({
+          success: false,
+          message: "Invalid month. Please provide a month between 1 and 12.",
+        });
       }
 
-      const startOfMonth = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`); // Ensure two-digit month
-      const endOfMonth = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`);
+      const startOfMonth = new Date(
+        `${year}-${String(month).padStart(2, "0")}-01T00:00:00Z`
+      ); // Ensure two-digit month
+      const endOfMonth = new Date(
+        `${year}-${String(month).padStart(2, "0")}-01T00:00:00Z`
+      );
       endOfMonth.setMonth(endOfMonth.getMonth() + 1);
       if (isNaN(startOfMonth) || isNaN(endOfMonth)) {
-        return res.status(400).json({ success: false, message: "Invalid date provided for the month." });
+        return res.status(400).json({
+          success: false,
+          message: "Invalid date provided for the month.",
+        });
       }
 
       query.order_placed_time = { $gte: startOfMonth, $lt: endOfMonth };
     }
 
-    const result1 = await Order.find(
-      query,
-    )
-    let groupBy = month ? { $dayOfMonth: "$order_placed_time" } : { $month: "$order_placed_time" };
+    const result1 = await Order.find(query);
+    let groupBy = month
+      ? { $dayOfMonth: "$order_placed_time" }
+      : { $month: "$order_placed_time" };
     // const result = await Order.aggregate([
     //   // {
     //   //   $match:
@@ -632,7 +797,7 @@ exports.getOrderStatsByYear = async (req, res) => {
       if (month) {
         key = new Date(order.order_placed_time).getDate();
       } else {
-        key = new Date(order.order_placed_time).getMonth() + 1;  // JavaScript months are 0-indexed
+        key = new Date(order.order_placed_time).getMonth() + 1; // JavaScript months are 0-indexed
       }
 
       if (!acc[key]) {
@@ -666,7 +831,20 @@ exports.getOrderStatsByYear = async (req, res) => {
         });
       }
     } else {
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
       for (let i = 1; i <= 12; i++) {
         if (aggregatedResult[i]?.totalAmount > maxTotalAmount) {
           maxTotalAmount = aggregatedResult[i]?.totalAmount;
@@ -684,20 +862,26 @@ exports.getOrderStatsByYear = async (req, res) => {
     }
     if (!result || result.length === 0) {
       return res.status(404).json({
-        success: false, message: "No orders found for the given criteria",
+        success: false,
+        message: "No orders found for the given criteria",
         data: result,
-        maxXAxis: maxTotalAmount > maxTotalProfit ? (maxTotalAmount + (maxTotalAmount * 0.2)) : (maxTotalProfit + (maxTotalProfit * 0.2)),
+        maxXAxis:
+          maxTotalAmount > maxTotalProfit
+            ? maxTotalAmount + maxTotalAmount * 0.2
+            : maxTotalProfit + maxTotalProfit * 0.2,
         maxYAxis: month ? result[result.length - 1]._id : 12,
       });
     }
 
     return res.status(200).json({
       success: true,
-      maxXAxis: maxTotalAmount > maxTotalProfit ? (maxTotalAmount + (maxTotalAmount * 0.2)) : (maxTotalProfit + (maxTotalProfit * 0.2)),
+      maxXAxis:
+        maxTotalAmount > maxTotalProfit
+          ? maxTotalAmount + maxTotalAmount * 0.2
+          : maxTotalProfit + maxTotalProfit * 0.2,
       maxYAxis: month ? result[result.length - 1]._id : 12,
       data: result,
     });
-
   } catch (error) {
     console.error("Error fetching order stats:", error);
     return res.status(500).json({ success: false, message: "Server error" });
@@ -707,9 +891,13 @@ exports.getOrderStatsByYear = async (req, res) => {
 exports.getWeeklyDeliveredOrderCount = async (req, res) => {
   const { year, month, warehouseId } = req.query;
   try {
-    const startDate = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`);
+    const startDate = new Date(
+      `${year}-${String(month).padStart(2, "0")}-01T00:00:00Z`
+    );
     const endDate = new Date(year, month, 1);
-    const totalWeeks = Math.ceil((endDate.getDate() - startDate.getDate() + 1) / 7);
+    const totalWeeks = Math.ceil(
+      (endDate.getDate() - startDate.getDate() + 1) / 7
+    );
     const pipeline = [
       {
         $match: {
@@ -718,7 +906,9 @@ exports.getWeeklyDeliveredOrderCount = async (req, res) => {
             $gte: startDate,
             $lt: endDate,
           },
-          ...(warehouseId && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
+          ...(warehouseId && {
+            warehouse_ref: new mongoose.Types.ObjectId(warehouseId),
+          }),
         },
       },
       {
@@ -744,13 +934,15 @@ exports.getWeeklyDeliveredOrderCount = async (req, res) => {
       },
     ];
 
-
     const result = await Order.aggregate(pipeline);
-
 
     let weekCounts = [];
     let maxXAxis = 0;
-    for (let i = getISOWeek(startDate), j = 1; i <= getISOWeek(endDate); i++, j++) {
+    for (
+      let i = getISOWeek(startDate), j = 1;
+      i <= getISOWeek(endDate);
+      i++, j++
+    ) {
       const weekData = result.find((item) => item.week === i);
       if (weekData && weekData.count > maxXAxis) {
         maxXAxis = weekData.count;
@@ -759,15 +951,24 @@ exports.getWeeklyDeliveredOrderCount = async (req, res) => {
     }
 
     if (!result || result.length === 0) {
-      return res.status(404).json({ success: false, message: "No orders found for the given criteria", data: weekCounts });
+      return res.status(404).json({
+        success: false,
+        message: "No orders found for the given criteria",
+        data: weekCounts,
+      });
     }
 
-    return res.status(200).json({ success: true, maxXAxis: (maxXAxis + 5), maxYAxis: weekCounts[weekCounts.length - 1].week, data: weekCounts, });
+    return res.status(200).json({
+      success: true,
+      maxXAxis: maxXAxis + 5,
+      maxYAxis: weekCounts[weekCounts.length - 1].week,
+      data: weekCounts,
+    });
   } catch (error) {
     console.error("Error fetching order stats:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
-}
+};
 
 exports.searchOrderBycustomerName = async (req, res) => {
   const { name } = req.query;
@@ -777,21 +978,35 @@ exports.searchOrderBycustomerName = async (req, res) => {
   }
 
   try {
-    const users = await User.find({ displayName: { $regex: `${name}`, $options: "i" } });
+    const users = await User.find({
+      displayName: { $regex: `${name}`, $options: "i" },
+    });
     if (!users) {
-      return res.status(404).json({ sucess: false, message: "Users not found" });
+      return res
+        .status(404)
+        .json({ sucess: false, message: "Users not found" });
     }
-    const userIds = users.map(user => user._id);
-    const orders = await Order.find({ user_ref: { $in: userIds } }).populate('user_ref delivery_boy');
+    const userIds = users.map((user) => user._id);
+    const orders = await Order.find({ user_ref: { $in: userIds } }).populate(
+      "user_ref delivery_boy"
+    );
 
     if (orders.length === 0) {
-      return res.status(404).json({ success: false, message: "No Orders found", data: orders });
+      return res
+        .status(404)
+        .json({ success: false, message: "No Orders found", data: orders });
     }
 
-    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orders });
+    return res.status(200).json({
+      success: true,
+      message: "orders retrieved successfully",
+      data: orders,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -804,104 +1019,146 @@ exports.searchOrderByWarehouseCustomerName = async (req, res) => {
   }
 
   try {
-    const users = await User.find({ displayName: { $regex: `${name}`, $options: "i" } });
+    const users = await User.find({
+      displayName: { $regex: `${name}`, $options: "i" },
+    });
     if (!users) {
-      return res.status(404).json({ sucess: false, message: "Users not found" });
+      return res
+        .status(404)
+        .json({ sucess: false, message: "Users not found" });
     }
-    const userIds = users.map(user => user._id);
-    const orders = await Order.find({ user_ref: { $in: userIds }, warehouse_ref: warehouseId }).populate('user_ref delivery_boy');
+    const userIds = users.map((user) => user._id);
+    const orders = await Order.find({
+      user_ref: { $in: userIds },
+      warehouse_ref: warehouseId,
+    }).populate("user_ref delivery_boy");
 
     if (orders.length === 0) {
-      return res.status(404).json({ success: false, message: "No Orders found", data: orders });
+      return res
+        .status(404)
+        .json({ success: false, message: "No Orders found", data: orders });
     }
 
-    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orders });
+    return res.status(200).json({
+      success: true,
+      message: "orders retrieved successfully",
+      data: orders,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
 exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
   try {
     const { year, warehouseId } = req.query;
-    const startDate = new Date(year, 0, 1);  // Start of the year
-    const endDate = new Date(year, 11, 31, 23, 59, 59, 999);  // End of the year
+    const startDate = new Date(year, 0, 1); // Start of the year
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999); // End of the year
     const orders = await Order.find({
       completed_time: { $gte: startDate, $lte: endDate },
-      order_status: 'Delivered',
-      ...(warehouseId && { warehouse_ref: new mongoose.Types.ObjectId(warehouseId) }),
+      order_status: "Delivered",
+      ...(warehouseId && {
+        warehouse_ref: new mongoose.Types.ObjectId(warehouseId),
+      }),
     }).exec();
     let total_amount = 0;
     let maxAmount = 0;
 
     const monthlyRevenue = Array(12).fill(0);
 
-    orders.forEach(order => {
+    orders.forEach((order) => {
       const month = order.completed_time.getMonth();
       monthlyRevenue[month] += order.total_amount;
-      total_amount += order.total_amount
-
+      total_amount += order.total_amount;
     });
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
 
     const responseData = monthlyRevenue.map((revenue, index) => {
       if (revenue > maxAmount) {
         maxAmount = revenue;
       }
-      return ({
+      return {
         month: months[index],
-        revenue: revenue
-      })
+        revenue: revenue,
+      };
     });
 
-
-    res.status(200).json({ success: true, data: responseData, total_Revenue: total_amount, MaxAmount: (maxAmount * 1.2) });
+    res.status(200).json({
+      success: true,
+      data: responseData,
+      total_Revenue: total_amount,
+      MaxAmount: maxAmount * 1.2,
+    });
   } catch (error) {
-    console.error('Error fetching monthly revenue by year:', error);
-    res.status(500).json({ success: false, message: 'Error fetching data' });
+    console.error("Error fetching monthly revenue by year:", error);
+    res.status(500).json({ success: false, message: "Error fetching data" });
   }
 };
 
-
 exports.getRecentOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ created_time: -1 }).limit(10)
+    const orders = await Order.find()
+      .sort({ created_time: -1 })
+      .limit(10)
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
       .exec();
     if (!orders) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     if (orders.length === 0) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
-}
+};
 exports.getMonthlyOrderCount = async (req, res) => {
   try {
     const { year, warehouseId } = req.query;
     const filter = {};
     if (!year) {
-      return res.status(400).json({ success: false, message: "Year is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Year is required" });
     }
 
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
     filter.order_placed_time = { $gte: startDate, $lte: endDate };
     if (warehouseId) {
-      filter.warehouse_ref = warehouseId
+      filter.warehouse_ref = warehouseId;
     }
-    filter.order_status = 'Delivered';
+    filter.order_status = "Delivered";
 
     const orders = await Order.find(filter).exec();
     const orderCounts = new Array(12).fill(0);
     const finalOrders = [];
 
-    orders.forEach(order => {
+    orders.forEach((order) => {
       const month = order.created_time.getMonth();
       orderCounts[month]++;
     });
@@ -909,14 +1166,16 @@ exports.getMonthlyOrderCount = async (req, res) => {
     for (let i = 0; i < orderCounts.length; i++) {
       finalOrders.push({
         month: i + 1,
-        count: orderCounts[i]
+        count: orderCounts[i],
       });
     }
 
     res.status(200).json({ success: true, data: finalOrders });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -952,9 +1211,9 @@ exports.getTopSellingProducts = async (req, res) => {
       { $limit: 10 },
       {
         $lookup: {
-          from: "products",            // MongoDB collection name for Product
-          localField: "_id",           // _id from the group (product_ref)
-          foreignField: "_id",         // matches Product's _id
+          from: "products", // MongoDB collection name for Product
+          localField: "_id", // _id from the group (product_ref)
+          foreignField: "_id", // matches Product's _id
           as: "productDetails",
         },
       },
@@ -981,9 +1240,10 @@ exports.getTopSellingProducts = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching top selling products:", error);
-    return res
-      .status(500)
-      .json({ message: "Error fetching top selling products", error: error.message });
+    return res.status(500).json({
+      message: "Error fetching top selling products",
+      error: error.message,
+    });
   }
 };
 
@@ -992,24 +1252,34 @@ exports.getRecentOrdersBywarehouseId = async (req, res) => {
     const { warehouseId } = req.params;
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
-      return res.status(404).json({ success: false, message: "Warehouse not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Warehouse not found" });
     }
 
-    const orders = await Order.find({ warehouse_ref: warehouse._id }).sort({ created_time: -1 }).limit(10)
+    const orders = await Order.find({ warehouse_ref: warehouse._id })
+      .sort({ created_time: -1 })
+      .limit(10)
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
       .exec();
     if (!orders) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     if (orders.length === 0) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
-}
+};
 exports.searchOrderBycustomerNameStatus = async (req, res) => {
   const { name } = req.query;
   const { status, warehouseId } = req.params;
@@ -1019,21 +1289,37 @@ exports.searchOrderBycustomerNameStatus = async (req, res) => {
   }
 
   try {
-    const users = await User.find({ displayName: { $regex: `${name}`, $options: "i" } });
+    const users = await User.find({
+      displayName: { $regex: `${name}`, $options: "i" },
+    });
     if (!users) {
-      return res.status(404).json({ sucess: false, message: "Users not found" });
+      return res
+        .status(404)
+        .json({ sucess: false, message: "Users not found" });
     }
-    const userIds = users.map(user => user._id);
-    const orders = await Order.find({ user_ref: { $in: userIds }, order_status: status, warehouse_ref: warehouseId }).populate('user_ref', 'displayName');
+    const userIds = users.map((user) => user._id);
+    const orders = await Order.find({
+      user_ref: { $in: userIds },
+      order_status: status,
+      warehouse_ref: warehouseId,
+    }).populate("user_ref", "displayName");
 
     if (orders.length === 0) {
-      return res.status(404).json({ success: false, message: "No Orders found", data: orders });
+      return res
+        .status(404)
+        .json({ success: false, message: "No Orders found", data: orders });
     }
 
-    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orders });
+    return res.status(200).json({
+      success: true,
+      message: "orders retrieved successfully",
+      data: orders,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
@@ -1043,17 +1329,31 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
 
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
-      return res.status(404).json({ success: false, message: "Warehouse not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Warehouse not found" });
     }
     let timeFilter;
 
-    if (time != 'null') {
+    if (time != "null") {
       // If time is passed, set the time range for that specific hour
       timeFilter = {
         $match: {
           selected_time_slot: {
-            $gte: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate(),
-            $lt: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").endOf('hour').local().toDate(),
+            $gte: moment(
+              `${moment().format("YYYY-MM-DD")} ${time}`,
+              "YYYY-MM-DD h:mm A"
+            )
+              .startOf("hour")
+              .local()
+              .toDate(),
+            $lt: moment(
+              `${moment().format("YYYY-MM-DD")} ${time}`,
+              "YYYY-MM-DD h:mm A"
+            )
+              .endOf("hour")
+              .local()
+              .toDate(),
           },
         },
       };
@@ -1061,8 +1361,8 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       timeFilter = {
         $match: {
           selected_time_slot: {
-            $gte: moment().startOf('day').local().toDate(),  // Start of the current day (00:00 AM)
-            $lt: moment().endOf('day').local().toDate(),    // End of the current day (11:59 PM)
+            $gte: moment().startOf("day").local().toDate(), // Start of the current day (00:00 AM)
+            $lt: moment().endOf("day").local().toDate(), // End of the current day (11:59 PM)
           },
         },
       };
@@ -1090,34 +1390,34 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
         $lookup: {
           from: "products",
           localField: "products.product_ref", // Field(s) in this Order doc
-          foreignField: "_id",                // Field in the Product collection
-          as: "populatedProducts",            // Temporarily store them here
+          foreignField: "_id", // Field in the Product collection
+          as: "populatedProducts", // Temporarily store them here
         },
       },
       // Lookup to populate warehouse_ref from Warehouse collection
       {
         $lookup: {
           from: "warehouses",
-          localField: "warehouse_ref",        // Reference to warehouse
-          foreignField: "_id",                // Match on warehouse _id
-          as: "warehouse_ref",                // Store result here
+          localField: "warehouse_ref", // Reference to warehouse
+          foreignField: "_id", // Match on warehouse _id
+          as: "warehouse_ref", // Store result here
         },
       },
       // Lookup to populate user_ref from User collection
       {
         $lookup: {
           from: "users",
-          localField: "user_ref",             // Reference to user
-          foreignField: "_id",                // Match on user _id
-          as: "user_ref",                     // Store result here
+          localField: "user_ref", // Reference to user
+          foreignField: "_id", // Match on user _id
+          as: "user_ref", // Store result here
         },
       },
       {
         $lookup: {
           from: "users",
-          localField: "delivery_boy",         // Reference to delivery_boy
-          foreignField: "_id",                // Match on user _id
-          as: "delivery_boy",                 // Store result here
+          localField: "delivery_boy", // Reference to delivery_boy
+          foreignField: "_id", // Match on user _id
+          as: "delivery_boy", // Store result here
         },
       },
       // Re-map the products array so each product_ref is a single Product doc
@@ -1140,7 +1440,12 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
                           $filter: {
                             input: "$populatedProducts",
                             as: "popProd",
-                            cond: { $eq: ["$$oneProduct.product_ref", "$$popProd._id"] },
+                            cond: {
+                              $eq: [
+                                "$$oneProduct.product_ref",
+                                "$$popProd._id",
+                              ],
+                            },
                           },
                         },
                         0,
@@ -1193,14 +1498,16 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
     ]);
 
     if (!orders) {
-      return res.status(404).json({ success: false, message: "Orders not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
     }
     res.status(200).json({ success: true, data: orders });
   } catch (error) {
     console.error("Error getting orders by warehouse ID:", error);
     res.status(500).json({ success: false, message: error.message });
   }
-}
+};
 exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
   const { name, time } = req.query;
   const { warehouseId, delivery_type } = req.params;
@@ -1210,13 +1517,25 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
   }
   let timeFilter;
 
-  if (time != 'null') {
+  if (time != "null") {
     // If time is passed, set the time range for that specific hour
     timeFilter = {
       $match: {
         selected_time_slot: {
-          $gte: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").startOf('hour').local().toDate(),
-          $lt: moment(`${moment().format('YYYY-MM-DD')} ${time}`, "YYYY-MM-DD h:mm A").endOf('hour').local().toDate(),
+          $gte: moment(
+            `${moment().format("YYYY-MM-DD")} ${time}`,
+            "YYYY-MM-DD h:mm A"
+          )
+            .startOf("hour")
+            .local()
+            .toDate(),
+          $lt: moment(
+            `${moment().format("YYYY-MM-DD")} ${time}`,
+            "YYYY-MM-DD h:mm A"
+          )
+            .endOf("hour")
+            .local()
+            .toDate(),
         },
       },
     };
@@ -1224,8 +1543,8 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
     timeFilter = {
       $match: {
         selected_time_slot: {
-          $gte: moment().startOf('day').local().toDate(),  // Start of the current day (00:00 AM)
-          $lt: moment().endOf('day').local().toDate(),    // End of the current day (11:59 PM)
+          $gte: moment().startOf("day").local().toDate(), // Start of the current day (00:00 AM)
+          $lt: moment().endOf("day").local().toDate(), // End of the current day (11:59 PM)
         },
       },
     };
@@ -1234,13 +1553,19 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
   try {
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
-      return res.status(404).json({ success: false, message: "Warehouse not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Warehouse not found" });
     }
-    const users = await User.find({ displayName: { $regex: `${name}`, $options: "i" } });
+    const users = await User.find({
+      displayName: { $regex: `${name}`, $options: "i" },
+    });
     if (!users) {
-      return res.status(404).json({ sucess: false, message: "Users not found" });
+      return res
+        .status(404)
+        .json({ sucess: false, message: "Users not found" });
     }
-    const userIds = users.map(user => user._id);
+    const userIds = users.map((user) => user._id);
     // let orders = await Order.find({ user_ref: { $in: userIds }, warehouse_ref: warehouseId, type_of_delivery: delivery_type }).populate('user_ref', 'displayName');
     // if (orders.length === 0) {
     //   return res.status(404).json({ success: false, message: "No Orders found", data: orders });
@@ -1268,34 +1593,34 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
         $lookup: {
           from: "products",
           localField: "products.product_ref", // Field(s) in this Order doc
-          foreignField: "_id",                // Field in the Product collection
-          as: "populatedProducts",            // Temporarily store them here
+          foreignField: "_id", // Field in the Product collection
+          as: "populatedProducts", // Temporarily store them here
         },
       },
       // Lookup to populate warehouse_ref from Warehouse collection
       {
         $lookup: {
           from: "warehouses",
-          localField: "warehouse_ref",        // Reference to warehouse
-          foreignField: "_id",                // Match on warehouse _id
-          as: "warehouse_ref",                // Store result here
+          localField: "warehouse_ref", // Reference to warehouse
+          foreignField: "_id", // Match on warehouse _id
+          as: "warehouse_ref", // Store result here
         },
       },
       // Lookup to populate user_ref from User collection
       {
         $lookup: {
           from: "users",
-          localField: "user_ref",             // Reference to user
-          foreignField: "_id",                // Match on user _id
-          as: "user_ref",                     // Store result here
+          localField: "user_ref", // Reference to user
+          foreignField: "_id", // Match on user _id
+          as: "user_ref", // Store result here
         },
       },
       {
         $lookup: {
           from: "users",
-          localField: "delivery_boy",         // Reference to delivery_boy
-          foreignField: "_id",                // Match on user _id
-          as: "delivery_boy",                 // Store result here
+          localField: "delivery_boy", // Reference to delivery_boy
+          foreignField: "_id", // Match on user _id
+          as: "delivery_boy", // Store result here
         },
       },
       // Re-map the products array so each product_ref is a single Product doc
@@ -1318,7 +1643,12 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
                           $filter: {
                             input: "$populatedProducts",
                             as: "popProd",
-                            cond: { $eq: ["$$oneProduct.product_ref", "$$popProd._id"] },
+                            cond: {
+                              $eq: [
+                                "$$oneProduct.product_ref",
+                                "$$popProd._id",
+                              ],
+                            },
                           },
                         },
                         0,
@@ -1370,10 +1700,16 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       },
     ]);
 
-    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orders });
+    return res.status(200).json({
+      success: true,
+      message: "orders retrieved successfully",
+      data: orders,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 exports.getWarehouseUserCounts = async (req, res) => {
@@ -1381,29 +1717,43 @@ exports.getWarehouseUserCounts = async (req, res) => {
     const warehouseId = req.params.warehouseId;
     const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
-      return res.status(404).json({ success: false, message: "Warehouse not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Warehouse not found" });
     }
-    const users = await User.find({ isUser: true, current_pincode: { $in: warehouse.picode } }).exec();
-    const userIds = users.map(user => user._id);
-    const orderDetails = await Promise.all(userIds.map(async (userId) => {
+    const users = await User.find({
+      isUser: true,
+      current_pincode: { $in: warehouse.picode },
+    }).exec();
+    const userIds = users.map((user) => user._id);
+    const orderDetails = await Promise.all(
+      userIds.map(async (userId) => {
+        const orders = await Order.find({
+          warehouse_ref: new mongoose.Types.ObjectId(warehouseId),
+          user_ref: userId,
+        }).exec();
+        const user = await User.findById(userId);
 
-      const orders = await Order.find({ warehouse_ref: new mongoose.Types.ObjectId(warehouseId), user_ref: userId }).exec();
-      const user = await User.findById(userId);
+        return {
+          user: user,
+          orders: orders,
+          numberOfOrders: orders.length,
+        };
+      })
+    );
 
-      return {
-        user: user,
-        orders: orders,
-        numberOfOrders: orders.length,
-      };
-    }))
-
-    return res.status(200).json({ success: true, message: "orders retrieved successfully", data: orderDetails });
+    return res.status(200).json({
+      success: true,
+      message: "orders retrieved successfully",
+      data: orderDetails,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
-
 
 // function clusterRoutes(sourceLat, sourceLon, destinations, epsilonMeters = 7000) {
 //   if (!destinations || destinations.length === 0) {
@@ -1469,7 +1819,6 @@ exports.getWarehouseUserCounts = async (req, res) => {
 //               })
 //               .then((r) => r.data);
 
-
 //             const directionsCurrentPromise = client
 //               .directions({
 //                 params: {
@@ -1495,7 +1844,6 @@ exports.getWarehouseUserCounts = async (req, res) => {
 //               if (response.data.status === 'OK') {
 //                 distance = response.data.routes[0].legs[0].distance.value;
 //               }
-
 
 //               // haversine(
 //               //     { latitude: endLocationRep.lat, longitude: endLocationRep.lng },
@@ -1531,10 +1879,17 @@ exports.groupRoutesController = async (req, res) => {
   try {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
-    const { sourceLatitude, sourceLongitude, destinations, toleranceDistance } = req.body;
+    const { sourceLatitude, sourceLongitude, destinations, toleranceDistance } =
+      req.body;
 
-    if (!sourceLatitude || !sourceLongitude || !Array.isArray(destinations) || destinations.length === 0 || toleranceDistance === undefined) {
-      return res.status(400).json({ error: 'Invalid request parameters.' });
+    if (
+      !sourceLatitude ||
+      !sourceLongitude ||
+      !Array.isArray(destinations) ||
+      destinations.length === 0 ||
+      toleranceDistance === undefined
+    ) {
+      return res.status(400).json({ error: "Invalid request parameters." });
     }
     let distanceSource = [];
     for (const destination of destinations) {
@@ -1548,22 +1903,29 @@ exports.groupRoutesController = async (req, res) => {
         distance: response.data.routes[0].legs[0].distance.value,
         // geocoded_waypoints: response.data.geocoded_waypoints,
         // legs: response.data.routes[0].legs,
-        allocated: false
+        allocated: false,
       });
     }
-    let unallocatedItems = distanceSource.filter(item => !item.allocated);
-    const closestUnallocated = unallocatedItems.length > 0
-      ? unallocatedItems.reduce((closest, current) =>
-        current.distance < closest.distance ? current : closest
-      )
-      : null;
+    let unallocatedItems = distanceSource.filter((item) => !item.allocated);
+    const closestUnallocated =
+      unallocatedItems.length > 0
+        ? unallocatedItems.reduce((closest, current) =>
+            current.distance < closest.distance ? current : closest
+          )
+        : null;
     closestUnallocated.allocated = true;
     const routes = [[closestUnallocated]];
 
-    unallocatedItems = distanceSource.filter(item => !item.allocated);
+    unallocatedItems = distanceSource.filter((item) => !item.allocated);
     while (unallocatedItems.length !== 0) {
-      let lastRoute = routes[routes.length - 1][routes[routes.length - 1].length - 1];
-      console.log("loop 1 lastRoute", lastRoute, "unallocatedItems", unallocatedItems)
+      let lastRoute =
+        routes[routes.length - 1][routes[routes.length - 1].length - 1];
+      console.log(
+        "loop 1 lastRoute",
+        lastRoute,
+        "unallocatedItems",
+        unallocatedItems
+      );
       let routeDistances = [];
       for (const item of unallocatedItems) {
         const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${lastRoute.latitude},${lastRoute.longitude}&destination=${item.latitude},${item.longitude}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
@@ -1572,36 +1934,55 @@ exports.groupRoutesController = async (req, res) => {
           latitude: item.latitude,
           longitude: item.longitude,
           distance: response.data.routes[0].legs[0].distance.value,
-          allocated: false
+          allocated: false,
         });
       }
-      const closestUnallocated = routeDistances.length > 0
-        ? routeDistances.reduce((closest, current) =>
-          current.distance < closest.distance ? current : closest
-        )
-        : null;
+      const closestUnallocated =
+        routeDistances.length > 0
+          ? routeDistances.reduce((closest, current) =>
+              current.distance < closest.distance ? current : closest
+            )
+          : null;
       closestUnallocated.allocated = true;
-      routeDistances = routeDistances.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
-      distanceSource.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
+      routeDistances = routeDistances.find(
+        (item) =>
+          item.latitude === closestUnallocated.latitude &&
+          item.longitude === closestUnallocated.longitude
+      ).allocated = true;
+      distanceSource.find(
+        (item) =>
+          item.latitude === closestUnallocated.latitude &&
+          item.longitude === closestUnallocated.longitude
+      ).allocated = true;
       routes[routes.length - 1].push(closestUnallocated);
-      unallocatedItems = distanceSource.filter(item => !item.allocated);
-      console.log("routes", routes, "distanceSource", distanceSource, "unallocatedItems", unallocatedItems)
+      unallocatedItems = distanceSource.filter((item) => !item.allocated);
+      console.log(
+        "routes",
+        routes,
+        "distanceSource",
+        distanceSource,
+        "unallocatedItems",
+        unallocatedItems
+      );
       // console.log("routes", routes, "distanceSource", distanceSource)
       let runLoop = true;
       while (runLoop && unallocatedItems.length !== 0) {
-        let lastRoute = routes[routes.length - 1][routes[routes.length - 1].length - 1];
+        let lastRoute =
+          routes[routes.length - 1][routes[routes.length - 1].length - 1];
         // console.log("loop 2 lastRoute", lastRoute)
         let routeDistances = [];
         for (const item of unallocatedItems) {
           const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${lastRoute.latitude},${lastRoute.longitude}&destination=${item.latitude},${item.longitude}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
           const response = await axios.get(directionsUrl);
-          if (response.data.status === 'OK') {
+          if (response.data.status === "OK") {
             routeDistances.push({
               latitude: item.latitude,
               longitude: item.longitude,
               distance: response.data.routes[0].legs[0].distance.value,
               allocated: false,
-              allocatable: response.data.routes[0].legs[0].distance.value <= toleranceDistance
+              allocatable:
+                response.data.routes[0].legs[0].distance.value <=
+                toleranceDistance,
             });
           } else {
             routeDistances.push({
@@ -1610,39 +1991,49 @@ exports.groupRoutesController = async (req, res) => {
               // distance: response.data.routes[0].legs[0].distance.value,
               distance: null,
               allocated: false,
-              allocatable: false
+              allocatable: false,
             });
           }
         }
-        const allNonAllocatable = routeDistances.every(item => !item.allocated && !item.allocatable);
+        const allNonAllocatable = routeDistances.every(
+          (item) => !item.allocated && !item.allocatable
+        );
 
         if (allNonAllocatable) {
-
           runLoop = false;
-          let unallocatedItems = distanceSource.filter(item => !item.allocated);
-          const closestUnallocated = unallocatedItems.length > 0
-            ? unallocatedItems.reduce((closest, current) =>
-              current.distance < closest.distance ? current : closest
-            )
-            : null;
+          let unallocatedItems = distanceSource.filter(
+            (item) => !item.allocated
+          );
+          const closestUnallocated =
+            unallocatedItems.length > 0
+              ? unallocatedItems.reduce((closest, current) =>
+                  current.distance < closest.distance ? current : closest
+                )
+              : null;
           if (unallocatedItems.length === 0) {
-            runLoop = false
+            runLoop = false;
             continue;
           }
           closestUnallocated.allocated = true;
           routes.push([closestUnallocated]);
-          unallocatedItems = distanceSource.filter(item => !item.allocated);
-          distanceSource.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
-          console.log("routes 22 ", routes, "unallocatedItems", unallocatedItems)
-
+          unallocatedItems = distanceSource.filter((item) => !item.allocated);
+          distanceSource.find(
+            (item) =>
+              item.latitude === closestUnallocated.latitude &&
+              item.longitude === closestUnallocated.longitude
+          ).allocated = true;
+          console.log(
+            "routes 22 ",
+            routes,
+            "unallocatedItems",
+            unallocatedItems
+          );
 
           continue;
-
         }
         // console.log("routeDistances", routeDistances)
-        const validDistances = routeDistances.filter(item =>
-          item.allocatable &&
-          typeof item.distance === 'number'
+        const validDistances = routeDistances.filter(
+          (item) => item.allocatable && typeof item.distance === "number"
         );
 
         let closestUnallocated;
@@ -1655,23 +2046,34 @@ exports.groupRoutesController = async (req, res) => {
         if (closestUnallocated) {
           closestUnallocated.allocated = true;
           routes[routes.length - 1].push(closestUnallocated);
-          distanceSource.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
+          distanceSource.find(
+            (item) =>
+              item.latitude === closestUnallocated.latitude &&
+              item.longitude === closestUnallocated.longitude
+          ).allocated = true;
 
-          unallocatedItems = distanceSource.filter(item => !item.allocated);
-          console.log("routes 11 ", routes, "unallocatedItems", unallocatedItems)
+          unallocatedItems = distanceSource.filter((item) => !item.allocated);
+          console.log(
+            "routes 11 ",
+            routes,
+            "unallocatedItems",
+            unallocatedItems
+          );
         }
-        distanceSource.find(item => item.latitude === closestUnallocated.latitude && item.longitude === closestUnallocated.longitude).allocated = true;
-
+        distanceSource.find(
+          (item) =>
+            item.latitude === closestUnallocated.latitude &&
+            item.longitude === closestUnallocated.longitude
+        ).allocated = true;
       }
-      unallocatedItems = distanceSource.filter(item => !item.allocated);
+      unallocatedItems = distanceSource.filter((item) => !item.allocated);
     }
     let routeOptimisation = [];
     for (const route of routes) {
       const tempRoute = route;
-      console.log("tempRoute", tempRoute.length, "route", route)
+      console.log("tempRoute", tempRoute.length, "route", route);
 
       if (route.length > 1) {
-
         // const waypoints = route.slice(0, -1).map((dest) => `${dest.lat},${dest.lng}`);
         // const waypoints = route.slice(0, -1).map(dest => {
         //   const location = `${dest.latitude},${dest.longitude}`;
@@ -1680,66 +2082,83 @@ exports.groupRoutesController = async (req, res) => {
         // });
         // console.log("waypoints", waypoints)
         const intermediatePoints = route.slice(0, -1);
-        console.log("intermediatePoints", intermediatePoints)
+        console.log("intermediatePoints", intermediatePoints);
         const waypointsString = intermediatePoints
-          .map(dest => `${dest.latitude},${dest.longitude}`)
-          .join('|');
-        console.log("waypointsString", waypointsString)
+          .map((dest) => `${dest.latitude},${dest.longitude}`)
+          .join("|");
+        console.log("waypointsString", waypointsString);
         const waypointParam = waypointsString
           ? `&waypoints=optimize:true|${waypointsString}`
-          : '';
-        console.log("waypointParam", waypointParam)
+          : "";
+        console.log("waypointParam", waypointParam);
         const response = await axios.get(
           `https://maps.googleapis.com/maps/api/directions/json?` +
-          `origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` + // Return to origin
-          waypointParam +
-          // `&waypoints[]:${waypoints}` +
-          // `&optimizeWaypoints:true` +
-          `&key=${process.env.GOOGLE_MAPS_API_KEY}`
+            `origin=${sourceLatitude},${sourceLongitude}` +
+            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
+              tempRoute[tempRoute.length - 1].longitude
+            }` + // Return to origin
+            waypointParam +
+            // `&waypoints[]:${waypoints}` +
+            // `&optimizeWaypoints:true` +
+            `&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
-        console.log("map URL ", `https://maps.googleapis.com/maps/api/directions/json?` +
-          `origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` + // Return to origin
-          waypointParam +
-          // `&waypoints[]:${waypoints}` +
-          `&optimizeWaypoints:true` +
-          `&key=${process.env.GOOGLE_MAPS_API_KEY}`)
+        console.log(
+          "map URL ",
+          `https://maps.googleapis.com/maps/api/directions/json?` +
+            `origin=${sourceLatitude},${sourceLongitude}` +
+            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
+              tempRoute[tempRoute.length - 1].longitude
+            }` + // Return to origin
+            waypointParam +
+            // `&waypoints[]:${waypoints}` +
+            `&optimizeWaypoints:true` +
+            `&key=${process.env.GOOGLE_MAPS_API_KEY}`
+        );
 
-        if (response.data.status === 'OK') {
-          console.log("response", response.data)
+        if (response.data.status === "OK") {
+          console.log("response", response.data);
           const optimizedOrder = response.data.routes[0].waypoint_order;
-          const optimizedDestinations = optimizedOrder.map(index => route[index]);
-          console.log("optimizedDestinations", optimizedDestinations)
+          const optimizedDestinations = optimizedOrder.map(
+            (index) => route[index]
+          );
+          console.log("optimizedDestinations", optimizedDestinations);
           let totalDistance = 0;
           let totalDuration = 0;
 
-          response.data.routes[0].legs.forEach(leg => {
+          response.data.routes[0].legs.forEach((leg) => {
             totalDistance += leg.distance.value;
             totalDuration += leg.duration.value;
           });
 
           // Generate Google Maps URL
-          const mapsUrl = `https://www.google.com/maps/dir/?api=1` +
+          const mapsUrl =
+            `https://www.google.com/maps/dir/?api=1` +
             `&origin=${sourceLatitude},${sourceLongitude}` +
-            `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` +
-            `&waypoints=${optimizedDestinations.map(d => `${d.latitude},${d.longitude}`).join('|')}` +
+            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
+              tempRoute[tempRoute.length - 1].longitude
+            }` +
+            `&waypoints=${optimizedDestinations
+              .map((d) => `${d.latitude},${d.longitude}`)
+              .join("|")}` +
             `&travelmode=driving` +
             `&dir_action=navigate`;
-          console.log("mapsUrl", mapsUrl, "route", route)
+          console.log("mapsUrl", mapsUrl, "route", route);
 
           routeOptimisation.push({
             distance: totalDistance,
             duration: totalDuration,
             waypoints: optimizedDestinations,
             mapsUrl: mapsUrl,
-            route: tempRoute
+            route: tempRoute,
           });
         }
       } else {
-        const mapsUrl = `https://www.google.com/maps/dir/?api=1` +
+        const mapsUrl =
+          `https://www.google.com/maps/dir/?api=1` +
           `&origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude}` +
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${
+            tempRoute[tempRoute.length - 1].longitude
+          }` +
           // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
           `&travelmode=driving` +
           `&dir_action=navigate`;
@@ -1749,16 +2168,15 @@ exports.groupRoutesController = async (req, res) => {
           duration: 0,
           // waypoints: optimizedDestinations,
           mapsUrl: mapsUrl,
-          route: tempRoute
+          route: tempRoute,
         });
       }
-
     }
 
     res.json({ distanceSource, routes, routeOptimisation });
   } catch (error) {
-    console.error('Error processing request:', error);
-    res.status(500).json({ error: 'Failed to group routes.' });
+    console.error("Error processing request:", error);
+    res.status(500).json({ error: "Failed to group routes." });
   }
 };
 exports.getUserTodaysOrder = async (req, res) => {
@@ -1766,7 +2184,9 @@ exports.getUserTodaysOrder = async (req, res) => {
     const { userId } = req.params;
     const user = await User.findOne({ UID: userId });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1774,15 +2194,23 @@ exports.getUserTodaysOrder = async (req, res) => {
       user_ref: user._id,
       created_time: { $gte: today },
       order_status: {
-        $nin: ["Delivered", "Delivery failed"]
-      }
+        $nin: ["Delivered", "Delivery failed"],
+      },
     })
       .populate("warehouse_ref user_ref products.product_ref delivery_boy")
       .exec();
-    res.json({ success: true, message: 'Orders retrieved successfully', data: orders });
+    res.json({
+      success: true,
+      message: "Orders retrieved successfully",
+      data: orders,
+    });
   } catch (error) {
-    console.error('Error processing request:', error);
-    res.status(500).json({ success: false, mesage: 'Failed to fetch orders.', error: error });
+    console.error("Error processing request:", error);
+    res.status(500).json({
+      success: false,
+      mesage: "Failed to fetch orders.",
+      error: error,
+    });
   }
 };
 

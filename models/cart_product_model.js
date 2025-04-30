@@ -47,7 +47,7 @@ const cartProductSchema = new mongoose.Schema({
   cart_added_date: {
     type: Date,
     required: true,
-  },
+  },//CART TIME -ACCORDING TO THIS WE HAVE TO NOTIFY USER AFTER 2 HOURS. rEDIRECT TO CART Page 
 
 });
 

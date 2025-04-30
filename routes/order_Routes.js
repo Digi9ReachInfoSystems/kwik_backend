@@ -3,7 +3,7 @@ const router = express.Router();
 const orderController = require("../controller/order_controller");
 
 // Create a new order
-router.post("/", orderController.createOrder);
+router.post("/", orderController.createOrder);//STATUS CHANGE PENDING
 router.get("/", orderController.getAllOrders);
 router.get("/:id", orderController.getOrderById);
 router.get("/user/:userId", orderController.getOrderByUserId);

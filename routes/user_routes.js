@@ -12,6 +12,8 @@ router.get("/blockedusers", userController.getBlockedUsers);
 // Delivery boys account
 router.get("/deliveryaccounts", userController.getDeliveryUserAccount);
 
+router.put("/updateFcmToken", userController.updateFcmToken);
+
 // Block a user
 router.put("/:userId/block", userController.blockUser);
 
@@ -35,25 +37,52 @@ router.post("/decreseqty", userController.decreaseCartProductQuantity);
 router.put("/addAddress/:userId", userController.addAddress);
 router.put("/select/address/change", userController.userSelectedAddressChange);
 router.get("/getUserCart/:userId", userController.getUserCartById);
-router.get("/get/userStats",userController.userStats);
-router.put("/update/currentPincode",userController.updateCurrentPincode);
-router.get("/get/searchHistory/:userId",userController.getsearchHistoryByUserId);
-router.delete("/delete/searchHistory/:userId/:queryId",userController.removeSearchHistoryByUserIdandQueryId);
-router.delete("/delete/allSearchHistory/:userId",userController.removeSearchHistoryByUserId);
-router.post("/add/whislist",userController.addProductToWhislist);
-router.post("/orderAgain",userController.orderAgainUserOrderId);
-router.put("/updateaddress",userController.editAddress);
-router.get("/get/deliveryboyApplicationByWarehouseId/:warehouseId/status/:status",userController.getDeliveryApplicationByWarehouseId);
-router.put("/update/approveAppliaction",userController.approveDeliveryApplication);
-router.put("/update/blockDeliveryboy",userController.blockDeliveryBoy);
-router.get("/search/deliveryboyApplicationByWarehouseId/:warehouseId/status/:status",userController.searchDeliveryBoyApplication);
-router.get("/get/availableTumTumDeliveryboyByWarehouseId/:warehouseId",userController.getDeliveryBoyForTumTumByWarehouseId);
-router.get("/get/deliveryboys/admin",userController.getDeliveryboys);
-router.get("/search/deliveryboys/admin",userController.searchDeliveryBoys);
-router.get("/search/users",userController.searchUsers);
-router.get("/get/users/admin",userController.getUsersAdmin);
-router.put("/update/unblockDeliveryboy",userController.unblockDeliveryBoy);
-router.put("/update/deliveryBoyAvailiblityDay",userController.changeDeliveryBoyDayAvailibilityStatus);
-router.post("/move/whislistToCart",userController.moveProductFromWhishlistToCart);
-router.put("/remove/whislist",userController.removeWhishlistItem);   
+router.get("/get/userStats", userController.userStats);
+router.put("/update/currentPincode", userController.updateCurrentPincode);
+router.get(
+  "/get/searchHistory/:userId",
+  userController.getsearchHistoryByUserId
+);
+router.delete(
+  "/delete/searchHistory/:userId/:queryId",
+  userController.removeSearchHistoryByUserIdandQueryId
+);
+router.delete(
+  "/delete/allSearchHistory/:userId",
+  userController.removeSearchHistoryByUserId
+);
+router.post("/add/whislist", userController.addProductToWhislist);
+router.post("/orderAgain", userController.orderAgainUserOrderId);
+router.put("/updateaddress", userController.editAddress);
+router.get(
+  "/get/deliveryboyApplicationByWarehouseId/:warehouseId/status/:status",
+  userController.getDeliveryApplicationByWarehouseId
+);
+router.put(
+  "/update/approveAppliaction",
+  userController.approveDeliveryApplication
+);
+router.put("/update/blockDeliveryboy", userController.blockDeliveryBoy);
+router.get(
+  "/search/deliveryboyApplicationByWarehouseId/:warehouseId/status/:status",
+  userController.searchDeliveryBoyApplication
+);
+router.get(
+  "/get/availableTumTumDeliveryboyByWarehouseId/:warehouseId",
+  userController.getDeliveryBoyForTumTumByWarehouseId
+);
+router.get("/get/deliveryboys/admin", userController.getDeliveryboys);
+router.get("/search/deliveryboys/admin", userController.searchDeliveryBoys);
+router.get("/search/users", userController.searchUsers);
+router.get("/get/users/admin", userController.getUsersAdmin);
+router.put("/update/unblockDeliveryboy", userController.unblockDeliveryBoy);
+router.put(
+  "/update/deliveryBoyAvailiblityDay",
+  userController.changeDeliveryBoyDayAvailibilityStatus
+);
+router.post(
+  "/move/whislistToCart",
+  userController.moveProductFromWhishlistToCart
+);
+router.put("/remove/whislist", userController.removeWhishlistItem);
 module.exports = router;
