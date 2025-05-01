@@ -303,7 +303,8 @@ exports.addAddress = async (req, res) => {
 
     // Add the address to the user's addresses array
     user.Address.push(Address);
-    user.selected_Address = Address;
+    user.selected_Address = user.Address[user.Address.length - 1];
+    user.selected_Address._id = user.Address[user.Address.length - 1]._id;
     await user.save();
 
     // Return the updated user data
@@ -1671,6 +1672,39 @@ exports.removeWhishlistItem = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "error removing item from whishlist ",
+      error: error,
+    });
+  }
+};
+exports.removeAddress = async (req, res) => {
+  try {
+    const { addressId, user_ref } = req.body;
+    const user = await User.findOne({ UID: user_ref });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    user.Address = user.Address.filter(
+      (item) => !item._id.equals(addressId)
+    );
+    if(user.selected_Address._id.equals(addressId)){
+      if(user.Address.length > 0){
+        user.selected_Address = user.Address[user.Address.length - 1];
+        user.selected_Address._id = user.Address[user.Address.length - 1]._id;
+      }else{
+        user.selected_Address = null;
+      }
+    }
+    const savedUser = await user.save();
+    return res
+      .status(201)
+      .json({ message: "Address removed", data: savedUser });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "error removing address ",
       error: error,
     });
   }

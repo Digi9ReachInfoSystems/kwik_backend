@@ -85,4 +85,5 @@ router.post(
   userController.moveProductFromWhishlistToCart
 );
 router.put("/remove/whislist", userController.removeWhishlistItem);
+router.delete("/remove/address", userController.removeAddress);
 module.exports = router;
