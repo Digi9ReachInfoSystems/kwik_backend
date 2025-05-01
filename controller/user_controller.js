@@ -303,6 +303,7 @@ exports.addAddress = async (req, res) => {
 
     // Add the address to the user's addresses array
     user.Address.push(Address);
+    user.selected_Address = Address;
     await user.save();
 
     // Return the updated user data
