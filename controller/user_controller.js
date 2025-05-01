@@ -888,6 +888,7 @@ exports.getUserCartById = async (req, res) => {
       handling_charge: settings.handling_charge,
       high_demand_charge: settings.high_demand_charge,
       enable_Instant_Delivery: settings.enable_Instant_Delivery,
+      delivery_charge_tum_tum: settings.delivery_charge_tum_tum,
     };
     return res.status(200).json({
       message: "success",
