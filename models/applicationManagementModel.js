@@ -27,6 +27,7 @@ const applicationManagementSchema = new mongoose.Schema({
     new_update_des_ios: { type: String, required: false },
     delivery_coverage_distance: { type: Number, required: false },
     route_point_threshold: { type: Number, required: false },
+    enable_Instant_Delivery:{type: Boolean, required: false},
 
 }, { modelName: 'ApplicationManagement' }); // Set model name to 'ApplicationManagement'
 
