@@ -81,7 +81,10 @@ const orderSchema = new mongoose.Schema({
   user_contact_number: {
     type: String,
     required: [true, "User contact number is required"],
-    match: [/^[0-9]{10}$/, "Please enter a valid 10-digit phone number"],
+    match: [
+      /^(\+91\d{10}|\d{10})$/, 
+      "Please enter a valid 10-digit phone number (with optional +91 country code)"
+    ],
   },
 
   user_location: {
