@@ -1054,8 +1054,8 @@ exports.addProductToWhislist = async (req, res) => {
     });
     user.cart_products = user.cart_products.filter((item) => {
       return (
-        !item.product_ref.equals(product_ref) &&
-        !item.variant._id.equals(variant)
+        !(item.product_ref.equals(product_ref) &&
+          item.variant._id.equals(variant))
       );
     });
 
@@ -1071,6 +1071,7 @@ exports.addProductToWhislist = async (req, res) => {
         variant_id: variant,
       });
     }
+    const saveProduct = await product.save();
     const savedUser = await user.save();
     await scheduleIdleCartReminder(savedUser);
 
@@ -1688,11 +1689,11 @@ exports.removeAddress = async (req, res) => {
     user.Address = user.Address.filter(
       (item) => !item._id.equals(addressId)
     );
-    if(user.selected_Address._id.equals(addressId)){
-      if(user.Address.length > 0){
+    if (user.selected_Address._id.equals(addressId)) {
+      if (user.Address.length > 0) {
         user.selected_Address = user.Address[user.Address.length - 1];
         user.selected_Address._id = user.Address[user.Address.length - 1]._id;
-      }else{
+      } else {
         user.selected_Address = null;
       }
     }
