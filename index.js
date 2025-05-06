@@ -46,9 +46,9 @@ app.use(
     // allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
   })
 );
-startAgenda().catch((err) => {
-  console.error("Agenda failed to start", err);
-});
+// startAgenda().catch((err) => {
+//   console.error("Agenda failed to start", err);
+// });
 
 require("./utils/scheduler"); // This will start the cron job
 
