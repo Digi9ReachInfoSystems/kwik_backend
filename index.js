@@ -29,9 +29,7 @@ const deliveryAssignmentRoutes = require("./routes/deliveryAssignmentRoutes");
 const tempProductRoutes = require("./routes/tempProductRoutes");
 // MongoDB Connection
 // In your main server file (e.g., server.js or app.js)
-const { agenda, startAgenda } = require("./utils/agenda");
 
-startAgenda(); // Start agenda as soon as the app initializes
 
 // connectDB();
 // test
