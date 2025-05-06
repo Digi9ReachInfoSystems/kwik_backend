@@ -33,7 +33,7 @@ const { agenda, startAgenda } = require("./utils/agenda");
 
 startAgenda(); // Start agenda as soon as the app initializes
 
-connectDB();
+// connectDB();
 // test
 
 // Middleware to log requests
@@ -86,6 +86,17 @@ app.use("/tempProduct", tempProductRoutes);
 app.use("/api/v1/notifications", require("./routes/notificationRoutes"));
 const PORT = 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+connectDB()
+  .then(() => {
+    console.log("Connected to MongoDB");
+
+    // Start the Server
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    process.exit(1); // Exit process with failure
+  });
