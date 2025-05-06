@@ -1,7 +1,7 @@
 const Notification = require("../models/notifications_model");
 const User = require("../models/user_models");
 const mongoose = require("mongoose");
-const { agenda } = require("../utils/agenda"); // Import your agenda instance
+// const { agenda } = require("../utils/agenda"); // Import your agenda instance
 
 // Firebase Admin SDK (if you're using FCM)
 const admin = require("firebase-admin"); // Make sure it's initialized
