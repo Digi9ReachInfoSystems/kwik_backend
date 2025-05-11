@@ -66,7 +66,7 @@ const orderSchema = new mongoose.Schema({
   order_status: {
     type: String,
     required: [true, "Order status is required"],
-    enum: ["Packing", "Out for delivery", "Delivered", "Delivery failed", "Order placed"],
+    enum: ["Packing", "Out for delivery", "Delivered", "Delivery failed", "Order placed","Payment pending"],
   },
 
   user_address: {
@@ -179,7 +179,9 @@ const orderSchema = new mongoose.Schema({
   }, // Profit calculation (selling price - (buying price + discount))
 
   payment_id: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Payment",
+    required: [false, "Payment ID is required"],
     default: null,
   }, // Online payment ID (if applicable)
 
