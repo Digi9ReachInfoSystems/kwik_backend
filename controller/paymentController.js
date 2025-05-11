@@ -4,6 +4,10 @@ const Order = require("../models/order_model");
 const User = require("../models/user_models");
 const razorpayInstance = require("../utils/razorpayService");
 const crypto = require("crypto");
+const {
+  generateAndSendNotificationNew,
+} = require("../controller/notificationController");
+const Notification = require("../models/notifications_model");
 
 
 
@@ -132,7 +136,36 @@ exports.verifyPayment = async (req, res) => {
             const user = await User.findById({ _id: req.body.payload.payment.entity.notes.user_id });
             user.cart_products = [];
             await user.save();
+            //  push Notification
 
+            const userref1 = user._id;
+            const title = "Order Placed Successfully!";
+            const message = `Your order has been successfully placed and is now being processed.`;
+            const redirectUrl = `/orders/${userOrder._id}`;
+            const redirectType = "order"; // This could be dynamic based on your requirements
+            const extraData = { orderId: userOrder._id }; // This could be dynamic based on your requirements
+            await Notification.updateMany(
+                {
+                    user_ref: userref1,
+                    redirect_type: "cart",
+                    scheduled_time: { $gte: new Date() },
+                    isDeleted: false,
+                    isRead: false,
+                },
+                {
+                    $set: { isDeleted: true },
+                }
+            );
+
+            await generateAndSendNotificationNew(
+                title,
+                message,
+                userref1,
+                redirectUrl,
+                null, // Optional: add image URL if needed
+                redirectType,
+                extraData
+            );
 
         }
 
