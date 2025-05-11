@@ -349,27 +349,65 @@ exports.updateStock = async (req, res) => {
 
 // Add a review to a product
 exports.addReview = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const { id } = req.params;
-    const { review } = req.body;
-
-    if (!review) {
-      return res.status(400).json({ message: "Review data is required" });
+    const { productId } = req.params;
+    const { user_ref, comment, rating } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid product ID" });
     }
-
-    const product = await Product.findById(id);
+    const user = await User.findOne({ UID: user_ref })
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (typeof rating !== "number" || rating < 0 || rating > 5) {
+      return res.status(400).json({ message: "Rating must be between 0 and 5" });
+    }
+    const product = await Product.findById(productId);
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    const existingReviewIndex = product.review.findIndex(
+      (review) => review.user_ref.equals(user._id)
+    );
 
-    product.review.push(review);
-    const updatedProduct = await product.save();
+    if (existingReviewIndex !== -1) {
+      // Update existing review
+      product.review[existingReviewIndex].comment = comment;
+      product.review[existingReviewIndex].rating = rating;
+      product.review[existingReviewIndex].created_time = new Date();
 
-    res
-      .status(200)
-      .json({ message: "Review added successfully", data: updatedProduct });
+      await product.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(200).json({
+        message: "Review updated successfully",
+        review: product.review[existingReviewIndex],
+      });
+    } else {
+      const newReview = {
+        user_ref:user._id,
+        comment,
+        rating,
+        created_time: new Date(),
+      };
+
+      product.review.push(newReview);
+      await product.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(201).json({
+        message: "Review added successfully",
+        review: newReview,
+      });
+    }
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     res
       .status(500)
       .json({ message: "Error adding review", error: error.message });
