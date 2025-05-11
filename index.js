@@ -27,6 +27,7 @@ const complaintsRoutes = require("./routes/complaintRoutes");
 const orderRouteRoutes = require("./routes/orderRouteRoute");
 const deliveryAssignmentRoutes = require("./routes/deliveryAssignmentRoutes");
 const tempProductRoutes = require("./routes/tempProductRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 // MongoDB Connection
 // In your main server file (e.g., server.js or app.js)
 
@@ -82,6 +83,7 @@ app.use("/orderRoute", orderRouteRoutes);
 app.use("/deliveryAssignment", deliveryAssignmentRoutes);
 app.use("/tempProduct", tempProductRoutes);
 app.use("/api/v1/notifications", require("./routes/notificationRoutes"));
+app.use("/payment", paymentRoutes);
 const PORT = 3000;
 
 connectDB()

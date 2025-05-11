@@ -12,6 +12,8 @@ const {
   generateAndSendNotificationNew,
 } = require("../controller/notificationController");
 const Notification = require("../models/notifications_model");
+const Payment = require("../models/paymentModel");
+const razorpayInstance = require("../utils/razorpayService");
 
 // const haversine = require('haversine-distance');
 // const googleMapsClient = require('@googlemaps/google-maps-services-js').Client;
@@ -87,7 +89,7 @@ exports.createOrder = async (req, res) => {
       warehouse_ref: warehouse._id,
       user_ref: userData._id,
       products,
-      order_status,
+      order_status: payment_type === "Online payment" ? "Payment pending" : order_status,
       user_address: userData.selected_Address,
       user_contact_number: userData.phone,
       user_location: userData.selected_Address.Location,
@@ -98,7 +100,7 @@ exports.createOrder = async (req, res) => {
       total_saved,
       discount_price,
       profit,
-      payment_id,
+      payment_id: null,
       type_of_delivery,
       selected_time_slot,
       delivery_charge:
@@ -117,48 +119,86 @@ exports.createOrder = async (req, res) => {
     }
 
     // Save the new order to the database
-    userData.cart_products = [];
+    if (payment_type === "COD") {
+      userData.cart_products = [];
+    }
+    let razorpayOrder;
+    const savedOrder = await newOrder.save();
+    const savedUser = await userData.save();
+    if (payment_type === "Online payment") {
+      const orderOptions = {
+        amount: (Math.ceil(total_amount)) * 100,
+        currency: "INR",
+        receipt: `receipt_${Date.now()}`,
+        payment_capture: 1,
+        notes: {
+          user_id: userData._id,
+          description: "payment using Online",
+          user_orderId: savedOrder._id,
+          //   cart_id:cart_id
+        },
+      };
+      razorpayOrder = await razorpayInstance.orders.create(orderOptions);
+      const payment = new Payment({
+        amount: (Math.ceil(total_amount)),
+        currency: razorpayOrder.currency,
+        status: "created",
+        razorpay_order_id: razorpayOrder.id,
+        user_id: userData._id,
+        // package_id: packageId,
+        description: "payment using Online",
+        receipt: razorpayOrder.receipt,
+        razorpay_signature: razorpayOrder.razorpay_signature,
+        // cart_id:cart_id,
+        order_id: savedOrder._id
+      });
 
+      await payment.save();
+    }
 
-    const userref1 = userData._id;
-    const title = "Order Placed Successfully!";
-    const message = `Your order has been successfully placed and is now being processed.`;
-    const redirectUrl = `/orders/${newOrder._id}`;
-    const redirectType = "order"; // This could be dynamic based on your requirements
-    const extraData = { orderId: newOrder._id };
+    if (payment_type === "COD") {
 
-    await Notification.updateMany(
-      {
-        user_ref: userref1,
-        redirect_type: "cart",
-        scheduled_time: { $gte: new Date() },
-        isDeleted: false,
-        isRead: false,
-      },
-      {
-        $set: { isDeleted: true },
-      }
-    );
+      const userref1 = userData._id;
+      const title = "Order Placed Successfully!";
+      const message = `Your order has been successfully placed and is now being processed.`;
+      const redirectUrl = `/orders/${newOrder._id}`;
+      const redirectType = "order"; // This could be dynamic based on your requirements
+      const extraData = { orderId: newOrder._id };
 
-    // Call the generateAndSendNotification function to send the notification
-    await generateAndSendNotificationNew(
-      title,
-      message,
-      userref1,
-      redirectUrl,
-      null, // Optional: add image URL if needed
-      redirectType,
-      extraData
-    );
+      await Notification.updateMany(
+        {
+          user_ref: userref1,
+          redirect_type: "cart",
+          scheduled_time: { $gte: new Date() },
+          isDeleted: false,
+          isRead: false,
+        },
+        {
+          $set: { isDeleted: true },
+        }
+      );
+
+      // Call the generateAndSendNotification function to send the notification
+      await generateAndSendNotificationNew(
+        title,
+        message,
+        userref1,
+        redirectUrl,
+        null, // Optional: add image URL if needed
+        redirectType,
+        extraData
+      );
+    }
 
     // Return success response
-    await newOrder.save();
-    await userData.save();
+
 
     return res.status(201).json({
       success: true,
       message: "Order created successfully",
       data: newOrder,
+      razorpayOrder: razorpayOrder,
+      razorpayOrderId: razorpayOrder.id
     });
   } catch (error) {
     console.error("Error creating order:", error);
@@ -1336,39 +1376,72 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
         .json({ success: false, message: "Warehouse not found" });
     }
     let timeFilter;
+    if (time && time !== "null") {
+      // const timeMoment = moment(time, 'h:mm A');
+      const today = moment().format('YYYY-MM-DD');
+      const timeMoment = moment(`${today} ${time}`, 'YYYY-MM-DD h:mm A');
+      const utcStart = timeMoment.clone().startOf('hour').utc();
+      const utcEnd = timeMoment.clone().endOf('hour').utc();
 
-    if (time != "null") {
-      // If time is passed, set the time range for that specific hour
+      console.log("Local time:", timeMoment.format());
+      console.log("UTC Start:", utcStart.format());
+      console.log("UTC End:", utcEnd.format());
+      // const utcStart = timeMoment.startOf('hour').utc();
+      // const utcEnd = timeMoment.endOf('hour').utc();
+      console.log("utcStart", utcStart, "utcEnd", utcEnd);
+      // if (time != "null") {
+      //   // If time is passed, set the time range for that specific hour
+      //   timeFilter = {
+      //     $match: {
+      //       selected_time_slot: {
+      //         $gte: moment(
+      //           `${moment().format("YYYY-MM-DD")} ${time}`,
+      //           "YYYY-MM-DD h:mm A"
+      //         )
+      //           .startOf("hour")
+      //           .local()
+      //           .toDate(),
+      //         $lt: moment(
+      //           `${moment().format("YYYY-MM-DD")} ${time}`,
+      //           "YYYY-MM-DD h:mm A"
+      //         )
+      //           .endOf("hour")
+      //           .local()
+      //           .toDate(),
+      //       },
+      //     },
+      //   };
+      // } else {
+      //   timeFilter = {
+      //     $match: {
+      //       selected_time_slot: {
+      //         $gte: moment().startOf("day").local().toDate(), // Start of the current day (00:00 AM)
+      //         $lt: moment().endOf("day").local().toDate(), // End of the current day (11:59 PM)
+      //       },
+      //     },
+      //   };
+      // }
+
       timeFilter = {
         $match: {
           selected_time_slot: {
-            $gte: moment(
-              `${moment().format("YYYY-MM-DD")} ${time}`,
-              "YYYY-MM-DD h:mm A"
-            )
-              .startOf("hour")
-              .local()
-              .toDate(),
-            $lt: moment(
-              `${moment().format("YYYY-MM-DD")} ${time}`,
-              "YYYY-MM-DD h:mm A"
-            )
-              .endOf("hour")
-              .local()
-              .toDate(),
-          },
-        },
+            $gte: utcStart.toDate(),
+            $lt: utcEnd.toDate()
+          }
+        }
       };
     } else {
+      // Default to current day in UTC
       timeFilter = {
         $match: {
           selected_time_slot: {
-            $gte: moment().startOf("day").local().toDate(), // Start of the current day (00:00 AM)
-            $lt: moment().endOf("day").local().toDate(), // End of the current day (11:59 PM)
-          },
-        },
+            $gte: moment().startOf('day').utc().toDate(),
+            $lt: moment().endOf('day').utc().toDate()
+          }
+        }
       };
     }
+    console.log("timeFilter", timeFilter);
     const orders = await Order.aggregate([
       // Match by user, warehouse, delivery type
       {
@@ -1519,36 +1592,69 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
   }
   let timeFilter;
 
-  if (time != "null") {
-    // If time is passed, set the time range for that specific hour
+  if (time && time !== "null") {
+    // const timeMoment = moment(time, 'h:mm A');
+    const today = moment().format('YYYY-MM-DD');
+    const timeMoment = moment(`${today} ${time}`, 'YYYY-MM-DD h:mm A');
+    const utcStart = timeMoment.clone().startOf('hour').utc();
+    const utcEnd = timeMoment.clone().endOf('hour').utc();
+
+    console.log("Local time:", timeMoment.format());
+    console.log("UTC Start:", utcStart.format());
+    console.log("UTC End:", utcEnd.format());
+    // const utcStart = timeMoment.startOf('hour').utc();
+    // const utcEnd = timeMoment.endOf('hour').utc();
+    console.log("utcStart", utcStart, "utcEnd", utcEnd);
+    // if (time != "null") {
+    //   // If time is passed, set the time range for that specific hour
+    //   timeFilter = {
+    //     $match: {
+    //       selected_time_slot: {
+    //         $gte: moment(
+    //           `${moment().format("YYYY-MM-DD")} ${time}`,
+    //           "YYYY-MM-DD h:mm A"
+    //         )
+    //           .startOf("hour")
+    //           .local()
+    //           .toDate(),
+    //         $lt: moment(
+    //           `${moment().format("YYYY-MM-DD")} ${time}`,
+    //           "YYYY-MM-DD h:mm A"
+    //         )
+    //           .endOf("hour")
+    //           .local()
+    //           .toDate(),
+    //       },
+    //     },
+    //   };
+    // } else {
+    //   timeFilter = {
+    //     $match: {
+    //       selected_time_slot: {
+    //         $gte: moment().startOf("day").local().toDate(), // Start of the current day (00:00 AM)
+    //         $lt: moment().endOf("day").local().toDate(), // End of the current day (11:59 PM)
+    //       },
+    //     },
+    //   };
+    // }
+
     timeFilter = {
       $match: {
         selected_time_slot: {
-          $gte: moment(
-            `${moment().format("YYYY-MM-DD")} ${time}`,
-            "YYYY-MM-DD h:mm A"
-          )
-            .startOf("hour")
-            .local()
-            .toDate(),
-          $lt: moment(
-            `${moment().format("YYYY-MM-DD")} ${time}`,
-            "YYYY-MM-DD h:mm A"
-          )
-            .endOf("hour")
-            .local()
-            .toDate(),
-        },
-      },
+          $gte: utcStart.toDate(),
+          $lt: utcEnd.toDate()
+        }
+      }
     };
   } else {
+    // Default to current day in UTC
     timeFilter = {
       $match: {
         selected_time_slot: {
-          $gte: moment().startOf("day").local().toDate(), // Start of the current day (00:00 AM)
-          $lt: moment().endOf("day").local().toDate(), // End of the current day (11:59 PM)
-        },
-      },
+          $gte: moment().startOf('day').utc().toDate(),
+          $lt: moment().endOf('day').utc().toDate()
+        }
+      }
     };
   }
   console.log(timeFilter);
