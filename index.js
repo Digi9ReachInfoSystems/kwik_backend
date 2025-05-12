@@ -57,7 +57,7 @@ require("./utils/scheduler"); // This will start the cron job
 app.use(express.json());
 
 // Apply checkApiKey middleware for all routes (or you can apply it selectively)
-app.use(checkApiKey);
+// app.use(checkApiKey);
 //
 // Use user routes
 app.use("/users", userRoutes);
