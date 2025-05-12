@@ -197,8 +197,8 @@ exports.createOrder = async (req, res) => {
       success: true,
       message: "Order created successfully",
       data: newOrder,
-      razorpayOrder: razorpayOrder,
-      razorpayOrderId: razorpayOrder.id
+      razorpayOrder: payment_type === "Online payment" ? razorpayOrder : null,
+      razorpayOrderId: payment_type === "Online payment" ? razorpayOrder.id : null
     });
   } catch (error) {
     console.error("Error creating order:", error);
