@@ -173,6 +173,16 @@ exports.verifyPayment = async (req, res) => {
                 extraData
             );
 
+        }else if(req.body.event == "payment.failed"){
+            console.log("Valid signature inside payment.failed", req.body);
+            console.dir(req.body, { depth: null });
+            const payment = await Payment.findOne({ razorpay_order_id: req.body.payload.payment.entity.order_id });
+            if (!payment) {
+                return res.status(200).json({ error: 'Payment not found' });
+            }
+            // Update payment details
+            payment.status = 'failed';
+            await payment.save();
         }
 
     } else {
