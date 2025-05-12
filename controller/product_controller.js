@@ -389,7 +389,7 @@ exports.addReview = async (req, res) => {
       });
     } else {
       const newReview = {
-        user_ref:user._id,
+        user_ref: user._id,
         comment,
         rating,
         created_time: new Date(),
@@ -1998,5 +1998,98 @@ exports.searchQcProductsByStatus = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.addSubcategoryToProducts = async (req, res) => {
+  try {
+    const { subcategoryId, productIds } = req.body;
+    // Validate inputs
+    if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
+      return res.status(400).json({ success: false, message: "Invalid subcategory ID" });
+    }
+
+    if (!Array.isArray(productIds)) {
+      return res.status(400).json({ success: false, message: "Product IDs must be an array" });
+    }
+
+    // Check if subcategory exists
+    const subcategoryExists = await SubCategory.exists({ _id: subcategoryId });
+    if (!subcategoryExists) {
+      return res.status(404).json({ success: false, message: "Subcategory not found" });
+    }
+
+    // Update products that don't already have this subcategory
+    const result = await Product.updateMany(
+      {
+        _id: { $in: productIds },
+        sub_category_ref: { $nin: [subcategoryId] } // Only products that don't have this subcategory
+      },
+      {
+        $addToSet: { sub_category_ref: subcategoryId } // $addToSet prevents duplicates
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `Subcategory added to ${result.modifiedCount} products`,
+      data: result
+    });
+  } catch (error) {
+    console.error("Error adding subcategory to products:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.removeSubcategoryFromProducts = async (req, res) => {
+  try {
+    console.log("removeSubcategoryFromProducts");
+    const { subcategoryId, productIds } = req.body;
+
+    // Validate inputs
+    if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
+      return res.status(400).json({ success: false, message: "Invalid subcategory ID" });
+    }
+
+    if (!Array.isArray(productIds)) {
+      return res.status(400).json({ success: false, message: "Product IDs must be an array" });
+    }
+
+    // Check if subcategory exists
+    const subcategoryExists = await SubCategory.exists({ _id: subcategoryId });
+    if (!subcategoryExists) {
+      return res.status(404).json({ success: false, message: "Subcategory not found" });
+    }
+    console.log("subcategoryExists", subcategoryExists);
+    // First find products that have more than one subcategory and contain the target subcategory
+    const productsToUpdate = await Product.find({
+      _id: { $in: productIds },
+      $and: [
+        { sub_category_ref: { $in: [subcategoryId] } },
+        { $expr: { $gt: [{ $size: "$sub_category_ref" }, 1] } }
+      ]
+    });
+
+    console.log("productsToUpdate", productsToUpdate);
+    const productIdsToUpdate = productsToUpdate.map(p => p._id);
+
+    // Remove the subcategory from eligible products
+    const result = await Product.updateMany(
+      {
+        _id: { $in: productIdsToUpdate }
+      },
+      {
+        $pull: { sub_category_ref: subcategoryId }
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `Subcategory removed from ${result.modifiedCount} products. ${productIds.length - productIdsToUpdate.length} products were not modified because they only have one subcategory.`,
+      data: result
+    });
+  } catch (error) {
+    console.error("Error removing subcategory from products:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

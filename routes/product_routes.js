@@ -51,4 +51,6 @@ router.get("/get/all/productsFilter/:categoryName/:subCategoryName/:warehouseNam
 router.get("/get/draft/productsFilter/:categoryName/:subCategoryName/:warehouseName",ProductController.getDraftProductsByCategorySubCategory);
 router.get("/get/lowstock/productsFilter/:categoryName/:subCategoryName/:warehouseName",ProductController.getLowStockProductsByCategorySubCategory);
 router.get("/search/qcProductsBySKUorName/:status", ProductController.searchQcProductsByStatus);
+router.put("/update/add/subcategory", ProductController.addSubcategoryToProducts);
+router.put("/update/remove/subcategory", ProductController.removeSubcategoryFromProducts);
 module.exports = router;
