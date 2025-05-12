@@ -68,35 +68,71 @@ exports.createOrderRoute = async (req, res) => {
     let timeFilter;
 
     if (time != "null") {
-      // If time is passed, set the time range for that specific hour
+      // const timeMoment = moment(time, 'h:mm A');
+      const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
+      const timeMoment = moment.tz(`${today} ${time}`, 'YYYY-MM-DD h:mm A', 'Asia/Kolkata');
+      const utcStart = timeMoment.clone().startOf('hour').utc();
+      const utcEnd = timeMoment.clone().endOf('hour').utc();
+
+      console.log("Local time:", timeMoment.format());
+      console.log("UTC Start:", utcStart.format());
+      console.log("UTC End:", utcEnd.format());
+      // const utcStart = timeMoment.startOf('hour').utc();
+      // const utcEnd = timeMoment.endOf('hour').utc();
+      console.log("utcStart", utcStart, "utcEnd", utcEnd);
+      // if (time != "null") {
+      //   // If time is passed, set the time range for that specific hour
+      //   timeFilter = {
+      //     $match: {
+      //       selected_time_slot: {
+      //         $gte: moment(
+      //           `${moment().format("YYYY-MM-DD")} ${time}`,
+      //           "YYYY-MM-DD h:mm A"
+      //         )
+      //           .startOf("hour")
+      //           .local()
+      //           .toDate(),
+      //         $lt: moment(
+      //           `${moment().format("YYYY-MM-DD")} ${time}`,
+      //           "YYYY-MM-DD h:mm A"
+      //         )
+      //           .endOf("hour")
+      //           .local()
+      //           .toDate(),
+      //       },
+      //     },
+      //   };
+      // } else {
+      //   timeFilter = {
+      //     $match: {
+      //       selected_time_slot: {
+      //         $gte: moment().startOf("day").local().toDate(), // Start of the current day (00:00 AM)
+      //         $lt: moment().endOf("day").local().toDate(), // End of the current day (11:59 PM)
+      //       },
+      //     },
+      //   };
+      // }
+
       timeFilter = {
         $match: {
           selected_time_slot: {
-            $gte: moment(
-              `${moment().format("YYYY-MM-DD")} ${time}`,
-              "YYYY-MM-DD h:mm A"
-            )
-              .startOf("hour")
-              .local()
-              .toDate(),
-            $lt: moment(
-              `${moment().format("YYYY-MM-DD")} ${time}`,
-              "YYYY-MM-DD h:mm A"
-            )
-              .endOf("hour")
-              .local()
-              .toDate(),
-          },
-        },
+            $gte: utcStart.toDate(),
+            $lt: utcEnd.toDate()
+          }
+        }
       };
     } else {
+      // Default to current day in UTC
+      const utcStart = moment.utc().startOf('day');  // 00:00:00 UTC
+      const utcEnd = moment.utc().endOf('day');      // 23:59:59.999 UTC
+
       timeFilter = {
         $match: {
-          selected_time_slot: {
-            $gte: moment().startOf("day").local().toDate(), // Start of the current day (00:00 AM)
-            $lt: moment().endOf("day").local().toDate(), // End of the current day (11:59 PM)
-          },
-        },
+          created_time: {
+            $gte: utcStart.toDate(),
+            $lt: utcEnd.toDate()
+          }
+        }
       };
     }
     const orders = await Order.aggregate([
@@ -270,8 +306,8 @@ exports.createOrderRoute = async (req, res) => {
     const closestUnallocated =
       unallocatedItems.length > 0
         ? unallocatedItems.reduce((closest, current) =>
-            current.distance < closest.distance ? current : closest
-          )
+          current.distance < closest.distance ? current : closest
+        )
         : null;
     closestUnallocated.allocated = true;
     const routes = [[closestUnallocated]];
@@ -301,8 +337,8 @@ exports.createOrderRoute = async (req, res) => {
       const closestUnallocated =
         routeDistances.length > 0
           ? routeDistances.reduce((closest, current) =>
-              current.distance < closest.distance ? current : closest
-            )
+            current.distance < closest.distance ? current : closest
+          )
           : null;
       closestUnallocated.allocated = true;
       routeDistances = routeDistances.find(
@@ -370,8 +406,8 @@ exports.createOrderRoute = async (req, res) => {
           const closestUnallocated =
             unallocatedItems.length > 0
               ? unallocatedItems.reduce((closest, current) =>
-                  current.distance < closest.distance ? current : closest
-                )
+                current.distance < closest.distance ? current : closest
+              )
               : null;
           if (unallocatedItems.length === 0) {
             runLoop = false;
@@ -456,26 +492,24 @@ exports.createOrderRoute = async (req, res) => {
         console.log("waypointParam", waypointParam);
         const response = await axios.get(
           `https://maps.googleapis.com/maps/api/directions/json?` +
-            `origin=${sourceLatitude},${sourceLongitude}` +
-            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
-              tempRoute[tempRoute.length - 1].longitude
-            }` + // Return to origin
-            waypointParam +
-            // `&waypoints[]:${waypoints}` +
-            // `&optimizeWaypoints:true` +
-            `&key=${process.env.GOOGLE_MAPS_API_KEY}`
+          `origin=${sourceLatitude},${sourceLongitude}` +
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
+          }` + // Return to origin
+          waypointParam +
+          // `&waypoints[]:${waypoints}` +
+          // `&optimizeWaypoints:true` +
+          `&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
         console.log(
           "map URL ",
           `https://maps.googleapis.com/maps/api/directions/json?` +
-            `origin=${sourceLatitude},${sourceLongitude}` +
-            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
-              tempRoute[tempRoute.length - 1].longitude
-            }` + // Return to origin
-            waypointParam +
-            // `&waypoints[]:${waypoints}` +
-            `&optimizeWaypoints:true` +
-            `&key=${process.env.GOOGLE_MAPS_API_KEY}`
+          `origin=${sourceLatitude},${sourceLongitude}` +
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
+          }` + // Return to origin
+          waypointParam +
+          // `&waypoints[]:${waypoints}` +
+          `&optimizeWaypoints:true` +
+          `&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
 
         if (response.data.status === "OK") {
@@ -497,8 +531,7 @@ exports.createOrderRoute = async (req, res) => {
           const mapsUrl =
             `https://www.google.com/maps/dir/?api=1` +
             `&origin=${sourceLatitude},${sourceLongitude}` +
-            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
-              tempRoute[tempRoute.length - 1].longitude
+            `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
             }` +
             `&waypoints=${optimizedDestinations
               .map((d) => `${d.latitude},${d.longitude}`)
@@ -519,8 +552,7 @@ exports.createOrderRoute = async (req, res) => {
         const mapsUrl =
           `https://www.google.com/maps/dir/?api=1` +
           `&origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${tempRoute[tempRoute.length - 1].latitude},${
-            tempRoute[tempRoute.length - 1].longitude
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
           }` +
           // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
           `&travelmode=driving` +

@@ -5,7 +5,7 @@ const CartProduct = require("../models/cart_product_model");
 const Product = require("../models/product_model");
 const ApplicationManagement = require("../models/applicationManagementModel");
 const mongoose = require("mongoose");
-const moment = require("moment");
+const moment = require('moment-timezone');
 const axios = require("axios");
 const DBSCAN = require("density-clustering").DBSCAN;
 const {
@@ -1376,12 +1376,13 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
         .json({ success: false, message: "Warehouse not found" });
     }
     let timeFilter;
+    const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
+    const timeMoment = moment.tz(`${today} ${time}`, 'YYYY-MM-DD h:mm A', 'Asia/Kolkata');
+    const utcStart = timeMoment.clone().startOf('hour').utc();
+    const utcEnd = timeMoment.clone().endOf('hour').utc();
     if (time && time !== "null") {
       // const timeMoment = moment(time, 'h:mm A');
-      const today = moment().format('YYYY-MM-DD');
-      const timeMoment = moment(`${today} ${time}`, 'YYYY-MM-DD h:mm A');
-      const utcStart = timeMoment.clone().startOf('hour').utc();
-      const utcEnd = timeMoment.clone().endOf('hour').utc();
+
 
       console.log("Local time:", timeMoment.format());
       console.log("UTC Start:", utcStart.format());
@@ -1432,11 +1433,14 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       };
     } else {
       // Default to current day in UTC
+      const utcStart = moment.utc().startOf('day');  // 00:00:00 UTC
+      const utcEnd = moment.utc().endOf('day');      // 23:59:59.999 UTC
+
       timeFilter = {
         $match: {
-          selected_time_slot: {
-            $gte: moment().startOf('day').utc().toDate(),
-            $lt: moment().endOf('day').utc().toDate()
+          created_time: {
+            $gte: utcStart.toDate(),
+            $lt: utcEnd.toDate()
           }
         }
       };
@@ -1594,8 +1598,8 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
 
   if (time && time !== "null") {
     // const timeMoment = moment(time, 'h:mm A');
-    const today = moment().format('YYYY-MM-DD');
-    const timeMoment = moment(`${today} ${time}`, 'YYYY-MM-DD h:mm A');
+    const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
+    const timeMoment = moment.tz(`${today} ${time}`, 'YYYY-MM-DD h:mm A', 'Asia/Kolkata');
     const utcStart = timeMoment.clone().startOf('hour').utc();
     const utcEnd = timeMoment.clone().endOf('hour').utc();
 
@@ -1648,11 +1652,14 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
     };
   } else {
     // Default to current day in UTC
+    const utcStart = moment.utc().startOf('day');  // 00:00:00 UTC
+    const utcEnd = moment.utc().endOf('day');      // 23:59:59.999 UTC
+
     timeFilter = {
       $match: {
-        selected_time_slot: {
-          $gte: moment().startOf('day').utc().toDate(),
-          $lt: moment().endOf('day').utc().toDate()
+        created_time: {
+          $gte: utcStart.toDate(),
+          $lt: utcEnd.toDate()
         }
       }
     };
