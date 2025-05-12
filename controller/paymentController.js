@@ -13,6 +13,11 @@ const Notification = require("../models/notifications_model");
 
 exports.createRazorpayOrder = async (req, res) => {
     const { user_ref, amount, description, order_id, cart_id } = req.body;
+    console.log("user_ref", user_ref);
+    console.log("amount", amount);
+    console.log("description", description);
+    console.log("order_id", order_id);
+    console.log("cart_id", cart_id);
 
     // Validate input
     if (!user_ref || !amount) {
@@ -118,6 +123,7 @@ exports.verifyPayment = async (req, res) => {
         if (req.body.event == "payment.captured") {
             console.log("Valid signature inside payment.captured", req.body);
             console.dir(req.body, { depth: null });
+            console.log("Valid signature inside payment.captured",req.body.payload.payment.entity.notes.user_id);
             // Payment is valid
             const payment = await Payment.findOne({ razorpay_order_id: req.body.payload.payment.entity.order_id });
             if (!payment) {
