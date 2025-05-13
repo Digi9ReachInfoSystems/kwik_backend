@@ -121,6 +121,7 @@ exports.verifyPayment = async (req, res) => {
     console.log("digested_signature", digested_signature);
     console.dir("req.body", req.body, { depth: null });
     if (digested_signature === signature) {
+        console.log("req.body.event", req.body.event);
         if (req.body.event == "payment.captured") {
             console.log("Valid signature inside payment.captured", req.body);
             console.dir(req.body, { depth: null });
