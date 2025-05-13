@@ -116,13 +116,13 @@ const couponSchema = new mongoose.Schema({
     required: [true, "Coupon code is required"],
     validate: [
       {
-        validator: function(value) {
+        validator: function (value) {
           return /^[A-Za-z0-9]{5}$/.test(value);
         },
         message: "Coupon code must be a 5-character alphanumeric string"
       },
       {
-        validator: async function(value) {
+        validator: async function (value) {
           const coupon = await mongoose.model("Coupon").findOne({ coupon_code: value });
           return !coupon;
         },
@@ -135,6 +135,11 @@ const couponSchema = new mongoose.Schema({
     required: true,
     default: Date.now,
   },
+  applied_users: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+
+  }],
 });
 
 // Create and export the Coupon model
