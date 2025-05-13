@@ -21,6 +21,7 @@
     "express": "^4.21.2",
     "firebase-admin": "^13.0.2",
     "haversine-distance": "^1.2.3",
+    "luxon": "^3.6.1",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.48",
     "mongoos": "^0.0.1-security",

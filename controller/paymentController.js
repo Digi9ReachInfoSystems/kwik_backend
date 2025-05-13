@@ -5,9 +5,10 @@ const User = require("../models/user_models");
 const razorpayInstance = require("../utils/razorpayService");
 const crypto = require("crypto");
 const {
-  generateAndSendNotificationNew,
+    generateAndSendNotificationNew,
 } = require("../controller/notificationController");
 const Notification = require("../models/notifications_model");
+const Coupon = require("../models/coupon_model");
 
 
 
@@ -123,7 +124,7 @@ exports.verifyPayment = async (req, res) => {
         if (req.body.event == "payment.captured") {
             console.log("Valid signature inside payment.captured", req.body);
             console.dir(req.body, { depth: null });
-            console.log("Valid signature inside payment.captured",req.body.payload.payment.entity.notes.user_id);
+            console.log("Valid signature inside payment.captured", req.body.payload.payment.entity.notes.user_id);
             // Payment is valid
             const payment = await Payment.findOne({ razorpay_order_id: req.body.payload.payment.entity.order_id });
             if (!payment) {
@@ -143,6 +144,14 @@ exports.verifyPayment = async (req, res) => {
             user.cart_products = [];
             await user.save();
             //  push Notification
+
+            const coupon = await Coupon.findOne({ coupon_code: req.body.payload.payment.entity.notes.coupon_code });
+            if (coupon) {
+                if (!(coupon.applied_users.includes(user._id))) {
+                    const savedCoupon = await Coupon.updateOne({ coupon_code: coupon_code }, { $push: { applied_users: userData._id } });
+                }
+                await coupon.save();
+            }
 
             const userref1 = user._id;
             const title = "Order Placed Successfully!";
@@ -173,7 +182,7 @@ exports.verifyPayment = async (req, res) => {
                 extraData
             );
 
-        }else if(req.body.event == "payment.failed"){
+        } else if (req.body.event == "payment.failed") {
             console.log("Valid signature inside payment.failed", req.body);
             console.dir(req.body, { depth: null });
             const payment = await Payment.findOne({ razorpay_order_id: req.body.payload.payment.entity.order_id });

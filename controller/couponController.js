@@ -1,7 +1,8 @@
 const Coupon = require("../models/coupon_model"); // Import the Coupon model
 const User = require("../models/user_models"); // Import the User model
 const Order = require("../models/order_model");
-
+const mongoose = require("mongoose");
+const { DateTime } = require('luxon');
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
   try {
@@ -190,10 +191,89 @@ exports.sarchCoupon = async (req, res) => {
   try {
     const { coupon_type } = req.params;
     const { name } = req.query;
-    const coupons = await Coupon.find({ coupon_name: { $regex: `${name}`, $options: "i" } ,coupon_type:coupon_type});
+    const coupons = await Coupon.find({ coupon_name: { $regex: `${name}`, $options: "i" }, coupon_type: coupon_type });
     res.status(200).json({ success: true, data: coupons });
   } catch (error) {
     console.error("Error getting coupons by type: ", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+exports.getUserCoupons = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findOne({ UID: userId });
+    const currentDate = new Date();
+
+    if (!mongoose.Types.ObjectId.isValid(user._id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID format"
+      });
+    }
+    const timeZone = 'Asia/Kolkata';
+    const now = DateTime.now().setZone(timeZone);
+    const startOfDay = now.startOf('day').toUTC().toJSDate();
+    const endOfDay = now.endOf('day').toUTC().toJSDate();
+    // Find applicable coupons with complete population
+    const orderCount = await Order.countDocuments({ user_ref: user._id });
+    const couponTypeFilter = [
+      "All",
+      ...(orderCount === 0 ? ["new user"] : []), // only include if new user
+      "normal"
+    ];
+    const coupons = await Coupon.find({
+      $and: [
+        { applied_users: { $ne: user._id } },
+        {
+          start_date: {
+            $lte: endOfDay,
+            // $lte: endOfDay
+          }
+        },
+        { end_date: {  $gte: startOfDay } },
+        {
+          $or: [
+            { coupon_type: { $in: couponTypeFilter } },
+            {
+              $and: [
+                { coupon_type: { $in: ["Selected users", "individual"] } },
+                { user_list: user._id }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+      .populate({
+        path: 'user_list',
+        select: '-__v -password' // Exclude version key and password
+      })
+      .populate({
+        path: 'applied_users',
+        select: '-__v -password' // Exclude version key and password
+      })
+      .lean(); // Convert to plain JavaScript objects for better performanc
+    // If you need to transform the data further before sending
+    const enrichedCoupons = coupons.map(coupon => {
+      return {
+        ...coupon,
+        isEligible: true, // You can add additional computed fields
+        daysRemaining: Math.ceil((coupon.end_date - currentDate) / (1000 * 60 * 60 * 24))
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      count: enrichedCoupons.length,
+      data: enrichedCoupons
+    });
+
+  } catch (error) {
+    console.error("Error in getUserCouponsWithFullDetails:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching coupons",
+      error: error.message
+    });
   }
 };

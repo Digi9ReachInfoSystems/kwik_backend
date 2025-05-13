@@ -14,6 +14,7 @@ const {
 const Notification = require("../models/notifications_model");
 const Payment = require("../models/paymentModel");
 const razorpayInstance = require("../utils/razorpayService");
+const Coupon = require("../models/coupon_model");
 
 // const haversine = require('haversine-distance');
 // const googleMapsClient = require('@googlemaps/google-maps-services-js').Client;
@@ -43,6 +44,7 @@ exports.createOrder = async (req, res) => {
       type_of_delivery,
       delivery_charge,
       selected_time_slot,
+      coupon_code,
     } = req.body;
     console.log(req.body);
     // Validate if the warehouse and user exist
@@ -84,6 +86,8 @@ exports.createOrder = async (req, res) => {
         Number(product.buying_price * product.quantity);
     }
     profit -= discount_price;
+    total_amount -= discount_price;
+
     // Create a new order object
     const newOrder = new Order({
       warehouse_ref: warehouse._id,
@@ -135,6 +139,7 @@ exports.createOrder = async (req, res) => {
           user_id: userData._id,
           description: "payment using Online",
           user_orderId: savedOrder._id,
+          coupon_code: coupon_code
           //   cart_id:cart_id
         },
       };
@@ -157,7 +162,14 @@ exports.createOrder = async (req, res) => {
     }
 
     if (payment_type === "COD") {
-
+      if (coupon_code!=='null') {
+        const coupon = await Coupon.findOne({ coupon_code: coupon_code });
+        if (coupon) {
+          if (!(coupon.applied_users.includes(userData._id))) {
+           const savedCoupon = await Coupon.updateOne({ coupon_code: coupon_code }, { $push: { applied_users: userData._id } });
+          }
+        }
+      }
       const userref1 = userData._id;
       const title = "Order Placed Successfully!";
       const message = `Your order has been successfully placed and is now being processed.`;
