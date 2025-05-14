@@ -87,7 +87,12 @@ exports.createOrder = async (req, res) => {
     }
     profit -= discount_price;
     total_amount -= discount_price;
-    const couponC = await Coupon.findOne({ coupon_code: coupon_code });
+
+    let couponC ;
+    if(coupon_code!=='null'){
+      couponC = await Coupon.findOne({ coupon_code: coupon_code });
+
+    }
 
     // Create a new order object
     const newOrder = new Order({
@@ -115,7 +120,7 @@ exports.createOrder = async (req, res) => {
       handling_charge: appSettings.handling_charge,
       high_demand_charge: appSettings.high_demand_charge,
       delivery_instructions,
-      coupon_ref:couponC._id,
+      coupon_ref:couponC?couponC._id:null,
     });
     // If the order status is out for delivery or completed, you can add timestamps for those statuses
     if (order_status === "Out for delivery") {
