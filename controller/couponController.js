@@ -98,20 +98,20 @@ exports.validateCoupon = async (req, res) => {
     if (coupons.coupon_type == "new user") {
       const orders = await Order.find({ user_ref: user._id });
       if (orders.length > 1) {
-        return res.status(404).json({ success: false, message: "Coupon already used" });
+        return res.status(200).json({ success: false, message: "Coupon already used" });
       } else {
         if (coupons.start_date > new Date()) {
-          return res.status(404).json({ success: false, message: "Coupon not active" });
+          return res.status(200).json({ success: false, message: "Coupon not active" });
         }
         if (coupons.end_date < new Date()) {
-          return res.status(404).json({ success: false, message: "Coupon expired" });
+          return res.status(200).json({ success: false, message: "Coupon expired" });
         }
         let total_amount = 0;
         user.cart_products.forEach(element => {
           total_amount += element.final_price;
         })
         if (total_amount < coupons.min_order_value) {
-          return res.status(404).json({ success: false, message: "Coupon not active" });
+          return res.status(200).json({ success: false, message: "Minimum order value not met" });
         }
         let discount_price = (total_amount / 100) * coupons.discount_percentage;
         if (discount_price > coupons.discount_max_price) {
@@ -123,20 +123,20 @@ exports.validateCoupon = async (req, res) => {
 
     } else if ((coupons.coupon_type == "Selected users") || (coupons.coupon_type == "individual")) {
       if (!coupons.user_list.includes(user._id)) {
-        return res.status(404).json({ success: false, message: "Coupon not active for this user" });
+        return res.status(200).json({ success: false, message: "Coupon not active for this user" });
       } else {
         if (coupons.start_date > new Date()) {
-          return res.status(404).json({ success: false, message: "Coupon not active" });
+          return res.status(200).json({ success: false, message: "Coupon not active" });
         }
         if (coupons.end_date < new Date()) {
-          return res.status(404).json({ success: false, message: "Coupon expired" });
+          return res.status(200).json({ success: false, message: "Coupon expired" });
         }
         let total_amount = 0;
         user.cart_products.forEach(element => {
           total_amount += element.final_price;
         })
         if (total_amount < coupons.min_order_value) {
-          return res.status(404).json({ success: false, message: "Coupon not active" });
+          return res.status(200).json({ success: false, message: "Minimum order value not met" });
         }
         let discount_price = (total_amount / 100) * coupons.discount_percentage;
         if (discount_price > coupons.discount_max_price) {
@@ -146,17 +146,17 @@ exports.validateCoupon = async (req, res) => {
       }
     } else if (coupons.coupon_type === "All" || coupons.coupon_type == "normal") {
       if (coupons.start_date > new Date()) {
-        return res.status(404).json({ success: false, message: "Coupon not active" });
+        return res.status(200).json({ success: false, message: "Coupon not active" });
       }
       if (coupons.end_date < new Date()) {
-        return res.status(404).json({ success: false, message: "Coupon expired" });
+        return res.status(200).json({ success: false, message: "Coupon expired" });
       }
       let total_amount = 0;
       user.cart_products.forEach(element => {
         total_amount += element.final_price;
       })
       if (total_amount < coupons.min_order_value) {
-        return res.status(404).json({ success: false, message: "Coupon not active" });
+        return res.status(200).json({ success: false, message: "Minimum order value not met" });
       }
       let discount_price = (total_amount / 100) * coupons.discount_percentage;
       if (discount_price > coupons.discount_max_price) {

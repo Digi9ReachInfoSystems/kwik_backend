@@ -131,6 +131,7 @@ exports.verifyPayment = async (req, res) => {
             if (!payment) {
                 return res.status(200).json({ error: 'Payment not found' });
             }
+            const coupon = await Coupon.findOne({ coupon_code: req.body.payload.payment.entity.notes.coupon_code });
             // Update payment details
             payment.payment_id = req.body.payload.payment.entity.id;
             payment.status = 'paid';
@@ -140,13 +141,15 @@ exports.verifyPayment = async (req, res) => {
             const userOrder = await Order.findById({ _id: req.body.payload.payment.entity.notes.user_orderId });
             userOrder.payment_id = payment._id;
             userOrder.order_status = "Order placed";
+            userOrder.order_placed_time = Date.now();
+            userOrder.coupon_ref=coupon._id;
             await userOrder.save();
             const user = await User.findById({ _id: req.body.payload.payment.entity.notes.user_id });
             user.cart_products = [];
             await user.save();
             //  push Notification
 
-            const coupon = await Coupon.findOne({ coupon_code: req.body.payload.payment.entity.notes.coupon_code });
+            
             if (coupon) {
                 if (!(coupon.applied_users.includes(user._id))) {
                     const savedCoupon = await Coupon.updateOne({ coupon_code: coupon_code }, { $push: { applied_users: userData._id } });
