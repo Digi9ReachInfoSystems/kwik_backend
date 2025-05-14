@@ -218,6 +218,12 @@ const orderSchema = new mongoose.Schema({
     required: [true, "Creation time is required"],
     default: Date.now,
   },
+  coupon_ref: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Coupon",
+    required: [false, "Coupon ID is required"],
+    default: null,
+  },
 });
 
 // Create and export the Order model
