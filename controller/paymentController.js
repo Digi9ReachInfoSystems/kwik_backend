@@ -122,7 +122,7 @@ exports.verifyPayment = async (req, res) => {
     console.dir("req.body", req.body, { depth: null });
     if (digested_signature === signature) {
         console.log("req.body.event", req.body.event);
-        if (req.body.event == "payment.captured" || req.body.event == "payment.paid") {
+        if (req.body.event == "payment.captured" ) {
             console.log("Valid signature inside payment.captured", req.body);
             console.dir(req.body, { depth: null });
             console.log("Valid signature inside payment.captured", req.body.payload.payment.entity.notes.user_id);
@@ -153,7 +153,7 @@ exports.verifyPayment = async (req, res) => {
             
             if (coupon) {
                 if (!(coupon.applied_users.includes(user._id))) {
-                    const savedCoupon = await Coupon.updateOne({ coupon_code: coupon.coupon_code }, { $push: { applied_users: userData._id } });
+                    const savedCoupon = await Coupon.updateOne({ coupon_code: coupon.coupon_code }, { $push: { applied_users: user._id } });
                 }
                 await coupon.save();
             }
