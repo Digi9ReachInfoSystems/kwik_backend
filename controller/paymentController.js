@@ -153,7 +153,7 @@ exports.verifyPayment = async (req, res) => {
             
             if (coupon) {
                 if (!(coupon.applied_users.includes(user._id))) {
-                    const savedCoupon = await Coupon.updateOne({ coupon_code: coupon_code }, { $push: { applied_users: userData._id } });
+                    const savedCoupon = await Coupon.updateOne({ coupon_code: coupon.coupon_code }, { $push: { applied_users: userData._id } });
                 }
                 await coupon.save();
             }
