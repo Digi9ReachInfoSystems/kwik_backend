@@ -144,7 +144,7 @@ exports.verifyPayment = async (req, res) => {
             userOrder.order_placed_time = Date.now();
             userOrder.coupon_ref=coupon._id;
             await userOrder.save();
-            const user = await User.findById({ _id: req.body.payload.payment.entity.notes.user_id });
+            const user = await User.findById(req.body.payload.payment.entity.notes.user_id );
             user.cart_products = [];
             await user.save();
             //  push Notification
