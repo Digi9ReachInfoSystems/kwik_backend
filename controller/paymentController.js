@@ -122,7 +122,7 @@ exports.verifyPayment = async (req, res) => {
     console.dir("req.body", req.body, { depth: null });
     if (digested_signature === signature) {
         console.log("req.body.event", req.body.event);
-        if (req.body.event == "payment.captured" ) {
+        if (req.body.event == "payment.captured") {
             console.log("Valid signature inside payment.captured", req.body);
             console.dir(req.body, { depth: null });
             console.log("Valid signature inside payment.captured", req.body.payload.payment.entity.notes.user_id);
@@ -131,7 +131,11 @@ exports.verifyPayment = async (req, res) => {
             if (!payment) {
                 return res.status(200).json({ error: 'Payment not found' });
             }
-            const coupon = await Coupon.findOne({ coupon_code: req.body.payload.payment.entity.notes.coupon_code });
+            let coupon;
+            if (req.body.payload.payment.entity.notes.coupon_code) {
+                coupon = await Coupon.findOne({ coupon_code: req.body.payload.payment.entity.notes.coupon_code });
+            }
+
             // Update payment details
             payment.payment_id = req.body.payload.payment.entity.id;
             payment.status = 'paid';
@@ -142,15 +146,15 @@ exports.verifyPayment = async (req, res) => {
             userOrder.payment_id = payment._id;
             userOrder.order_status = "Order placed";
             userOrder.order_placed_time = Date.now();
-            userOrder.coupon_ref=coupon._id;
+            userOrder.coupon_ref =coupon? coupon._id:null;
             await userOrder.save();
             console.log("userOrder", req.body.payload.payment.entity.notes.user_id);
-            const user = await User.findById(req.body.payload.payment.entity.notes.user_id );
+            const user = await User.findById(req.body.payload.payment.entity.notes.user_id);
             user.cart_products = [];
             await user.save();
             //  push Notification
 
-            
+
             if (coupon) {
                 if (!(coupon.applied_users.includes(user._id))) {
                     const savedCoupon = await Coupon.updateOne({ coupon_code: coupon.coupon_code }, { $push: { applied_users: user._id } });
