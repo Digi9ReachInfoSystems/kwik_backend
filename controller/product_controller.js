@@ -2004,6 +2004,7 @@ exports.searchQcProductsByStatus = async (req, res) => {
 exports.addSubcategoryToProducts = async (req, res) => {
   try {
     const { subcategoryId, productIds } = req.body;
+    console.log("addSubcategoryToProducts",productIds,"productIds",(typeof productIds),"productIds instanceof Array",(productIds instanceof Array));
     // Validate inputs
     if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
       return res.status(400).json({ success: false, message: "Invalid subcategory ID" });
