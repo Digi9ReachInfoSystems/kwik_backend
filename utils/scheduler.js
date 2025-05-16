@@ -13,7 +13,8 @@ if (!admin.apps.length) {
 
 // Connect to MongoDB if not already connected
 mongoose.connect(
-  "mongodb+srv://arjunjpdev:Arjun!23@cluster0.rsz9u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+  // "mongodb+srv://arjunjpdev:Arjun!23@cluster0.rsz9u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+  process.env.MONGODB_URI,
   {
     useNewUrlParser: true,
     useUnifiedTopology: true,

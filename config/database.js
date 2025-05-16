@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const http = require("http").Server(express());
 const checkApiKey = require("./checkapikey");
 
-const MONGODB_URI =
-  "mongodb+srv://arjunjpdev:Arjun!23@cluster0.rsz9u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+// const MONGODB_URI ="mongodb+srv://arjunjpdev:Arjun!23@cluster0.rsz9u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const MONGODB_URI =process.env.MONGODB_URI;
 
 const connectDB = async () => {
   try {
