@@ -66,7 +66,7 @@ const orderSchema = new mongoose.Schema({
   order_status: {
     type: String,
     required: [true, "Order status is required"],
-    enum: ["Packing", "Out for delivery", "Delivered", "Delivery failed", "Order placed","Payment pending"],
+    enum: ["Packing", "Out for delivery", "Delivered", "Delivery failed", "Order placed","Payment pending","Payment failed"],
   },
 
   user_address: {

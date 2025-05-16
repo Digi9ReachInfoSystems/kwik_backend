@@ -146,9 +146,8 @@ exports.verifyPayment = async (req, res) => {
             userOrder.payment_id = payment._id;
             userOrder.order_status = "Order placed";
             userOrder.order_placed_time = Date.now();
-            userOrder.coupon_ref =coupon? coupon._id:null;
+            userOrder.coupon_ref = coupon ? coupon._id : null;
             await userOrder.save();
-            console.log("userOrder", req.body.payload.payment.entity.notes.user_id);
             const user = await User.findById(req.body.payload.payment.entity.notes.user_id);
             user.cart_products = [];
             await user.save();
@@ -201,6 +200,10 @@ exports.verifyPayment = async (req, res) => {
             // Update payment details
             payment.status = 'failed';
             await payment.save();
+            const userOrder = await Order.findById({ _id: req.body.payload.payment.entity.notes.user_orderId });
+            userOrder.payment_id = payment._id;
+            userOrder.order_status = "Payment failed";
+            await userOrder.save();
         }
 
     } else {

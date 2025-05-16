@@ -25,22 +25,28 @@ exports.createOrderRoute = async (req, res) => {
         .local()
         .toDate()
     );
+    const todayMain = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
+    const timeMomentMain = moment.tz(`${todayMain} ${time}`, 'YYYY-MM-DD h:mm A', 'Asia/Kolkata');
+    const utcStartMain = timeMomentMain.clone().startOf('hour').utc();
+    const utcEndMain = timeMomentMain.clone().endOf('hour').utc();
     const found = await OrderRoute.findOne({
       warehouse_ref: warehouseId,
-      tum_tumdelivery_start_time: moment(
-        `${moment().format("YYYY-MM-DD")} ${time}`,
-        "YYYY-MM-DD h:mm A"
-      )
-        .startOf("hour")
-        .local()
-        .toDate(),
-      tumtumdelivery_end_time: moment(
-        `${moment().format("YYYY-MM-DD")} ${time}`,
-        "YYYY-MM-DD h:mm A"
-      )
-        .endOf("hour")
-        .local()
-        .toDate(),
+      tum_tumdelivery_start_time: utcStartMain.toDate(),
+      // moment(
+      //   `${moment().format("YYYY-MM-DD")} ${time}`,
+      //   "YYYY-MM-DD h:mm A"
+      // )
+      //   .startOf("hour")
+      //   .local()
+      //   .toDate(),
+      tumtumdelivery_end_time: utcEndMain.toDate(),
+      // moment(
+      //   `${moment().format("YYYY-MM-DD")} ${time}`,
+      //   "YYYY-MM-DD h:mm A"
+      // )
+      //   .endOf("hour")
+      //   .local()
+      //   .toDate(),
     })
       .populate({
         path: "route.orders",
