@@ -5,7 +5,16 @@ const mongoose = require("mongoose");
 // Get all sub-categories
 exports.getAllSubCategories = async (req, res) => {
   try {
-    const subCategories = await SubCategory.find({ isDeleted: false }).populate("category_ref"); // Fetch all sub-categories from the database
+    let subCategories = await SubCategory.find({ isDeleted: false }).populate("category_ref"); // Fetch all sub-categories from the database
+    subCategories = await Promise.all(subCategories.map(async (subCategory) => {
+      const count = await Product.countDocuments({ sub_category_ref: subCategory._id, isDeleted: false, draft: false, qc_status: "approved" });
+      console.log("count", count,"subCategory", subCategory._id);
+      return {
+        ...subCategory._doc,
+        product_count: count,
+      };
+    }));
+
     res.status(200).json(subCategories); // Send only the subcategories array
   } catch (error) {
     console.error("Error fetching sub-categories:", error.message); // Log error for debugging
@@ -112,7 +121,7 @@ exports.addSubCategory = async (req, res) => {
     if (add_to_Category) {
       const updatedCategory = await Category.findByIdAndUpdate(categoryExists._id, { $push: { selected_sub_category_ref: savedSubCategory._id } }, { new: true });
     }
-    if (productId_list){
+    if (productId_list) {
       if (productId_list.length > 0) {
         for (const productId of productId_list) {
           const product = await Product.findById(productId);
