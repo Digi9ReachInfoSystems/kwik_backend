@@ -1426,7 +1426,7 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
 exports.searchProductsbyUserId = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { query,saveHistory=false } = req.query;
+    const { query, saveHistory = false } = req.query;
     const user = await User.findOne({ UID: userId }).exec();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -1451,12 +1451,16 @@ exports.searchProductsbyUserId = async (req, res) => {
       query: query,
       timestamp: new Date()
     };
+    console.log("saveHistory", saveHistory);
+    if (saveHistory=='true') {
+      
+      const existingQuery = user.search_history.find(item => item.query === query);
 
-    const existingQuery = user.search_history.find(item => item.query === query);
-
-    if (!existingQuery) {
-      user.search_history.push(searchHistory);
+      if (!existingQuery) {
+        user.search_history.push(searchHistory);
+      }
     }
+
     await user.save();
     res.status(200).json({ success: true, message: "Products retrieved successfully", data: products });
   } catch (error) {
@@ -2004,7 +2008,7 @@ exports.searchQcProductsByStatus = async (req, res) => {
 exports.addSubcategoryToProducts = async (req, res) => {
   try {
     const { subcategoryId, productIds } = req.body;
-    console.log("addSubcategoryToProducts",productIds,"productIds",(typeof productIds),"productIds instanceof Array",(productIds instanceof Array));
+    console.log("addSubcategoryToProducts", productIds, "productIds", (typeof productIds), "productIds instanceof Array", (productIds instanceof Array));
     // Validate inputs
     if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
       return res.status(400).json({ success: false, message: "Invalid subcategory ID" });
