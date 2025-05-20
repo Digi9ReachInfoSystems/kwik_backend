@@ -1426,7 +1426,7 @@ exports.getRecomandedProductsBasedOnOrders = async (req, res) => {
 exports.searchProductsbyUserId = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { query } = req.query;
+    const { query,saveHistory=false } = req.query;
     const user = await User.findOne({ UID: userId }).exec();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
