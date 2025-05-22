@@ -100,7 +100,16 @@ exports.createProduct = async (req, res) => {
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find({ isDeleted: false, draft: false, qc_status: "approved" })
-      .populate("Brand category_ref sub_category_ref warehouse_ref")
+      // .populate("Brand category_ref sub_category_ref warehouse_ref")
+      .populate(
+        "Brand category_ref sub_category_ref variations warehouse_ref  review"
+      )
+      .populate({
+        path: "sub_category_ref",
+        populate: {
+          path: "category_ref",
+        }
+      })
       .sort({ created_time: -1 })
       .exec();
 
@@ -1452,8 +1461,8 @@ exports.searchProductsbyUserId = async (req, res) => {
       timestamp: new Date()
     };
     console.log("saveHistory", saveHistory);
-    if (saveHistory=='true') {
-      
+    if (saveHistory == 'true') {
+
       const existingQuery = user.search_history.find(item => item.query === query);
 
       if (!existingQuery) {
