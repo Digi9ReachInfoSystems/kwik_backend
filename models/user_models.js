@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
-
+ 
 // Import the CartProduct and Address models
 const CartProduct = require("./cart_product_model");
 const Address = require("./address_model");
 const SearchHistory = require("./searchHistory_model");
-
+ 
 const userSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   displayName: { type: String, required: true },
@@ -73,6 +73,25 @@ const userSchema = new mongoose.Schema({
     enum: ["two_wheeler", "three_wheeler", "four_wheeler"],
     default: "two_wheeler",
   },
+  assigned_orders:[
+    {
+      order_ref:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order",
+        required: false
+      },
+      assigned_time:{
+        type: Date,
+        required: false
+      },
+      status:{
+        type: String,
+        required: false,
+        enum: ["assigned", "picked_up", "delivered"],
+        default: "assigned",
+      }
+    }
+  ],
   deliveryboy_day_availability_status: { type: Boolean, required: false, default: false },
   deliveryboy_order_availability_status: {
     tum_tum: { type: Boolean, required: false, default: true },
@@ -80,8 +99,9 @@ const userSchema = new mongoose.Schema({
       status: { type: Boolean, required: false, default: true },
       last_assigned_at: { type: Date, required: false },
     },
+ 
   },
 });
-
+ 
 // Create and export the User model
 module.exports = mongoose.model("User", userSchema);

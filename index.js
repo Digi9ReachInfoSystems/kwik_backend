@@ -53,7 +53,7 @@ app.use(
 // });
 
 require("./utils/scheduler"); // This will start the cron job
-
+require("./utils/orderScheduler"); // This will start the order scheduler
 // Middleware to parse JSON body data
 app.use(express.json());
 
