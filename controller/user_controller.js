@@ -1725,7 +1725,7 @@ exports.getInstantdeliveryByUserId = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     const instantDelivery = user.assigned_orders.filter(
-      (order) => order.status === "assigned"
+      (order) => order.status === status
     );
     res.status(200).json({success: true, message: "order Fetched Successfully", instantDelivery });
   } catch (error) {
