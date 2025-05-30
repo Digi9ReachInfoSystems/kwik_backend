@@ -1710,3 +1710,115 @@ exports.removeAddress = async (req, res) => {
     });
   }
 };
+exports.getInstantdeliveryByUserId = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const status = req.query.status || "assigned"; // Default to 'assigned' if not provided
+    const user = await User.findOne({ UID: userId }).
+      populate({
+        path: "assigned_orders",
+        populate: {
+          path: "order_ref",
+        }
+      });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const instantDelivery = user.assigned_orders.filter(
+      (order) => order.status === "assigned"
+    );
+    res.status(200).json({success: true, message: "order Fetched Successfully", instantDelivery });
+  } catch (error) {
+    console.error("Error fetching instant delivery orders:", error);
+    res.status(500).json({success: false, message: "Server error", error: error.message });
+  }
+};
+exports.pickUpInstantDelivery = async (req, res) => {
+  try {
+    const { userId, orderId } = req.body;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const order = user.assigned_orders.find((order) => order.order_ref.equals(orderId));
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    order.status = "picked_up";
+    const savedUser = await user.save();
+    const orderData= await Order.findById(orderId);
+    if (!orderData) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    orderData.order_status = "Out for delivery";
+    orderData.out_for_delivery_time = new Date();
+    await orderData.save();
+    return res.status(200).json({ success: true, message: "Order picked up successfully", data: savedUser });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({ success: false, message: "Error picking up order", error: error.message });
+  }
+};
+exports.completeInstantDelivery = async (req, res) => {
+  try {
+    const { userId, orderId,otp } = req.body;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    } 
+     const orderData= await Order.findById(orderId);
+    if (!orderData) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    if (orderData.otp !== otp) {
+      return res.status(200).json({ success: false, message: "Invalid OTP" });
+    }
+    orderData.order_status = "Delivered";
+    orderData.completed_time = new Date();
+    await orderData.save();
+    const order = user.assigned_orders.find((order) => order.order_ref.equals(orderId));
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    order.status = "delivered";
+    const savedUser = await user.save();
+   
+    return res.status(200).json({ success: true, message: "Order completed successfully", data: savedUser });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({ success: false, message: "Error completing order", error: error.message });
+  }
+};
+exports.getSingleInstantOrderWithMapUrl = async (req, res) => {
+  try {
+    const { userId, orderId,curlat,curlong } = req.body;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const order = user.assigned_orders.find((order) => order.order_ref.equals(orderId));
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    const orderData = await Order.findById(orderId);
+    if (!orderData) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+   const mapUrl = `https://www.google.com/maps/dir/?api=1` +
+      `&origin=${curlat},${curlong}` +
+      `&destination=${orderData.user_location.lat},${orderData.user_location.lang}` +
+      // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
+      `&travelmode=driving` +
+      `&dir_action=navigate`;
+
+    return res.status(200).json({
+      success: true,
+      message: "Order fetched successfully",
+      order: orderData,
+      mapUrl,
+    });
+  } catch (error) {
+    console.error("Error fetching instant order:", error);
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
+  }
+}
