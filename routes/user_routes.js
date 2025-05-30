@@ -86,4 +86,8 @@ router.post(
 );
 router.put("/remove/whislist", userController.removeWhishlistItem);
 router.delete("/remove/address", userController.removeAddress);
+router.get("/get/instantDelivery/byUserId/:userId", userController.getInstantdeliveryByUserId);
+router.post("/pickup/instantDelivery", userController.pickUpInstantDelivery);
+router.put("/deliver/instantDeliveryOrder", userController.completeInstantDelivery);
+router.post("/get/singleIntantDelivery/withMap", userController.getSingleInstantOrderWithMapUrl);
 module.exports = router;
