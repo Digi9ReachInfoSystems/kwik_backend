@@ -210,4 +210,6 @@ cron.schedule("*/1 * * * *", () =>
     assignInstantOrders().catch((e) => console.error("[Scheduler] Fatal:", e))
 );
 
-module.exports = {}; // harmless import
+module.exports = {
+    assignInstantOrders,
+}; // harmless import
