@@ -22,7 +22,7 @@ mongoose.connect(
 );
 
 // Run every minute
-cron.schedule("* * * * *", async () => {
+ async function sendNotifications ()  {
   console.log(
     "🕒 Running scheduled notification check at:",
     new Date().toISOString()
@@ -96,4 +96,12 @@ cron.schedule("* * * * *", async () => {
     console.error("🚫 Error fetching notifications:", err.message);
     console.error("Full error object:", err.stack);
   }
-});
+};
+
+cron.schedule("* * * * *", () =>
+    sendNotifications().catch((e) => console.error("[Scheduler] Fatal:", e))
+);
+
+module.exports = {
+  sendNotifications,
+};

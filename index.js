@@ -29,6 +29,7 @@ const deliveryAssignmentRoutes = require("./routes/deliveryAssignmentRoutes");
 const tempProductRoutes = require("./routes/tempProductRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const backupRoutes = require("./routes/backupRoutes");
+const cronJonRoutes = require("./routes/cronJobRoutes");
 // MongoDB Connection
 // In your main server file (e.g., server.js or app.js)
 
@@ -86,6 +87,7 @@ app.use("/tempProduct", tempProductRoutes);
 app.use("/api/v1/notifications", require("./routes/notificationRoutes"));
 app.use("/payment", paymentRoutes);
 app.use("/mongo", backupRoutes);
+app.use("/cronJob", cronJonRoutes);
 const PORT = 3000;
 
 connectDB()
