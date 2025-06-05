@@ -1755,11 +1755,11 @@ exports.getInstantdeliveryByUserId = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
-    if (status === "assigned") {
+
+    if (status === "assigned"&&(!assigned_order_mapUrl_status)) {
       const instantDelivery = user.assigned_orders.filter(
-      (order) => order.status === status
-    );
+        (order) => order.status === status
+      );
       const orders = instantDelivery.map(order => {
         return ({ orderId: order.order_ref, status: "Pending" })
       });
@@ -1770,7 +1770,7 @@ exports.getInstantdeliveryByUserId = async (req, res) => {
       }
       return res.status(200).json({ success: true, message: "order Fetched Successfully", data: returnData });
     } else {
-      
+
       return res.status(200).json({ success: true, message: "order Fetched Successfully", data: user.assigned_orders_with_mapUrl });
     }
 
@@ -1896,7 +1896,7 @@ exports.generateInstantDeliveryRoute = async (req, res) => {
     if (user.assigned_order_mapUrl_status) {
       return res.status(200).json({ message: "Map URL already generated", mapUrl: user.assigned_orders_with_mapUrl });
     }
-    const warehouse = await Warehouse.findById(user.assigned_warehouse);
+    const warehouse = await Warehouse.findById(user.selected_warehouse);
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
     }
@@ -2117,6 +2117,136 @@ exports.generateInstantDeliveryRoute = async (req, res) => {
 
   } catch (err) {
     console.error("Error in getDistances:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};
+
+exports.deliverInstantOrder = async (req, res) => {
+  try {
+    const { orderId, otp, userId } = req.body;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+    if (order.otp !== otp) {
+      return res.status(200).json({ success: false, message: "Invalid OTP" });
+    }
+    order.order_status = "Delivered";
+    order.completed_time = new Date();
+    await order.save();
+    user.assigned_orders = user.assigned_orders.map((item) => {
+      if (item.order_ref.equals(orderId)) {
+        item.status = "delivered";
+      }
+      return item;
+    });
+    user.assigned_orders_with_mapUrl.orders = user.assigned_orders_with_mapUrl.orders.map((item) => {
+      if (item.orderId.equals(orderId)) {
+        item.status = "Completed";
+      }
+      return item;
+    });
+    const savedUser = await user.save();
+    const allDone = user.assigned_orders_with_mapUrl.orders.every((item) => item.status === "Completed");
+    if (allDone) {
+      user.assigned_order_mapUrl_status = false;
+      user.deliveryboy_order_availability_status.instant.status = true;
+      user.deliveryboy_order_availability_status.tum_tum = true;
+      const mapUrlOrderIds = user.assigned_orders_with_mapUrl.orders.map(order =>
+        order.orderId.toString()
+      );
+      user.assigned_orders = user.assigned_orders.filter(order => {
+        return !mapUrlOrderIds.includes(order.order_ref.toString());
+      });
+      user.assigned_orders_with_mapUrl=null;
+      const savedUser = await user.save();
+      return res.status(200).json({
+        success: true,
+        message: "Order delivered successfully",
+        data: savedUser,
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Order delivered successfully",
+      data: savedUser,
+    });
+
+  }
+  catch (err) {
+    console.error("Error in deliverInstantOrder:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};
+
+exports.deliverFailedInstantOrder = async (req, res) => {
+  try {
+    const { orderId, userId } = req.body;
+    const user = await User.findOne({ UID: userId });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+   
+    order.order_status = "Delivery failed";
+    order.failed_time = new Date();
+    await order.save();
+    user.assigned_orders = user.assigned_orders.map((item) => {
+      if (item.order_ref.equals(orderId)) {
+        item.status = "delivered";
+      }
+      return item;
+    });
+    user.assigned_orders_with_mapUrl.orders = user.assigned_orders_with_mapUrl.orders.map((item) => {
+      if (item.orderId.equals(orderId)) {
+        item.status = "Completed";
+      }
+      return item;
+    });
+    const savedUser = await user.save();
+    const allDone = user.assigned_orders_with_mapUrl.orders.every((item) => item.status === "Completed");
+    if (allDone) {
+      user.assigned_order_mapUrl_status = false;
+      user.deliveryboy_order_availability_status.instant.status = true;
+      user.deliveryboy_order_availability_status.tum_tum = true;
+      const mapUrlOrderIds = user.assigned_orders_with_mapUrl.orders.map(order =>
+        order.orderId.toString()
+      );
+      user.assigned_orders = user.assigned_orders.filter(order => {
+        return !mapUrlOrderIds.includes(order.order_ref.toString());
+      });
+      user.assigned_orders_with_mapUrl=null;
+      const savedUser = await user.save();
+      return res.status(200).json({
+        success: true,
+        message: "Order delivered successfully",
+        data: savedUser,
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Order delivered successfully",
+      data: savedUser,
+    });
+
+  }
+  catch (err) {
+    console.error("Error in deliverInstantOrder:", err);
     res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
