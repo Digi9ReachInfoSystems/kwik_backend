@@ -8,5 +8,5 @@ router.get(
 );
 router.patch("/deliverOrder", deliveryAssignmentController.deliverOrder); //STATUS CHANGE DELIVERED
 router.post("/assignDeliveryBoysSingle", deliveryAssignmentController.assignSingleOrder);
-
+router.patch("/deliveryFailed", deliveryAssignmentController.deliveryFailedOrder);
 module.exports = router;

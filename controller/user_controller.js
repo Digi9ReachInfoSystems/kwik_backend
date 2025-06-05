@@ -12,6 +12,7 @@ const admin = require("firebase-admin");
 const moment = require("moment");
 const Notification = require("../models/notifications_model");
 const { scheduleIdleCartReminder } = require("../utils/cartUtils");
+const axios = require("axios");
 
 // Create a new user
 exports.createUser = async (req, res) => {
@@ -1714,23 +1715,68 @@ exports.getInstantdeliveryByUserId = async (req, res) => {
   try {
     const userId = req.params.userId;
     const status = req.query.status || "assigned"; // Default to 'assigned' if not provided
-    const user = await User.findOne({ UID: userId }).
-      populate({
+    const user = await User.findOne({ UID: userId })
+      .populate({
         path: "assigned_orders",
-        populate: {
+        populate: [{
           path: "order_ref",
-        }
-      });
+        },
+        ]
+      })
+      .populate({
+        path: 'assigned_orders.order_ref',
+        populate: [
+          { path: 'user_ref', model: 'User' },
+          { path: 'warehouse_ref', model: 'Warehouse' },
+          {
+            path: 'products.product_ref',
+            model: 'Product'
+          }
+        ]
+      })
+      .populate({
+        path: "assigned_orders_with_mapUrl.orders.orderId",
+        populate: [
+          {
+            path: "warehouse_ref",
+            model: "Warehouse"
+          },
+          {
+            path: "user_ref",
+            model: "User"
+          },
+          {
+            path: "products.product_ref", // Assuming products is an array with product_ref
+            model: "Product"
+          }
+        ]
+      })
+      .exec();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const instantDelivery = user.assigned_orders.filter(
+    
+    if (status === "assigned") {
+      const instantDelivery = user.assigned_orders.filter(
       (order) => order.status === status
     );
-    res.status(200).json({success: true, message: "order Fetched Successfully", instantDelivery });
+      const orders = instantDelivery.map(order => {
+        return ({ orderId: order.order_ref, status: "Pending" })
+      });
+      const returnData = {
+        orders: orders,
+        status: "Pending",
+        map_url: null
+      }
+      return res.status(200).json({ success: true, message: "order Fetched Successfully", data: returnData });
+    } else {
+      
+      return res.status(200).json({ success: true, message: "order Fetched Successfully", data: user.assigned_orders_with_mapUrl });
+    }
+
   } catch (error) {
     console.error("Error fetching instant delivery orders:", error);
-    res.status(500).json({success: false, message: "Server error", error: error.message });
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 };
 exports.pickUpInstantDelivery = async (req, res) => {
@@ -1746,7 +1792,7 @@ exports.pickUpInstantDelivery = async (req, res) => {
     }
     order.status = "picked_up";
     const savedUser = await user.save();
-    const orderData= await Order.findById(orderId);
+    const orderData = await Order.findById(orderId);
     if (!orderData) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
@@ -1761,12 +1807,12 @@ exports.pickUpInstantDelivery = async (req, res) => {
 };
 exports.completeInstantDelivery = async (req, res) => {
   try {
-    const { userId, orderId,otp } = req.body;
+    const { userId, orderId, otp } = req.body;
     const user = await User.findOne({ UID: userId });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
-    } 
-     const orderData= await Order.findById(orderId);
+    }
+    const orderData = await Order.findById(orderId);
     if (!orderData) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
@@ -1782,7 +1828,7 @@ exports.completeInstantDelivery = async (req, res) => {
     }
     order.status = "delivered";
     const savedUser = await user.save();
-   
+
     return res.status(200).json({ success: true, message: "Order completed successfully", data: savedUser });
   } catch (error) {
     console.log("error", error);
@@ -1791,7 +1837,7 @@ exports.completeInstantDelivery = async (req, res) => {
 };
 exports.getSingleInstantOrderWithMapUrl = async (req, res) => {
   try {
-    const { userId, orderId,curlat,curlong } = req.body;
+    const { userId, orderId, curlat, curlong } = req.body;
     const user = await User.findOne({ UID: userId });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -1804,7 +1850,7 @@ exports.getSingleInstantOrderWithMapUrl = async (req, res) => {
     if (!orderData) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
-   const mapUrl = `https://www.google.com/maps/dir/?api=1` +
+    const mapUrl = `https://www.google.com/maps/dir/?api=1` +
       `&origin=${curlat},${curlong}` +
       `&destination=${orderData.user_location.lat},${orderData.user_location.lang}` +
       // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
@@ -1822,3 +1868,255 @@ exports.getSingleInstantOrderWithMapUrl = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 }
+
+exports.generateInstantDeliveryRoute = async (req, res) => {
+  try {
+    const { deliveryBoyId } = req.body;
+    const user = await User.findOne({ UID: deliveryBoyId }).populate({
+      path: "assigned_orders",
+      populate: [{
+        path: "order_ref",
+      },
+      ]
+    })
+      .populate({
+        path: 'assigned_orders.order_ref',
+        populate: [
+          { path: 'user_ref', model: 'User' },
+          { path: 'warehouse_ref', model: 'Warehouse' },
+          {
+            path: 'products.product_ref',
+            model: 'Product'
+          }
+        ]
+      });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (user.assigned_order_mapUrl_status) {
+      return res.status(200).json({ message: "Map URL already generated", mapUrl: user.assigned_orders_with_mapUrl });
+    }
+    const warehouse = await Warehouse.findById(user.assigned_warehouse);
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    const source = warehouse.warehouse_location;
+    const destinations = user.assigned_orders.map(order => {
+      return ({
+        lat: order.order_ref.user_location.lat,
+        lng: order.order_ref.user_location.lang,
+        orders: order.order_ref._id
+      })
+    });
+
+    if (!source || !Array.isArray(destinations) || destinations.length === 0) {
+      return res.status(400).json({ message: "Source and destinations are required." });
+    }
+    let tempDesitinations = destinations;
+    let tempSource = source;
+    let optimizedDestinations = [];
+
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+    while (tempDesitinations.length > 0) {
+      const origin = `${tempSource.lat},${tempSource.lng}`;
+      const destStr = tempDesitinations
+        .map(dest => `${dest.lat},${dest.lng}`)
+        .join('|');
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destStr}&key=${apiKey}`;
+
+      const response = await axios.get(url);
+      const data = response.data;
+      if (data.status !== 'OK') {
+        return res.status(500).json({ message: "Failed to fetch distance data", details: data.error_message });
+      }
+      let distances = data.rows[0].elements.map((el, index) => ({
+        destination: tempDesitinations[index],
+        distance: el.distance?.text,
+        duration: el.duration?.text,
+        value: el.distance?.value,
+        status: el.status
+      }));
+      const validDistances = distances.filter(d => d.status === 'OK' && d.value !== undefined);
+      const minDistance = Math.min(...validDistances.map(d => d.value));
+      const minDistanceObj = validDistances.find(d => d.value === minDistance);
+      if (minDistanceObj) {
+        optimizedDestinations.push({ ...minDistanceObj.destination, meter_distance: minDistance });
+        tempDesitinations = tempDesitinations.filter(dest => {
+          return (dest !== minDistanceObj.destination);
+        });
+        tempSource = minDistanceObj.destination; // Update source to the last selected destination
+        tempSource = {
+          lat: minDistanceObj.destination.lat,
+          lng: minDistanceObj.destination.lng
+        };
+      }
+    }
+    if (user.assigned_orders.length > 1) {
+
+      const finalDestinations = optimizedDestinations.map(dest => {
+        return ({
+          orderId: dest.orders,
+          status: "Pending",
+        });
+      });
+      let waypoints = optimizedDestinations
+        .slice(0, -1) // Removes the last element
+        .map(d => ({
+          lat: d.lat,
+          lng: d.lng,
+        }));
+      console.log("waypoints", waypoints);
+      console.log("optimizedDestinations", waypoints
+        .map((d) => `${d.lat},${d.lng}`)
+        .join("|"));
+      const mapsUrl =
+        `https://www.google.com/maps/dir/?api=1` +
+        `&origin=${warehouse.warehouse_location.lat},${warehouse.warehouse_location.lng}` +
+        `&destination=${optimizedDestinations[optimizedDestinations.length - 1].lat},${optimizedDestinations[optimizedDestinations.length - 1].lng
+        }` +
+        `&waypoints=${optimizedDestinations
+          .map((d) => `${d.lat},${d.lng}`)
+          .join("|")}` +
+        `&travelmode=driving` +
+        `&dir_action=navigate`;
+      user.assigned_orders_with_mapUrl = {
+        orders: finalDestinations,
+        map_url: mapsUrl,
+        status: "Pending",
+      }
+      user.assigned_order_mapUrl_status = true;
+
+      user.assigned_order_mapUrl_status = true;
+      user.deliveryboy_order_availability_status.instant.status = false;
+      user.deliveryboy_order_availability_status.tum_tum = false;
+      await user.save();
+
+      const orderIds = finalDestinations.map(dest => dest.orderId);
+      const result = await User.updateOne(
+        {
+          _id: user._id,
+          "assigned_orders.order_ref": { $in: orderIds } // Match orders in the array
+        },
+        {
+          $set: {
+            "assigned_orders.$[elem].status": "picked_up" // Update status
+          }
+        },
+        {
+          arrayFilters: [
+            { "elem.order_ref": { $in: orderIds } } // Filter to target specific orders
+          ]
+        }
+      );
+      finalDestinations.map(async (dest) => {
+        const order = await Order.findById(dest.orderId);
+        if (order) {
+          order.order_status = "Out for delivery";
+          order.out_for_delivery_time = new Date();
+          order.save();
+        }
+      });
+
+      return res.status(200).json({
+        origin: source,
+        // optimizedDestinations: optimizedDestinations,
+        finalDestinations: finalDestinations,
+        mapsUrl: mapsUrl,
+        // destinations: distances,
+
+      });
+    } else {
+      const finalDestinations = assigned_orders.map(order => {
+        return ({
+          orderId: order.order_ref._id,
+          status: "Pending",
+        });
+      });
+      const mapsUrl =
+        `https://www.google.com/maps/dir/?api=1` +
+        `&origin=${warehouse.warehouse_location.lat},${warehouse.warehouse_location.lng}` +
+        `&destination=${assigned_orders[0].order_ref.user_location.lat},${assigned_orders[0].order_ref.user_location.lang}` +
+        `&travelmode=driving` +
+        `&dir_action=navigate`;
+      user.assigned_orders_with_mapUrl = {
+        orders: finalDestinations,
+        map_url: mapsUrl,
+        status: "Pending",
+      }
+      user.assigned_order_mapUrl_status = true;
+      user.deliveryboy_order_availability_status.instant.status = false;
+      user.deliveryboy_order_availability_status.tum_tum = false;
+
+
+
+      await user.save();
+      const orderIds = finalDestinations.map(dest => dest.orderId);
+      const result = await User.updateOne(
+        {
+          _id: user._id,
+          "assigned_orders.order_ref": { $in: orderIds } // Match orders in the array
+        },
+        {
+          $set: {
+            "assigned_orders.$[elem].status": "picked_up" // Update status
+          }
+        },
+        {
+          arrayFilters: [
+            { "elem.order_ref": { $in: orderIds } } // Filter to target specific orders
+          ]
+        }
+      );
+      finalDestinations.map(async (dest) => {
+        const order = await Order.findById(dest.orderId);
+        if (order) {
+          order.order_status = "Out for delivery";
+          order.out_for_delivery_time = new Date();
+          order.save();
+        }
+      });
+
+      return res.status(200).json({
+        origin: source,
+        // optimizedDestinations: optimizedDestinations,
+        finalDestinations: finalDestinations,
+        mapsUrl: mapsUrl,
+        // destinations: distances,
+
+      });
+    }
+
+    // // // Format coordinates
+    // const origin = `${tempSource.lat},${tempSource.lng}`;
+    // const destStr = tempDesitinations
+    //   .map(dest => `${dest.lat},${dest.lng}`)
+    //   .join('|');
+
+    // // Call Google Maps Distance Matrix API
+    // const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destStr}&key=${apiKey}`;
+
+    // const response = await axios.get(url);
+    // const data = response.data;
+
+    // if (data.status !== 'OK') {
+    //   return res.status(500).json({ message: "Failed to fetch distance data", details: data.error_message });
+    // }
+
+
+    // // Format the response neatly
+    // const distances = data.rows[0].elements.map((el, index) => ({
+    //   destination: destinations[index],
+    //   distance: el.distance?.text,
+    //   duration: el.duration?.text,
+    //   value: el.distance?.value,
+    //   status: el.status
+    // }));
+
+
+
+  } catch (err) {
+    console.error("Error in getDistances:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};

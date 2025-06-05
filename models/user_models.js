@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
- 
+
 // Import the CartProduct and Address models
 const CartProduct = require("./cart_product_model");
 const Address = require("./address_model");
 const SearchHistory = require("./searchHistory_model");
- 
+
 const userSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   displayName: { type: String, required: true },
@@ -73,35 +73,66 @@ const userSchema = new mongoose.Schema({
     enum: ["two_wheeler", "three_wheeler", "four_wheeler"],
     default: "two_wheeler",
   },
-  assigned_orders:[
+  assigned_orders: [
     {
-      order_ref:{
+      order_ref: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Order",
         required: false
       },
-      assigned_time:{
+      assigned_time: {
         type: Date,
         required: false
       },
-      status:{
+      status: {
         type: String,
         required: false,
-        enum: ["assigned", "picked_up", "delivered"],
+        enum: ["assigned", "picked_up", "delivered", "failed",],
         default: "assigned",
       }
     }
   ],
+  assigned_order_mapUrl_status: { type: Boolean, required: false, default: false },
+  assigned_orders_with_mapUrl: {
+    orders: [{
+      orderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order",
+        required: [false, "Order reference is required"],
+        validate: {
+          validator: function (value) {
+            if (value == null) {
+              return true;
+            }
+            return mongoose.Types.ObjectId.isValid(value);
+          },
+          message: "Invalid order reference",
+        },
+      },
+      status: {
+        type: String,
+        required: [false, "Status is required"],
+        enum: ["Pending", "Completed"],
+      },
+    }],
+    map_url: { type: String },
+    status: {
+      type: String,
+      required: [false, "Status is required"],
+      enum: ["Pending", , "Completed"],
+      default: "Pending",
+    },
+  },
   deliveryboy_day_availability_status: { type: Boolean, required: false, default: false },
   deliveryboy_order_availability_status: {
     tum_tum: { type: Boolean, required: false, default: true },
-    instant:{
+    instant: {
       status: { type: Boolean, required: false, default: true },
       last_assigned_at: { type: Date, required: false },
     },
- 
+
   },
 });
- 
+
 // Create and export the User model
 module.exports = mongoose.model("User", userSchema);
