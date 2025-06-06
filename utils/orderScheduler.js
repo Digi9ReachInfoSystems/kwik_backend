@@ -76,6 +76,7 @@ async function assignInstantOrders() {
                     { assigned_warehouse: order.warehouse_ref },
                     { selected_warehouse: order.warehouse_ref },
                 ],
+                $expr: { $lt: [{ $size: "$assigned_orders" }, 5] }
             });
 
             if (!riders.length) {
@@ -151,7 +152,7 @@ async function assignInstantOrders() {
                     { _id: order._id },
                     {
                         delivery_boy: chosen._id,
-                        order_status: "Packing",
+                        order_status: "Delivery Partner Assigned",
                         packing_time: new Date(),
                     },
                     { new: true, session }
