@@ -176,7 +176,6 @@ async function assignInstantOrders() {
                     },
                     { session }
                 );
-
                 await session.commitTransaction();
                 console.log(`[✔] Order ${updated._id} → ${chosen.displayName}`);
 

@@ -613,6 +613,17 @@ exports.createOrderRoute = async (req, res) => {
 exports.assignDeliveryBoys = async (req, res) => {
   try {
     const { orderRouteId, routeId, deliveryBoyId } = req.body;
+    const userData= await User.findById(deliveryBoyId).exec();
+    if (!userData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Delivery boy not found" });
+    }
+    if(userData.assigned_orders.length>0){
+      return res
+        .status(200)
+        .json({ success: false, message: "Delivery boy already assigned with instant orders" });
+    }
 
     // Fetch order route details
     const orderRoute = await OrderRoute.findById(orderRouteId).exec();
@@ -698,6 +709,7 @@ exports.assignDeliveryBoys = async (req, res) => {
     // Update the delivery boy's availability status
     const user = await User.findById(deliveryBoyId).exec();
     user.deliveryboy_order_availability_status.tum_tum = false;
+    user.deliveryboy_order_availability_status.instant.status = false;
     await user.save();
 
     // Send success response
