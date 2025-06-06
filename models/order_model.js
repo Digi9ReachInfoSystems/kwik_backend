@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const User = require("../models/user_models"); // Import the User model
- 
+
 // Define the Address schema for user_address
 const addressSchema = require("./address_model");
- 
+
 // Define the CartProduct schema for products
 const cartProductSchema = require("./cart_product_model");
- 
+
 // Define the Order schema
 const orderSchema = new mongoose.Schema({
   warehouse_ref: {
@@ -23,7 +23,7 @@ const orderSchema = new mongoose.Schema({
       message: "Invalid warehouse reference",
     },
   }, // Reference to the Warehouse model
- 
+
   user_ref: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -36,7 +36,7 @@ const orderSchema = new mongoose.Schema({
       message: "Invalid user reference",
     },
   }, // Reference to the User model
- 
+
   products: {
     type: [cartProductSchema],
     required: [true, "Products are required"],
@@ -45,7 +45,7 @@ const orderSchema = new mongoose.Schema({
       message: "At least one product is required in the order",
     },
   }, // List of cart products
- 
+
   delivery_boy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -60,7 +60,7 @@ const orderSchema = new mongoose.Schema({
       message: "Invalid delivery boy reference",
     },
   }, // Reference to the User model (delivery boy)
- 
+
   order_status: {
     type: String,
     required: [true, "Order status is required"],
@@ -69,12 +69,13 @@ const orderSchema = new mongoose.Schema({
       "Out for delivery",
       "Delivered",
       "Delivery failed",
+      "Delivery Partner Assigned",
       "Order placed",
       "Payment pending",
       "Payment failed",
     ],
   },
- 
+
   user_address: {
     type: addressSchema,
     required: [true, "User address is required"],
@@ -83,7 +84,7 @@ const orderSchema = new mongoose.Schema({
       message: "Invalid address data",
     },
   }, // User address schema
- 
+
   user_contact_number: {
     type: String,
     required: [true, "User contact number is required"],
@@ -92,7 +93,7 @@ const orderSchema = new mongoose.Schema({
       "Please enter a valid 10-digit phone number (with optional +91 country code)",
     ],
   },
- 
+
   user_location: {
     lat: {
       type: Number,
@@ -107,17 +108,17 @@ const orderSchema = new mongoose.Schema({
       max: [180, "Longitude must be between -180 and 180"],
     },
   },
- 
+
   otp: {
     type: String,
     required: [true, "OTP is required"],
   },
- 
+
   order_placed_time: {
     type: Date,
     required: [true, "Order placed time is required"],
   },
- 
+
   out_for_delivery_time: {
     type: Date,
     required: [false, "Out for delivery time is required"],
@@ -139,7 +140,7 @@ const orderSchema = new mongoose.Schema({
       message: "Completed time must be after out for delivery time",
     },
   },
- 
+
   failed_time: {
     type: Date,
     validate: {
@@ -153,44 +154,44 @@ const orderSchema = new mongoose.Schema({
       message: "Failed time must be after out for delivery time",
     },
   },
- 
+
   payment_type: {
     type: String,
     required: [true, "Payment type is required"],
     enum: ["COD", "Online payment"],
   },
- 
+
   total_amount: {
     type: Number,
     required: [true, "Total amount is required"],
     min: [0, "Total amount must be a positive number"],
   }, // Total MRP
- 
+
   total_saved: {
     type: Number,
     required: [true, "Total saved amount is required"],
     min: [0, "Total saved amount must be a positive number"],
   }, // Total savings (MRP - selling price)
- 
+
   discount_price: {
     type: Number,
     required: [true, "Discount price is required"],
     min: [0, "Discount price must be a positive number"],
   }, // Coupon discount
- 
+
   profit: {
     type: Number,
     required: [true, "Profit is required"],
     min: [0, "Profit must be a positive number"],
   }, // Profit calculation (selling price - (buying price + discount))
- 
+
   payment_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Payment",
     required: [false, "Payment ID is required"],
     default: null,
   }, // Online payment ID (if applicable)
- 
+
   type_of_delivery: {
     type: String,
     required: [true, "Type of delivery is required"],
@@ -200,7 +201,7 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     required: [false, "Time slot is required"],
   },
- 
+
   delivery_charge: {
     type: Number,
     required: [true, "Delivery charge is required"],
@@ -218,7 +219,7 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: [false, "Delivery instructions are required"],
   },
- 
+
   created_time: {
     type: Date,
     required: [true, "Creation time is required"],
@@ -231,6 +232,6 @@ const orderSchema = new mongoose.Schema({
     default: null,
   },
 });
- 
+
 // Create and export the Order model
 module.exports = mongoose.model("Order", orderSchema);
