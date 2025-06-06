@@ -88,8 +88,8 @@ exports.createOrder = async (req, res) => {
     profit -= discount_price;
     total_amount -= discount_price;
 
-    let couponC ;
-    if(coupon_code!=='null'){
+    let couponC;
+    if (coupon_code !== 'null') {
       couponC = await Coupon.findOne({ coupon_code: coupon_code });
 
     }
@@ -120,7 +120,7 @@ exports.createOrder = async (req, res) => {
       handling_charge: appSettings.handling_charge,
       high_demand_charge: appSettings.high_demand_charge,
       delivery_instructions,
-      coupon_ref:couponC?couponC._id:null,
+      coupon_ref: couponC ? couponC._id : null,
     });
     // If the order status is out for delivery or completed, you can add timestamps for those statuses
     if (order_status === "Out for delivery") {
@@ -169,11 +169,11 @@ exports.createOrder = async (req, res) => {
     }
 
     if (payment_type === "COD") {
-      if (coupon_code!=='null') {
+      if (coupon_code !== 'null') {
         const coupon = await Coupon.findOne({ coupon_code: coupon_code });
         if (coupon) {
           if (!(coupon.applied_users.includes(userData._id))) {
-           const savedCoupon = await Coupon.updateOne({ coupon_code: coupon_code }, { $push: { applied_users: userData._id } });
+            const savedCoupon = await Coupon.updateOne({ coupon_code: coupon_code }, { $push: { applied_users: userData._id } });
           }
         }
       }
@@ -1473,7 +1473,9 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
           // user_ref: { $in: userIds },
           warehouse_ref: new mongoose.Types.ObjectId(warehouseId),
           type_of_delivery: delivery_type,
-          order_status: "Order placed",
+          order_status: {
+            $in: ["Order placed", "Packing", "Delivery Partner Assigned"]
+          }
         },
       },
       // Apply time filter
@@ -1712,7 +1714,9 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
           user_ref: { $in: userIds },
           warehouse_ref: new mongoose.Types.ObjectId(warehouseId),
           type_of_delivery: delivery_type,
-          order_status: "Order placed",
+          order_status: {
+            $in: ["Order placed", "Packing", "Delivery Partner Assigned"]
+          }
         },
       },
       // Apply time filter

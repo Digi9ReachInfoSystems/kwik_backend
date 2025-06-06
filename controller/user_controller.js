@@ -2027,7 +2027,7 @@ exports.generateInstantDeliveryRoute = async (req, res) => {
 
       });
     } else {
-      const finalDestinations = assigned_orders.map(order => {
+      const finalDestinations = user.assigned_orders.map(order => {
         return ({
           orderId: order.order_ref._id,
           status: "Pending",
@@ -2036,7 +2036,7 @@ exports.generateInstantDeliveryRoute = async (req, res) => {
       const mapsUrl =
         `https://www.google.com/maps/dir/?api=1` +
         `&origin=${warehouse.warehouse_location.lat},${warehouse.warehouse_location.lng}` +
-        `&destination=${assigned_orders[0].order_ref.user_location.lat},${assigned_orders[0].order_ref.user_location.lang}` +
+        `&destination=${user.assigned_orders[0].order_ref.user_location.lat},${user.assigned_orders[0].order_ref.user_location.lang}` +
         `&travelmode=driving` +
         `&dir_action=navigate`;
       user.assigned_orders_with_mapUrl = {
