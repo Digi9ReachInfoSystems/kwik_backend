@@ -93,4 +93,9 @@ router.post("/get/singleIntantDelivery/withMap", userController.getSingleInstant
 router.post("/generate/instantDeliveryMapUrl", userController.generateInstantDeliveryRoute);
 router.put("/deliver/instant/deliveryOrder", userController.deliverInstantOrder);
 router.put("/deliver/failedInstant/deliveryOrder", userController.deliverFailedInstantOrder);
+router.post("/assign/instantDelivery", userController.assignOrdersToDeliveryBoy);
+router.get(
+  "/get/availableInstantDeliveryboyByWarehouseId/:warehouseId",
+  userController.getDeliveryBoyForInstantByWarehouseId
+);
 module.exports = router;

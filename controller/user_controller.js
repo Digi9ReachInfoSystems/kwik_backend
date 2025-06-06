@@ -1308,6 +1308,7 @@ exports.getDeliveryBoyForTumTumByWarehouseId = async (req, res) => {
       deliveryboy_day_availability_status: true,
       "deliveryboy_order_availability_status.tum_tum": true,
       is_blocked: false,
+      assigned_orders: { $exists: true, $size: 0 }
     });
     return res.status(200).json({ message: "success", deliveryBoys: user });
   } catch (error) {
@@ -1755,8 +1756,8 @@ exports.getInstantdeliveryByUserId = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
-    if (status === "assigned"&&(!user.assigned_order_mapUrl_status)) {
+    if (status === "assigned" && (!user.assigned_order_mapUrl_status)) {
+      console.log("Fetching instant delivery orders with status:", status);
       const instantDelivery = user.assigned_orders.filter(
         (order) => order.status === status
       );
@@ -1918,41 +1919,42 @@ exports.generateInstantDeliveryRoute = async (req, res) => {
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
-    while (tempDesitinations.length > 0) {
-      const origin = `${tempSource.lat},${tempSource.lng}`;
-      const destStr = tempDesitinations
-        .map(dest => `${dest.lat},${dest.lng}`)
-        .join('|');
-      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destStr}&key=${apiKey}`;
 
-      const response = await axios.get(url);
-      const data = response.data;
-      if (data.status !== 'OK') {
-        return res.status(500).json({ message: "Failed to fetch distance data", details: data.error_message });
-      }
-      let distances = data.rows[0].elements.map((el, index) => ({
-        destination: tempDesitinations[index],
-        distance: el.distance?.text,
-        duration: el.duration?.text,
-        value: el.distance?.value,
-        status: el.status
-      }));
-      const validDistances = distances.filter(d => d.status === 'OK' && d.value !== undefined);
-      const minDistance = Math.min(...validDistances.map(d => d.value));
-      const minDistanceObj = validDistances.find(d => d.value === minDistance);
-      if (minDistanceObj) {
-        optimizedDestinations.push({ ...minDistanceObj.destination, meter_distance: minDistance });
-        tempDesitinations = tempDesitinations.filter(dest => {
-          return (dest !== minDistanceObj.destination);
-        });
-        tempSource = minDistanceObj.destination; // Update source to the last selected destination
-        tempSource = {
-          lat: minDistanceObj.destination.lat,
-          lng: minDistanceObj.destination.lng
-        };
-      }
-    }
     if (user.assigned_orders.length > 1) {
+      while (tempDesitinations.length > 0) {
+        const origin = `${tempSource.lat},${tempSource.lng}`;
+        const destStr = tempDesitinations
+          .map(dest => `${dest.lat},${dest.lng}`)
+          .join('|');
+        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destStr}&key=${apiKey}`;
+
+        const response = await axios.get(url);
+        const data = response.data;
+        if (data.status !== 'OK') {
+          return res.status(500).json({ message: "Failed to fetch distance data", details: data.error_message });
+        }
+        let distances = data.rows[0].elements.map((el, index) => ({
+          destination: tempDesitinations[index],
+          distance: el.distance?.text,
+          duration: el.duration?.text,
+          value: el.distance?.value,
+          status: el.status
+        }));
+        const validDistances = distances.filter(d => d.status === 'OK' && d.value !== undefined);
+        const minDistance = Math.min(...validDistances.map(d => d.value));
+        const minDistanceObj = validDistances.find(d => d.value === minDistance);
+        if (minDistanceObj) {
+          optimizedDestinations.push({ ...minDistanceObj.destination, meter_distance: minDistance });
+          tempDesitinations = tempDesitinations.filter(dest => {
+            return (dest !== minDistanceObj.destination);
+          });
+          tempSource = minDistanceObj.destination; // Update source to the last selected destination
+          tempSource = {
+            lat: minDistanceObj.destination.lat,
+            lng: minDistanceObj.destination.lng
+          };
+        }
+      }
 
       const finalDestinations = optimizedDestinations.map(dest => {
         return ({
@@ -2166,7 +2168,7 @@ exports.deliverInstantOrder = async (req, res) => {
       user.assigned_orders = user.assigned_orders.filter(order => {
         return !mapUrlOrderIds.includes(order.order_ref.toString());
       });
-      user.assigned_orders_with_mapUrl=null;
+      user.assigned_orders_with_mapUrl = null;
       const savedUser = await user.save();
       return res.status(200).json({
         success: true,
@@ -2202,7 +2204,7 @@ exports.deliverFailedInstantOrder = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Order not found" });
     }
-   
+
     order.order_status = "Delivery failed";
     order.failed_time = new Date();
     await order.save();
@@ -2230,7 +2232,7 @@ exports.deliverFailedInstantOrder = async (req, res) => {
       user.assigned_orders = user.assigned_orders.filter(order => {
         return !mapUrlOrderIds.includes(order.order_ref.toString());
       });
-      user.assigned_orders_with_mapUrl=null;
+      user.assigned_orders_with_mapUrl = null;
       const savedUser = await user.save();
       return res.status(200).json({
         success: true,
@@ -2248,5 +2250,68 @@ exports.deliverFailedInstantOrder = async (req, res) => {
   catch (err) {
     console.error("Error in deliverInstantOrder:", err);
     res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};
+
+exports.assignOrdersToDeliveryBoy = async (req, res) => {
+  try {
+    const { deliveryBoyId, orderIds } = req.body;
+    let user = await User.findById(deliveryBoyId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const orders = await Order.find({ _id: { $in: orderIds }, order_status: "Packing" });
+    if (!orders) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Orders not found" });
+    }
+    await Promise.all(orders.map(async (order) => {
+      if (user.assigned_orders.length < 5) {
+        order.order_status = "Delivery Partner Assigned";
+        order.delivery_boy = user._id;
+        await order.save();
+        user.assigned_orders.push({
+          order_ref: order._id,
+          assigned_time: new Date(),
+          status: "assigned",
+        });
+        user.deliveryboy_order_availability_status.instant.last_assigned_at = new Date();
+        user = await user.save();
+      }
+
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Orders assigned successfully",
+      data: user.assigned_orders,
+      user: user,
+    });
+  } catch (err) {
+    console.error("Error in assignOrdersToDeliveryBoy:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};  
+
+exports.getDeliveryBoyForInstantByWarehouseId = async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    const warehouse = await Warehouse.findOne({ _id: warehouseId });
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+    const user = await User.find({
+      assigned_warehouse: warehouseId,
+      deliveryboy_application_status: "approved",
+      deliveryboy_day_availability_status: true,
+      "deliveryboy_order_availability_status.tum_tum": true,
+      "deliveryboy_order_availability_status.instant.status": true,
+      is_blocked: false,
+    });
+    return res.status(200).json({ message: "success", deliveryBoys: user });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Error", error });
   }
 };

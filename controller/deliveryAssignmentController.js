@@ -8,6 +8,7 @@ const {
   generateAndSendNotificationNew,
 } = require("../controller/notificationController");
 const Warehouse = require("../models/warehouse_model");
+const axios = require("axios");
 
 exports.getOrdersByDeliveryBoy = async (req, res) => {
   try {
@@ -118,6 +119,7 @@ exports.deliverOrder = async (req, res) => {
     if (allDone) {
       assignment.status = "Completed";
       user.deliveryboy_order_availability_status.tum_tum = true;
+      user.deliveryboy_order_availability_status.instant.status = true;
     }
     await assignment.save();
     if (assignment.orderRoute_ref) {
@@ -184,61 +186,186 @@ exports.deliverOrder = async (req, res) => {
 
 exports.assignSingleOrder = async (req, res) => {
   try {
-    const { orderId, deliveryBoyId } = req.body;
+    const { orderIds, deliveryBoyId } = req.body;
     const user = await User.findById(deliveryBoyId);
     if (!user) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
-
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found" });
+    if (orderIds.length === 0) {
+      return res.status(400).json({ success: false, message: "No order IDs provided" });
     }
-    const warehouse = await Warehouse.findById(order.warehouse_ref);
+    if (orderIds.length > 25) {
+      return res.status(400).json({ success: false, message: "Maximum 25 order IDs allowed" });
+    }
+    const warehouse = await Warehouse.findById(user.selected_warehouse);
     if (!warehouse) {
       return res
         .status(404)
         .json({ success: false, message: "Warehouse not found" });
     }
+    const source = warehouse.warehouse_location;
 
-    order.order_status = "Out for delivery";
-    order.delivery_boy = user._id;
-    order.out_for_delivery_time = new Date();
-    await order.save();
-    const mapUrl = `https://www.google.com/maps/dir/?api=1` +
-      `&origin=${warehouse.warehouse_location.lat},${warehouse.warehouse_location.lng}` +
-      `&destination=${order.user_location.lat},${order.user_location.lang}` +
-      // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
-      `&travelmode=driving` +
-      `&dir_action=navigate`;
+    const order = await Order.find({ _id: { $in: orderIds }, order_status: "Order placed" });
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+    console.log("order", order);
+    let startTime;
+    let endTime;
+    const destinations = order.map(order => {
+      startTime = order.selected_time_slot;
+      endTime = order.selected_time_slot;
+      return ({
+        lat: order.user_location.lat,
+        lng: order.user_location.lang,
+        orders: order._id
+      })
+    });
+    let tempDesitinations = destinations;
+    let tempSource = source;
+    let optimizedDestinations = [];
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    console.log("orderIds", orderIds, "destinations", destinations, "source", source);
 
-    const assignment = new DeliveryAssignment({
-      orderRoute_ref: null,
-      route_id: null,
-      orders: [
-        {
-          orderId: order._id,
+    if (orderIds.length > 1) {
+      while (tempDesitinations.length > 0) {
+        const origin = `${tempSource.lat},${tempSource.lng}`;
+        const destStr = tempDesitinations
+          .map(dest => `${dest.lat},${dest.lng}`)
+          .join('|');
+        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destStr}&key=${apiKey}`;
+
+        const response = await axios.get(url);
+        const data = response.data;
+        if (data.status !== 'OK') {
+          return res.status(500).json({ message: "Failed to fetch distance data", details: data.error_message });
+        }
+        let distances = data.rows[0].elements.map((el, index) => ({
+          destination: tempDesitinations[index],
+          distance: el.distance?.text,
+          duration: el.duration?.text,
+          value: el.distance?.value,
+          status: el.status
+        }));
+        const validDistances = distances.filter(d => d.status === 'OK' && d.value !== undefined);
+        const minDistance = Math.min(...validDistances.map(d => d.value));
+        const minDistanceObj = validDistances.find(d => d.value === minDistance);
+        if (minDistanceObj) {
+          optimizedDestinations.push({ ...minDistanceObj.destination, meter_distance: minDistance });
+          tempDesitinations = tempDesitinations.filter(dest => {
+            return (dest !== minDistanceObj.destination);
+          });
+          tempSource = minDistanceObj.destination; // Update source to the last selected destination
+          tempSource = {
+            lat: minDistanceObj.destination.lat,
+            lng: minDistanceObj.destination.lng
+          };
+        }
+      }
+
+      console.log("optimizedDestinations", optimizedDestinations);
+
+      const finalDestinations = optimizedDestinations.map(dest => {
+        return ({
+          orderId: dest.orders,
           status: "Pending",
           delivery_boy_ref: user._id,
-        },
-      ],
-      tum_tumdelivery_start_time: order.selected_time_slot,
-      tumtumdelivery_end_time: order.selected_time_slot,
-      status: "Pending",
-      delivery_boy_ref: user._id,
-      map_url: mapUrl
-    })
-    await assignment.save();
-    return res.json({ message: "Order Assigned", assignment });
+        });
+      });
+      let waypoints = optimizedDestinations
+        .slice(0, -1) // Removes the last element
+        .map(d => ({
+          lat: d.lat,
+          lng: d.lng,
+        }));
+      const mapsUrl =
+        `https://www.google.com/maps/dir/?api=1` +
+        `&origin=${warehouse.warehouse_location.lat},${warehouse.warehouse_location.lng}` +
+        `&destination=${optimizedDestinations[optimizedDestinations.length - 1].lat},${optimizedDestinations[optimizedDestinations.length - 1].lng
+        }` +
+        `&waypoints=${waypoints
+          .map((d) => `${d.lat},${d.lng}`)
+          .join("|")}` +
+        `&travelmode=driving` +
+        `&dir_action=navigate`;
+      user.assigned_orders_with_mapUrl = {
+        orders: finalDestinations,
+        map_url: mapsUrl,
+        status: "Pending",
+      }
+      finalDestinations.map(async (dest) => {
+        const order = await Order.findById(dest.orderId);
+        if (order) {
+          order.order_status = "Out for delivery";
+          order.out_for_delivery_time = new Date();
+          order.save();
+        }
+      });
+
+      const assignment = new DeliveryAssignment({
+        orderRoute_ref: null,
+        route_id: null,
+        orders: finalDestinations,
+        tum_tumdelivery_start_time: startTime,
+        tumtumdelivery_end_time: endTime,
+        status: "Pending",
+        delivery_boy_ref: user._id,
+        map_url: mapsUrl
+      })
+      await assignment.save();
+      user.deliveryboy_order_availability_status.tum_tum = false;
+      user.deliveryboy_order_availability_status.instant.status = false;
+      await user.save();
+      return res.json({ success: true, message: "Order Assigned", assignment });
+
+    } else {
+
+      const foundOrder = await Order.findBOne({ _id: orderIds[0], order_status: "Order placed" });
+      foundOrder.order_status = "Out for delivery";
+      foundOrder.delivery_boy = user._id;
+      foundOrder.out_for_delivery_time = new Date();
+      await foundOrder.save();
+      const mapUrl = `https://www.google.com/maps/dir/?api=1` +
+        `&origin=${warehouse.warehouse_location.lat},${warehouse.warehouse_location.lng}` +
+        `&destination=${foundOrder.user_location.lat},${foundOrder.user_location.lang}` +
+        // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
+        `&travelmode=driving` +
+        `&dir_action=navigate`;
+
+      const assignment = new DeliveryAssignment({
+        orderRoute_ref: null,
+        route_id: null,
+        orders: [
+          {
+            orderId: foundOrder._id,
+            status: "Pending",
+            delivery_boy_ref: foundOrder._id,
+          },
+        ],
+        tum_tumdelivery_start_time: foundOrder.selected_time_slot,
+        tumtumdelivery_end_time: foundOrder.selected_time_slot,
+        status: "Pending",
+        delivery_boy_ref: user._id,
+        map_url: mapUrl
+      })
+      await assignment.save();
+      user.deliveryboy_order_availability_status.tum_tum = false;
+      user.deliveryboy_order_availability_status.instant.status = false;
+      await user.save();
+      return res.json({ success: true, message: "Order Assigned", assignment });
+    }
+
+
+
   } catch (error) {
     console.error("Error assigning order:", error);
     res.status(500).json({ success: false, message: error.message });
   }
-};  
+};
 
 exports.deliveryFailedOrder = async (req, res) => {
   try {
@@ -255,7 +382,7 @@ exports.deliveryFailedOrder = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Order not found" });
     }
-    
+
 
     // Update order status to "Delivered"
     order.order_status = "Delivery failed";
@@ -278,6 +405,7 @@ exports.deliveryFailedOrder = async (req, res) => {
     if (allDone) {
       assignment.status = "Completed";
       user.deliveryboy_order_availability_status.tum_tum = true;
+      user.deliveryboy_order_availability_status.instant.status = false;
     }
     await assignment.save();
     if (assignment.orderRoute_ref) {
