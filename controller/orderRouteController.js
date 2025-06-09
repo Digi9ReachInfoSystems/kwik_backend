@@ -594,13 +594,20 @@ exports.createOrderRoute = async (req, res) => {
         map_url: route.mapsUrl,
       })),
     });
-    await orderRoute.save();
+   const savedOrderRoute = await orderRoute.save();
     // res.json({ distanceSource, routes, routeOptimisation });
     // res.status(200).json({ success: true, data: orders });
+    const populatedOrderRoute = await OrderRoute.findById(savedOrderRoute._id)
+      .populate({
+        path: 'route.orders',
+        model: 'Order' // replace with your actual Order model name
+        // You can add select to choose specific fields
+        // select: 'field1 field2'
+      });
     res.status(200).json({
       success: true,
       message: "Order route created successfully",
-      data: orderRoute,
+      data: populatedOrderRoute,
     });
   } catch (error) {
     console.error("Error creating order route:", error);
@@ -613,13 +620,13 @@ exports.createOrderRoute = async (req, res) => {
 exports.assignDeliveryBoys = async (req, res) => {
   try {
     const { orderRouteId, routeId, deliveryBoyId } = req.body;
-    const userData= await User.findById(deliveryBoyId).exec();
+    const userData = await User.findById(deliveryBoyId).exec();
     if (!userData) {
       return res
         .status(404)
         .json({ success: false, message: "Delivery boy not found" });
     }
-    if(userData.assigned_orders.length>0){
+    if (userData.assigned_orders.length > 0) {
       return res
         .status(200)
         .json({ success: false, message: "Delivery boy already assigned with instant orders" });
