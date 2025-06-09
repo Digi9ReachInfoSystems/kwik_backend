@@ -2260,7 +2260,7 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    const orders = await Order.find({ _id: { $in: orderIds }, order_status: "Packing" });
+    const orders = await Order.find({ _id: { $in: orderIds },  order_status: { $in: ["Packing", "Order placed"] } });
     if (!orders) {
       return res
         .status(404)
