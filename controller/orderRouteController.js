@@ -72,13 +72,14 @@ exports.createOrderRoute = async (req, res) => {
         .json({ success: false, message: "Warehouse not found" });
     }
     let timeFilter;
-
+    let utcStart;
+    let utcEnd;
     if (time != "null") {
       // const timeMoment = moment(time, 'h:mm A');
       const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
       const timeMoment = moment.tz(`${today} ${time}`, 'YYYY-MM-DD h:mm A', 'Asia/Kolkata');
-      const utcStart = timeMoment.clone().startOf('hour').utc();
-      const utcEnd = timeMoment.clone().endOf('hour').utc();
+      utcStart = timeMoment.clone().startOf('hour').utc();
+      utcEnd = timeMoment.clone().endOf('hour').utc();
 
       console.log("Local time:", timeMoment.format());
       console.log("UTC Start:", utcStart.format());
@@ -129,8 +130,8 @@ exports.createOrderRoute = async (req, res) => {
       };
     } else {
       // Default to current day in UTC
-      const utcStart = moment.utc().startOf('day');  // 00:00:00 UTC
-      const utcEnd = moment.utc().endOf('day');      // 23:59:59.999 UTC
+      utcStart = moment.utc().startOf('day');  // 00:00:00 UTC
+      utcEnd = moment.utc().endOf('day');      // 23:59:59.999 UTC
 
       timeFilter = {
         $match: {
@@ -575,26 +576,21 @@ exports.createOrderRoute = async (req, res) => {
     }
     const orderRoute = new OrderRoute({
       warehouse_ref: warehouse._id,
-      tum_tumdelivery_start_time: moment(
-        `${moment().format("YYYY-MM-DD")} ${time}`,
-        "YYYY-MM-DD h:mm A"
-      )
-        .startOf("hour")
-        .local()
-        .toDate(),
-      tumtumdelivery_end_time: moment(
-        `${moment().format("YYYY-MM-DD")} ${time}`,
-        "YYYY-MM-DD h:mm A"
-      )
-        .endOf("hour")
-        .local()
-        .toDate(),
+      // tum_tumdelivery_start_time: moment(
+      //   `${moment().format("YYYY-MM-DD")} ${time}`,
+      //   "YYYY-MM-DD h:mm A"
+      // )
+      //   .startOf("hour")
+      //   .local()
+      //   .toDate(),
+      tum_tumdelivery_start_time: utcStart.toDate(),
+      tumtumdelivery_end_time: utcStart.toDate(),
       route: routeOptimisation.map((route) => ({
         orders: route.route.map((order) => order.orderId),
         map_url: route.mapsUrl,
       })),
     });
-   const savedOrderRoute = await orderRoute.save();
+    const savedOrderRoute = await orderRoute.save();
     // res.json({ distanceSource, routes, routeOptimisation });
     // res.status(200).json({ success: true, data: orders });
     const populatedOrderRoute = await OrderRoute.findById(savedOrderRoute._id)

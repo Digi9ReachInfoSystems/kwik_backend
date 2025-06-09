@@ -306,8 +306,8 @@ exports.getWarehouseStats = async (req, res) => {
       total_delivered: main_total_delivered,
       total_orders: main_total_orders,
       total_failed: main_total_failed,
-      total_amount: main_total_amount,
-      total_profit: main_total_profit,
+      total_amount: Math.floor(main_total_amount),
+      total_profit: Math.floor(main_total_profit),
       warehouse: final_data
     });
   } catch (error) {
