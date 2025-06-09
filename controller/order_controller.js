@@ -504,15 +504,15 @@ exports.getMonthlyRevenueByYear = async (req, res) => {
       }
       return {
         month: months[index],
-        revenue: revenue,
+        revenue:Math.floor(revenue), // Round to the nearest integer revenue,
       };
     });
 
     res.status(200).json({
       success: true,
       data: responseData,
-      total_Revenue: total_amount,
-      MaxAmount: maxAmount * 1.2,
+      total_Revenue: Math.floor(total_amount), // Round to the nearest integertotal_amount,
+      MaxAmount: Math.ceil(maxAmount * 1.02),
     });
   } catch (error) {
     console.error("Error fetching monthly revenue by year:", error);
@@ -1157,15 +1157,15 @@ exports.getMonthlyRevenueByYearAdmin = async (req, res) => {
       }
       return {
         month: months[index],
-        revenue: revenue,
+        revenue: Math.floor(revenue), // Round the revenue,
       };
     });
 
     res.status(200).json({
       success: true,
       data: responseData,
-      total_Revenue: total_amount,
-      MaxAmount: maxAmount * 1.2,
+      total_Revenue: Math.floor(total_amount), // Round the total_amount,
+      MaxAmount: Math.ceil(maxAmount * 1.03),
     });
   } catch (error) {
     console.error("Error fetching monthly revenue by year:", error);
