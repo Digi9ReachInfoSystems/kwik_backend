@@ -32,4 +32,5 @@ router.get("/search/Orders/byWarehouse/:warehouseId/:delivery_type", orderContro
 router.get("/getUsers/byWarehouse/:warehouseId", orderController.getWarehouseUserCounts);
 router.post('/group-routes', orderController.groupRoutesController);
 router.get("/get/userTodaysOrders/:userId", orderController.getUserTodaysOrder);
+router.get("/get/orders/withPaymentDetails", orderController.getOrdersWithPaymentDetails);
 module.exports = router;

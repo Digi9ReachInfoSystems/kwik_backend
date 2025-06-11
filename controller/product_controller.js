@@ -2077,7 +2077,6 @@ exports.removeSubcategoryFromProducts = async (req, res) => {
     console.log("subcategoryExists", subcategoryExists);
     // First find products that have more than one subcategory and contain the target subcategory
     const productsToUpdate = await Product.find({
-      _id: { $in: productIds },
       $and: [
         { sub_category_ref: { $in: [subcategoryId] } },
         { $expr: { $gt: [{ $size: "$sub_category_ref" }, 1] } }
@@ -2096,10 +2095,14 @@ exports.removeSubcategoryFromProducts = async (req, res) => {
         $pull: { sub_category_ref: subcategoryId }
       }
     );
+    const resultNew = await Product.updateMany(
+      { _id: { $in: productIds } },
+      { $addToSet: { sub_category_ref: subcategoryId } }
+    );
 
     res.status(200).json({
       success: true,
-      message: `Subcategory removed from ${result.modifiedCount} products. ${productIds.length - productIdsToUpdate.length} products were not modified because they only have one subcategory.`,
+      message: `Subcategory removed from ${resultNew.modifiedCount} products. ${productIds.length - productIdsToUpdate.length} products were not modified because they only have one subcategory.`,
       data: result
     });
   } catch (error) {
