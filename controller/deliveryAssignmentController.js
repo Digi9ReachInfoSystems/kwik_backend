@@ -20,11 +20,16 @@ exports.getOrdersByDeliveryBoy = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
     }
+    // const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
+    // const timeMoment = moment.tz(`${today} ${time}`, 'YYYY-MM-DD h:mm A', 'Asia/Kolkata');
+    // const utcStart = timeMoment.clone().startOf('hour').utc();
+    // const utcEnd = timeMoment.clone().endOf('hour').utc();
+
     const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
-    const timeMoment = moment.tz(`${today} ${time}`, 'YYYY-MM-DD h:mm A', 'Asia/Kolkata');
-    const utcStart = timeMoment.clone().startOf('hour').utc();
-    const utcEnd = timeMoment.clone().endOf('hour').utc();
-    console.log("utcStart", utcStart, "utcEnd", utcEnd);
+    const timeMoment = moment.tz(`${today}`, 'YYYY-MM-DD', 'Asia/Kolkata');
+    const utcStart = timeMoment.clone().startOf('day').utc(); // 00:00:00
+    const utcEnd = timeMoment.clone().endOf('day').utc();     // 23:59:59.999
+
     const deliveryAssignments = await DeliveryAssignment.find({
       delivery_boy_ref: user._id,
       tum_tumdelivery_start_time: {

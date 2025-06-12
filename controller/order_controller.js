@@ -2378,3 +2378,46 @@ exports.getOrdersWithPaymentDetails = async (req, res) => {
     });
   }
 };
+
+exports.checkNewOrders = async (req, res) => {
+  try {
+    const { warehouseId } = req.query;
+    const { checkTime } = req.body;
+    // Set default time window (last 1 hour if not specified)
+    const timeWindow = checkTime
+      ? moment(checkTime).toDate()
+      : moment().subtract(1, 'hour').toDate();
+
+    // Build query
+    const query = {
+      warehouse_ref: warehouseId,
+      order_placed_time: { $gte: timeWindow },
+      order_status: {
+        $nin: ["Delivered", "Delivery failed"]
+      }
+    };
+
+    // Make query optional
+    if (!warehouseId) {
+      delete query.warehouse_ref;
+    }
+
+    const activeOrders = await Order.find(query).lean();
+
+    res.status(200).json({
+      success: activeOrders.length > 0,
+      count: activeOrders.length,
+      orders: activeOrders,
+      timeWindow: timeWindow,
+      warehouse: warehouseId || 'All warehouses'
+    });
+
+  } catch (error) {
+    console.error('Warehouse order check failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check warehouse orders',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
