@@ -11,4 +11,14 @@ router.post(
   "/schedule-dynamic",
   notificationController.scheduleDynamicNotification
 );
+router.post(
+  "/schedule-dynamic-user",
+  notificationController.scheduleDynamicNotificationUser
+);
+
 module.exports = router;
+
+// {
+// "user_ref":"684946936619de681c5d5fc5",
+// "orderId":"684fb1a3c60bbdd2beef34f3"
+// }

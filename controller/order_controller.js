@@ -5,7 +5,7 @@ const CartProduct = require("../models/cart_product_model");
 const Product = require("../models/product_model");
 const ApplicationManagement = require("../models/applicationManagementModel");
 const mongoose = require("mongoose");
-const moment = require('moment-timezone');
+const moment = require("moment-timezone");
 const axios = require("axios");
 const DBSCAN = require("density-clustering").DBSCAN;
 const {
@@ -16,6 +16,9 @@ const Payment = require("../models/paymentModel");
 const razorpayInstance = require("../utils/razorpayService");
 const Coupon = require("../models/coupon_model");
 
+const {
+  generateAndSendNotificationTest1,
+} = require("../controller/notificationController");
 // const haversine = require('haversine-distance');
 // const googleMapsClient = require('@googlemaps/google-maps-services-js').Client;
 // const haversine = require('haversine-distance').default;
@@ -89,9 +92,8 @@ exports.createOrder = async (req, res) => {
     total_amount -= discount_price;
 
     let couponC;
-    if (coupon_code !== 'null') {
+    if (coupon_code !== "null") {
       couponC = await Coupon.findOne({ coupon_code: coupon_code });
-
     }
 
     // Create a new order object
@@ -99,7 +101,8 @@ exports.createOrder = async (req, res) => {
       warehouse_ref: warehouse._id,
       user_ref: userData._id,
       products,
-      order_status: payment_type === "Online payment" ? "Payment pending" : order_status,
+      order_status:
+        payment_type === "Online payment" ? "Payment pending" : order_status,
       user_address: userData.selected_Address,
       user_contact_number: userData.phone,
       user_location: userData.selected_Address.Location,
@@ -138,7 +141,7 @@ exports.createOrder = async (req, res) => {
     const savedUser = await userData.save();
     if (payment_type === "Online payment") {
       const orderOptions = {
-        amount: (Math.ceil(total_amount)) * 100,
+        amount: Math.ceil(total_amount) * 100,
         currency: "INR",
         receipt: `receipt_${Date.now()}`,
         payment_capture: 1,
@@ -146,13 +149,13 @@ exports.createOrder = async (req, res) => {
           user_id: userData._id,
           description: "payment using Online",
           user_orderId: savedOrder._id,
-          coupon_code: coupon_code
+          coupon_code: coupon_code,
           //   cart_id:cart_id
         },
       };
       razorpayOrder = await razorpayInstance.orders.create(orderOptions);
       const payment = new Payment({
-        amount: (Math.ceil(total_amount)),
+        amount: Math.ceil(total_amount),
         currency: razorpayOrder.currency,
         status: "created",
         razorpay_order_id: razorpayOrder.id,
@@ -162,18 +165,21 @@ exports.createOrder = async (req, res) => {
         receipt: razorpayOrder.receipt,
         razorpay_signature: razorpayOrder.razorpay_signature,
         // cart_id:cart_id,
-        order_id: savedOrder._id
+        order_id: savedOrder._id,
       });
 
       await payment.save();
     }
 
     if (payment_type === "COD") {
-      if (coupon_code !== 'null') {
+      if (coupon_code !== "null") {
         const coupon = await Coupon.findOne({ coupon_code: coupon_code });
         if (coupon) {
-          if (!(coupon.applied_users.includes(userData._id))) {
-            const savedCoupon = await Coupon.updateOne({ coupon_code: coupon_code }, { $push: { applied_users: userData._id } });
+          if (!coupon.applied_users.includes(userData._id)) {
+            const savedCoupon = await Coupon.updateOne(
+              { coupon_code: coupon_code },
+              { $push: { applied_users: userData._id } }
+            );
           }
         }
       }
@@ -198,26 +204,24 @@ exports.createOrder = async (req, res) => {
       );
 
       // Call the generateAndSendNotification function to send the notification
-      await generateAndSendNotificationNew(
+      await generateAndSendNotificationTest1(
         title,
         message,
         userref1,
         redirectUrl,
-        null, // Optional: add image URL if needed
+        null,
         redirectType,
         extraData
       );
     }
-
-    // Return success response
-
 
     return res.status(201).json({
       success: true,
       message: "Order created successfully",
       data: newOrder,
       razorpayOrder: payment_type === "Online payment" ? razorpayOrder : null,
-      razorpayOrderId: payment_type === "Online payment" ? razorpayOrder.id : null
+      razorpayOrderId:
+        payment_type === "Online payment" ? razorpayOrder.id : null,
     });
   } catch (error) {
     console.error("Error creating order:", error);
@@ -318,12 +322,15 @@ exports.updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
     let updates = req.body;
+
     const order = await Order.findById(id);
     if (!order) {
       return res
         .status(404)
         .json({ success: false, message: "Order not found" });
     }
+
+    // Preserve existing values for any missing update fields
     updates.order_status = updates.order_status || order.order_status;
     updates.delivery_boy = updates.delivery_boy || order.delivery_boy;
     updates.out_for_delivery_time =
@@ -331,22 +338,51 @@ exports.updateOrder = async (req, res) => {
     updates.completed_time = updates.completed_time || order.completed_time;
     updates.failed_time = updates.failed_time || order.failed_time;
     updates.packing_time = updates.packing_time || order.packing_time;
+
     const updatedOrder = await Order.findByIdAndUpdate(id, updates, {
       new: true,
     });
+
     if (!updatedOrder) {
       return res
         .status(404)
-        .json({ success: false, message: "Order not found" });
+        .json({ success: false, message: "Order not found after update" });
     }
-    res.status(200).json({
+
+    // Send push notification to the user
+    const userId = updatedOrder.user_ref || updatedOrder.user; // adjust based on your schema
+    const user = await User.findById(userId);
+
+    if (user && user.fcm_token) {
+      const title = "Your Order Has Been Updated";
+      const message = `Your Order is now "${updatedOrder.order_status}"`;
+      const redirectUrl = `/orders/${updatedOrder._id}`; // your frontend route
+      const imageUrl = null; // or set an icon/banner
+      const redirectType = "order";
+      const extraData = {
+        orderId: updatedOrder._id.toString(),
+        status: updatedOrder.order_status,
+      };
+
+      await generateAndSendNotificationTest1(
+        title,
+        message,
+        userId,
+        redirectUrl,
+        imageUrl,
+        redirectType,
+        extraData
+      );
+    }
+
+    return res.status(200).json({
       success: true,
-      message: "Order updated successfully",
+      message: "Order updated and notification sent (if applicable)",
       data: updatedOrder,
     });
   } catch (error) {
     console.error("Error updating order:", error);
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -1396,13 +1432,16 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
         .json({ success: false, message: "Warehouse not found" });
     }
     let timeFilter;
-    const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
-    const timeMoment = moment.tz(`${today} ${time}`, 'YYYY-MM-DD h:mm A', 'Asia/Kolkata');
-    const utcStart = timeMoment.clone().startOf('hour').utc();
-    const utcEnd = timeMoment.clone().endOf('hour').utc();
+    const today = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+    const timeMoment = moment.tz(
+      `${today} ${time}`,
+      "YYYY-MM-DD h:mm A",
+      "Asia/Kolkata"
+    );
+    const utcStart = timeMoment.clone().startOf("hour").utc();
+    const utcEnd = timeMoment.clone().endOf("hour").utc();
     if (time && time !== "null") {
       // const timeMoment = moment(time, 'h:mm A');
-
 
       console.log("Local time:", timeMoment.format());
       console.log("UTC Start:", utcStart.format());
@@ -1447,22 +1486,22 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
         $match: {
           selected_time_slot: {
             $gte: utcStart.toDate(),
-            $lt: utcEnd.toDate()
-          }
-        }
+            $lt: utcEnd.toDate(),
+          },
+        },
       };
     } else {
       // Default to current day in UTC
-      const utcStart = moment.utc().startOf('day');  // 00:00:00 UTC
-      const utcEnd = moment.utc().endOf('day');      // 23:59:59.999 UTC
+      const utcStart = moment.utc().startOf("day"); // 00:00:00 UTC
+      const utcEnd = moment.utc().endOf("day"); // 23:59:59.999 UTC
 
       timeFilter = {
         $match: {
           created_time: {
             $gte: utcStart.toDate(),
-            $lt: utcEnd.toDate()
-          }
-        }
+            $lt: utcEnd.toDate(),
+          },
+        },
       };
     }
     console.log("timeFilter", timeFilter);
@@ -1474,8 +1513,8 @@ exports.getOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
           warehouse_ref: new mongoose.Types.ObjectId(warehouseId),
           type_of_delivery: delivery_type,
           order_status: {
-            $in: ["Order placed", "Packing", "Delivery Partner Assigned"]
-          }
+            $in: ["Order placed", "Packing", "Delivery Partner Assigned"],
+          },
         },
       },
       // Apply time filter
@@ -1620,10 +1659,14 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
 
   if (time && time !== "null") {
     // const timeMoment = moment(time, 'h:mm A');
-    const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
-    const timeMoment = moment.tz(`${today} ${time}`, 'YYYY-MM-DD h:mm A', 'Asia/Kolkata');
-    const utcStart = timeMoment.clone().startOf('hour').utc();
-    const utcEnd = timeMoment.clone().endOf('hour').utc();
+    const today = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+    const timeMoment = moment.tz(
+      `${today} ${time}`,
+      "YYYY-MM-DD h:mm A",
+      "Asia/Kolkata"
+    );
+    const utcStart = timeMoment.clone().startOf("hour").utc();
+    const utcEnd = timeMoment.clone().endOf("hour").utc();
 
     console.log("Local time:", timeMoment.format());
     console.log("UTC Start:", utcStart.format());
@@ -1668,22 +1711,22 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
       $match: {
         selected_time_slot: {
           $gte: utcStart.toDate(),
-          $lt: utcEnd.toDate()
-        }
-      }
+          $lt: utcEnd.toDate(),
+        },
+      },
     };
   } else {
     // Default to current day in UTC
-    const utcStart = moment.utc().startOf('day');  // 00:00:00 UTC
-    const utcEnd = moment.utc().endOf('day');      // 23:59:59.999 UTC
+    const utcStart = moment.utc().startOf("day"); // 00:00:00 UTC
+    const utcEnd = moment.utc().endOf("day"); // 23:59:59.999 UTC
 
     timeFilter = {
       $match: {
         created_time: {
           $gte: utcStart.toDate(),
-          $lt: utcEnd.toDate()
-        }
-      }
+          $lt: utcEnd.toDate(),
+        },
+      },
     };
   }
   console.log(timeFilter);
@@ -1715,8 +1758,8 @@ exports.searchOrdersByWarehouseByTypeOfDelivery = async (req, res) => {
           warehouse_ref: new mongoose.Types.ObjectId(warehouseId),
           type_of_delivery: delivery_type,
           order_status: {
-            $in: ["Order placed", "Packing", "Delivery Partner Assigned"]
-          }
+            $in: ["Order placed", "Packing", "Delivery Partner Assigned"],
+          },
         },
       },
       // Apply time filter
@@ -2049,8 +2092,8 @@ exports.groupRoutesController = async (req, res) => {
     const closestUnallocated =
       unallocatedItems.length > 0
         ? unallocatedItems.reduce((closest, current) =>
-          current.distance < closest.distance ? current : closest
-        )
+            current.distance < closest.distance ? current : closest
+          )
         : null;
     closestUnallocated.allocated = true;
     const routes = [[closestUnallocated]];
@@ -2079,8 +2122,8 @@ exports.groupRoutesController = async (req, res) => {
       const closestUnallocated =
         routeDistances.length > 0
           ? routeDistances.reduce((closest, current) =>
-            current.distance < closest.distance ? current : closest
-          )
+              current.distance < closest.distance ? current : closest
+            )
           : null;
       closestUnallocated.allocated = true;
       routeDistances = routeDistances.find(
@@ -2146,8 +2189,8 @@ exports.groupRoutesController = async (req, res) => {
           const closestUnallocated =
             unallocatedItems.length > 0
               ? unallocatedItems.reduce((closest, current) =>
-                current.distance < closest.distance ? current : closest
-              )
+                  current.distance < closest.distance ? current : closest
+                )
               : null;
           if (unallocatedItems.length === 0) {
             runLoop = false;
@@ -2232,24 +2275,26 @@ exports.groupRoutesController = async (req, res) => {
         console.log("waypointParam", waypointParam);
         const response = await axios.get(
           `https://maps.googleapis.com/maps/api/directions/json?` +
-          `origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
-          }` + // Return to origin
-          waypointParam +
-          // `&waypoints[]:${waypoints}` +
-          // `&optimizeWaypoints:true` +
-          `&key=${process.env.GOOGLE_MAPS_API_KEY}`
+            `origin=${sourceLatitude},${sourceLongitude}` +
+            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
+              tempRoute[tempRoute.length - 1].longitude
+            }` + // Return to origin
+            waypointParam +
+            // `&waypoints[]:${waypoints}` +
+            // `&optimizeWaypoints:true` +
+            `&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
         console.log(
           "map URL ",
           `https://maps.googleapis.com/maps/api/directions/json?` +
-          `origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
-          }` + // Return to origin
-          waypointParam +
-          // `&waypoints[]:${waypoints}` +
-          `&optimizeWaypoints:true` +
-          `&key=${process.env.GOOGLE_MAPS_API_KEY}`
+            `origin=${sourceLatitude},${sourceLongitude}` +
+            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
+              tempRoute[tempRoute.length - 1].longitude
+            }` + // Return to origin
+            waypointParam +
+            // `&waypoints[]:${waypoints}` +
+            `&optimizeWaypoints:true` +
+            `&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
 
         if (response.data.status === "OK") {
@@ -2271,7 +2316,8 @@ exports.groupRoutesController = async (req, res) => {
           const mapsUrl =
             `https://www.google.com/maps/dir/?api=1` +
             `&origin=${sourceLatitude},${sourceLongitude}` +
-            `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
+            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
+              tempRoute[tempRoute.length - 1].longitude
             }` +
             `&waypoints=${optimizedDestinations
               .map((d) => `${d.latitude},${d.longitude}`)
@@ -2292,7 +2338,8 @@ exports.groupRoutesController = async (req, res) => {
         const mapsUrl =
           `https://www.google.com/maps/dir/?api=1` +
           `&origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${
+            tempRoute[tempRoute.length - 1].longitude
           }` +
           // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
           `&travelmode=driving` +
@@ -2362,13 +2409,16 @@ exports.getOrdersWithPaymentDetails = async (req, res) => {
       .sort({ created_time: -1 })
       .exec();
 
-    const codOrders = orders.filter(
-      (order) => order.payment_type === "COD"
-    )
+    const codOrders = orders.filter((order) => order.payment_type === "COD");
     const onlineOrders = orders.filter(
       (order) => order.payment_type === "Online payment"
-    )
-    res.json({ success: true, message: "Orders retrieved successfully", COD_orders: codOrders, Online_orders: onlineOrders });
+    );
+    res.json({
+      success: true,
+      message: "Orders retrieved successfully",
+      COD_orders: codOrders,
+      Online_orders: onlineOrders,
+    });
   } catch (error) {
     console.error("Error processing request:", error);
     res.status(500).json({
@@ -2386,15 +2436,15 @@ exports.checkNewOrders = async (req, res) => {
     // Set default time window (last 1 hour if not specified)
     const timeWindow = checkTime
       ? moment(checkTime).toDate()
-      : moment().subtract(1, 'hour').toDate();
+      : moment().subtract(1, "hour").toDate();
 
     // Build query
     const query = {
       warehouse_ref: warehouseId,
       order_placed_time: { $gte: timeWindow },
       order_status: {
-        $nin: ["Delivered", "Delivery failed"]
-      }
+        $nin: ["Delivered", "Delivery failed"],
+      },
     };
 
     // Make query optional
@@ -2409,15 +2459,14 @@ exports.checkNewOrders = async (req, res) => {
       count: activeOrders.length,
       orders: activeOrders,
       timeWindow: timeWindow,
-      warehouse: warehouseId || 'All warehouses'
+      warehouse: warehouseId || "All warehouses",
     });
-
   } catch (error) {
-    console.error('Warehouse order check failed:', error);
+    console.error("Warehouse order check failed:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to check warehouse orders',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to check warehouse orders",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
