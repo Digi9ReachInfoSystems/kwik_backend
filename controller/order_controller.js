@@ -2092,8 +2092,8 @@ exports.groupRoutesController = async (req, res) => {
     const closestUnallocated =
       unallocatedItems.length > 0
         ? unallocatedItems.reduce((closest, current) =>
-            current.distance < closest.distance ? current : closest
-          )
+          current.distance < closest.distance ? current : closest
+        )
         : null;
     closestUnallocated.allocated = true;
     const routes = [[closestUnallocated]];
@@ -2122,8 +2122,8 @@ exports.groupRoutesController = async (req, res) => {
       const closestUnallocated =
         routeDistances.length > 0
           ? routeDistances.reduce((closest, current) =>
-              current.distance < closest.distance ? current : closest
-            )
+            current.distance < closest.distance ? current : closest
+          )
           : null;
       closestUnallocated.allocated = true;
       routeDistances = routeDistances.find(
@@ -2189,8 +2189,8 @@ exports.groupRoutesController = async (req, res) => {
           const closestUnallocated =
             unallocatedItems.length > 0
               ? unallocatedItems.reduce((closest, current) =>
-                  current.distance < closest.distance ? current : closest
-                )
+                current.distance < closest.distance ? current : closest
+              )
               : null;
           if (unallocatedItems.length === 0) {
             runLoop = false;
@@ -2275,26 +2275,24 @@ exports.groupRoutesController = async (req, res) => {
         console.log("waypointParam", waypointParam);
         const response = await axios.get(
           `https://maps.googleapis.com/maps/api/directions/json?` +
-            `origin=${sourceLatitude},${sourceLongitude}` +
-            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
-              tempRoute[tempRoute.length - 1].longitude
-            }` + // Return to origin
-            waypointParam +
-            // `&waypoints[]:${waypoints}` +
-            // `&optimizeWaypoints:true` +
-            `&key=${process.env.GOOGLE_MAPS_API_KEY}`
+          `origin=${sourceLatitude},${sourceLongitude}` +
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
+          }` + // Return to origin
+          waypointParam +
+          // `&waypoints[]:${waypoints}` +
+          // `&optimizeWaypoints:true` +
+          `&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
         console.log(
           "map URL ",
           `https://maps.googleapis.com/maps/api/directions/json?` +
-            `origin=${sourceLatitude},${sourceLongitude}` +
-            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
-              tempRoute[tempRoute.length - 1].longitude
-            }` + // Return to origin
-            waypointParam +
-            // `&waypoints[]:${waypoints}` +
-            `&optimizeWaypoints:true` +
-            `&key=${process.env.GOOGLE_MAPS_API_KEY}`
+          `origin=${sourceLatitude},${sourceLongitude}` +
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
+          }` + // Return to origin
+          waypointParam +
+          // `&waypoints[]:${waypoints}` +
+          `&optimizeWaypoints:true` +
+          `&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
 
         if (response.data.status === "OK") {
@@ -2316,8 +2314,7 @@ exports.groupRoutesController = async (req, res) => {
           const mapsUrl =
             `https://www.google.com/maps/dir/?api=1` +
             `&origin=${sourceLatitude},${sourceLongitude}` +
-            `&destination=${tempRoute[tempRoute.length - 1].latitude},${
-              tempRoute[tempRoute.length - 1].longitude
+            `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
             }` +
             `&waypoints=${optimizedDestinations
               .map((d) => `${d.latitude},${d.longitude}`)
@@ -2338,8 +2335,7 @@ exports.groupRoutesController = async (req, res) => {
         const mapsUrl =
           `https://www.google.com/maps/dir/?api=1` +
           `&origin=${sourceLatitude},${sourceLongitude}` +
-          `&destination=${tempRoute[tempRoute.length - 1].latitude},${
-            tempRoute[tempRoute.length - 1].longitude
+          `&destination=${tempRoute[tempRoute.length - 1].latitude},${tempRoute[tempRoute.length - 1].longitude
           }` +
           // `&waypoints=${optimizedDestinations.map(d => `${d.lat},${d.lng}`).join('|')}` +
           `&travelmode=driving` +
@@ -2433,18 +2429,18 @@ exports.checkNewOrders = async (req, res) => {
   try {
     const { warehouseId } = req.query;
     const { checkTime } = req.body;
-    // Set default time window (last 1 hour if not specified)
-    const timeWindow = checkTime
-      ? moment(checkTime).toDate()
-      : moment().subtract(1, "hour").toDate();
 
-    // Build query
+    const endTime = checkTime ? moment(checkTime) : moment();
+    const startTime = moment(endTime).subtract(10, 'seconds');
+
     const query = {
-      warehouse_ref: warehouseId,
-      order_placed_time: { $gte: timeWindow },
-      order_status: {
-        $nin: ["Delivered", "Delivery failed"],
+      order_placed_time: {
+        $gte: startTime.toDate(),
+        $lte: endTime.toDate()
       },
+      order_status: {
+        $nin: ["Delivered", "Delivery failed"]
+      }
     };
 
     // Make query optional
@@ -2458,7 +2454,10 @@ exports.checkNewOrders = async (req, res) => {
       success: activeOrders.length > 0,
       count: activeOrders.length,
       orders: activeOrders,
-      timeWindow: timeWindow,
+      checkedRange: {
+        from: startTime.toISOString(),
+        to: endTime.toISOString()
+      },
       warehouse: warehouseId || "All warehouses",
     });
   } catch (error) {
