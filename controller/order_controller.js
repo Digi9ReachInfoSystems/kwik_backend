@@ -107,7 +107,7 @@ exports.createOrder = async (req, res) => {
       user_contact_number: userData.phone,
       user_location: userData.selected_Address.Location,
       otp,
-      order_placed_time,
+      order_placed_time:  new Date(),
       payment_type,
       total_amount,
       total_saved,
