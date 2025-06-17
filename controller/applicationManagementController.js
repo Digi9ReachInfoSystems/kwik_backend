@@ -57,6 +57,7 @@ exports.updateSettings = async (req, res) => {
         if (!existingSettings) {
             return res.status(404).json({ message: 'Settings not found to update' });
         }
+        console.log(req.body);
         const updatedSettings = await ApplicationManagement.findOneAndUpdate(
             {},  // Update the first (and usually only) settings document
             {
@@ -67,7 +68,7 @@ exports.updateSettings = async (req, res) => {
                 contact_us: req.body.contact_us || existingSettings.contact_us,
                 privacy_policy: req.body.privacy_policy || existingSettings.privacy_policy,
                 terms_of_use: req.body.terms_of_use || existingSettings.terms_of_use,
-                enable_cod: req.body.enable_cod || existingSettings.enable_cod,
+                enable_cod: req.body.enable_cod == existingSettings.enable_cod ? existingSettings.enable_cod : req.body.enable_cod,
                 delivery_charge: req.body.delivery_charge || existingSettings.delivery_charge,
                 delivery_charge_tum_tum: req.body.delivery_charge_tum_tum || existingSettings.delivery_charge_tum_tum,
                 handling_charge: req.body.handling_charge || existingSettings.handling_charge,
@@ -84,7 +85,7 @@ exports.updateSettings = async (req, res) => {
                 new_update_des_ios: req.body.new_update_des_ios || existingSettings.new_update_des_ios,
                 delivery_coverage_distance: req.body.delivery_coverage_distance || existingSettings.delivery_coverage_distance,
                 route_point_threshold: req.body.route_point_threshold || existingSettings.route_point_threshold,
-                enable_Instant_Delivery: req.body.enable_Instant_Delivery || existingSettings.enable_Instant_Delivery,
+                enable_Instant_Delivery: req.body.enable_Instant_Delivery == existingSettings.enable_Instant_Delivery ? existingSettings.enable_Instant_Delivery : req.body.enable_Instant_Delivery,
             },
             { new: true }  // Return the updated document
         );
