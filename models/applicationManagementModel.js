@@ -12,7 +12,6 @@ const applicationManagementSchema = new mongoose.Schema({
     terms_of_use: { type: String, required: false },
     enable_cod: { type: Boolean, required: false },
     delivery_charge: { type: Number, required: false },
-    delivery_charge_tum_tum: { type: Number, required: false },
     handling_charge: { type: Number, required: false },
     high_demand_charge: { type: Number, required: false },
     new_version_ios: { type: Number, required: false },
