@@ -329,7 +329,7 @@ exports.assignSingleOrder = async (req, res) => {
 
     } else {
 
-      const foundOrder = await Order.findBOne({ _id: orderIds[0], order_status: "Order placed" });
+      const foundOrder = await Order.findOne({ _id: orderIds[0], order_status: "Order placed" });
       foundOrder.order_status = "Out for delivery";
       foundOrder.delivery_boy = user._id;
       foundOrder.out_for_delivery_time = new Date();
