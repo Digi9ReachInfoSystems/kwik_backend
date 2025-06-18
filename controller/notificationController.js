@@ -151,6 +151,56 @@ exports.SendNotification = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+exports.SendNotificationToAll = async (req, res) => {
+  const {
+    title,
+    message,
+    redirect_url,
+    image_url,
+    redirect_type,
+    extra_data,
+  } = req.body;
+
+  try {
+    // Fetch all valid users (not deleted and isUser true)
+    const users = await User.find({
+      isDeleted: { $ne: true },
+      isUser: true,
+    }).select("_id");
+
+    if (!users.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No users found" });
+    }
+
+    // Map to array of user IDs
+    const userIds = users.map((user) => user._id.toString());
+
+    const notification = await generateAndSendNotification(
+      title,
+      message,
+      userIds,
+      redirect_url,
+      image_url,
+      redirect_type,
+      extra_data
+    );
+
+    if (!notification.success) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Notification failed" });
+    }
+
+    return res.status(201).json({
+      success: true,
+      notification,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 /**
  * Example: Order Updates Notification
@@ -550,6 +600,9 @@ exports.generateAndSendNotificationTest1 = async (req, res) => {
     });
   }
 };
+
+
+
 
 exports.scheduleDynamicNotificationUser = async (req, res) => {
   const {

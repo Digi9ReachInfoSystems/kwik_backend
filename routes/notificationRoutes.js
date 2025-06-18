@@ -7,6 +7,7 @@ router.post("/order-update", notificationController.OrderUpdates);
 router.post("/coupon", notificationController.SendNotificationForCoupon);
 router.post("/idle-cart", notificationController.SendNotificationForIdleCart);
 router.post("/product-update", notificationController.ProductUpdates);
+router.post("/send-to-all", notificationController.SendNotificationToAll);
 router.post(
   "/schedule-dynamic",
   notificationController.scheduleDynamicNotification
