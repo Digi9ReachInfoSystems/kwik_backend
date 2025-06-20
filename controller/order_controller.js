@@ -81,13 +81,13 @@ exports.createOrder = async (req, res) => {
           message: `Product with ID ${product.product_ref} is invalid`,
         });
       }
-      total_amount += Number(product.selling_price * product.quantity);
+      total_amount += Number(product.selling_price );
       total_saved +=
-        Number(product.mrp * product.quantity) -
-        Number(product.selling_price * product.quantity);
+        Number(product.mrp ) -
+        Number(product.selling_price );
       profit +=
-        Number(product.selling_price * product.quantity) -
-        Number(product.buying_price * product.quantity);
+        Number(product.selling_price ) -
+        Number(product.buying_price );
     }
     profit -= discount_price;
     total_amount -= discount_price;
