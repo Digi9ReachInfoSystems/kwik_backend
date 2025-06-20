@@ -276,7 +276,10 @@ exports.getUserById = async (req, res) => {
     const { userId } = req.params; // Extract userId from URL parameters
 
     // Find the user by their ID
-    const user = await User.findOne({ UID: userId }).populate("assigned_warehouse");
+    const user = await User.findOne({ UID: userId })
+    .populate("assigned_warehouse")
+    .populate("selected_warehouse")
+    ;
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
