@@ -91,11 +91,11 @@ exports.createOrder = async (req, res) => {
     }
     profit -= discount_price;
     total_amount -= discount_price;
-    total_amount -= (delivery_charge || type_of_delivery === "tum tum"
+    total_amount += (delivery_charge || type_of_delivery === "tum tum"
       ? appSettings.delivery_charge_tum_tum
       : appSettings.delivery_charge);
-    total_amount -= appSettings.handling_charge;
-    total_amount -= appSettings.high_demand_charge;
+    total_amount += appSettings.handling_charge;
+    total_amount += appSettings.high_demand_charge;
 
     let couponC;
     if (coupon_code !== "null") {
