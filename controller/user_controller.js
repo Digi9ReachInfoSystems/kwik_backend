@@ -2294,6 +2294,7 @@ exports.deliverFailedInstantOrder = async (req, res) => {
 exports.assignOrdersToDeliveryBoy = async (req, res) => {
   try {
     const { deliveryBoyId, orderIds } = req.body;
+    console.log("deliveryBoyId", deliveryBoyId);
     let user = await User.findById(deliveryBoyId);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -2315,6 +2316,7 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
           status: "assigned",
         });
         user.deliveryboy_order_availability_status.instant.last_assigned_at = new Date();
+        user = await user.save();
         const title = "Your Order Has Been Assigned to Delivery Partner!";
         const message = `Your order #${order._id} has been assigned to a delivery partner. Thank you for shopping with us!`;
         const redirectUrl = `/orders/${order._id}`; // Redirect user to their order page
@@ -2322,7 +2324,7 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
         const extraData = { orderId: order._id };
 
         // Send the notification
-        await generateAndSendNotificationService(
+        const result1 = await generateAndSendNotificationService(
           {
             title,
             message,
@@ -2333,6 +2335,7 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
             extraData
           }
         );
+        console.log("result1", result1);
         const delivery_title = "New Instant Order Assigned!";
         const delivery_message = `The order #${order._id} has been assigned to you. Thank you for working with us!`;
         const delivery_redirectUrl = `/orders/${order._id}`; // Redirect user to their order page
@@ -2340,7 +2343,7 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
         const delivery_extraData = { orderId: order._id };
 
         // Send the notification
-        await generateAndSendNotificationService(
+        const result2 = await generateAndSendNotificationService(
           {
             title: delivery_title,
             message: delivery_message,
@@ -2351,7 +2354,8 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
             extraData: delivery_extraData
           }
         );
-        user = await user.save();
+        console.log("result2", result2);
+        
       }
 
     }));

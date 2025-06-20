@@ -553,3 +553,44 @@ exports.deliveryFailedOrder = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.checkNewAssignedOrders = async (req, res) => {
+  try {
+    const { deliveryBoyId, checkTime } = req.body;
+    const user = await User.findOne({ UID: deliveryBoyId }).populate("assigned_orders.order_ref");
+    const endTime = checkTime ? moment(checkTime) : moment();
+    const startTime = moment(endTime).subtract(15, 'seconds');
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const query = {
+      out_for_delivery_time: {
+        $gte: startTime.toDate(),
+        $lte: endTime.toDate()
+      },
+      order_status: {
+        $nin: ["Delivered", "Delivery failed"]
+      }
+    };
+    const activeOrdersTumTum = await Order.find(query).lean();
+    const activeOrdersInstant = user.assigned_orders.filter(order => order.assigned_time >= startTime.toDate() && order.assigned_time <= endTime.toDate());
+
+
+     res.status(200).json({
+      success: activeOrdersTumTum.length > 0|| activeOrdersInstant.length > 0,
+      count: activeOrdersTumTum.length + activeOrdersInstant.length,
+      activeOrdersTumTum,
+      activeOrdersInstant,
+      checkedRange: {
+        from: startTime.toISOString(),
+        to: endTime.toISOString()
+      },
+    });
+  } catch (error) {
+    console.error("Error checking new assigned orders:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
