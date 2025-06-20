@@ -13,6 +13,7 @@ const moment = require("moment");
 const Notification = require("../models/notifications_model");
 const { scheduleIdleCartReminder } = require("../utils/cartUtils");
 const axios = require("axios");
+const { generateAndSendNotificationService } = require("../utils/notificationService");
 
 // Create a new user
 exports.createUser = async (req, res) => {
@@ -275,7 +276,7 @@ exports.getUserById = async (req, res) => {
     const { userId } = req.params; // Extract userId from URL parameters
 
     // Find the user by their ID
-    const user = await User.findOne({ UID: userId });
+    const user = await User.findOne({ UID: userId }).populate("assigned_warehouse");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -907,8 +908,14 @@ exports.getUserCartById = async (req, res) => {
 exports.userStats = async (req, res) => {
   try {
     const user = await User.find();
+    const orders = await Order.find();
+    const deliveredOrders= await Order.find({order_status:"Delivered"})
+    const deliveryFailedOrders= await Order.find({order_status:"Delivery failed"})
     const allUsers = user.length;
     const totaUsers = await User.countDocuments({ isUser: true });
+    const totalOrder = orders.length;
+    const totalDeliveredOrder = deliveredOrders.length
+    const  totalProfit = deliveredOrders.reduce((acc, order) => acc + order.profit, 0);
     const totalDeliveryBoy = await User.countDocuments({
       is_deliveryboy: true,
     });
@@ -920,6 +927,10 @@ exports.userStats = async (req, res) => {
       totalUsers: totaUsers,
       totalDeliveryBoy: totalDeliveryBoy,
       totalWarehouse: totalWarehouse,
+      totalOrder: totalOrder,
+      totalDeliveredOrder: totalDeliveredOrder,
+      totalProfit: totalProfit,
+      totalDeliveryFailedOrder: deliveryFailedOrders.length
     });
   } catch (error) {
     console.log(error);
@@ -1354,7 +1365,7 @@ exports.searchUsers = async (req, res) => {
   try {
     const { name } = req.query;
     const users = await User.find({
-      displayName: { $regex: `${name}`, $options: "i" },
+      phone: { $regex: `${name}`, $options: "i" },
       isUser: true,
     });
     const finalData = await Promise.all(
@@ -1490,14 +1501,20 @@ exports.changeDeliveryBoyDayAvailibilityStatus = async (req, res) => {
     }
     const deliveryAssignments = await DeliveryAssignment.find({
       delivery_boy_ref: user._id,
-      tum_tumdelivery_start_time: {
-        $gte: moment().startOf("day").local().toDate(),
-        $lt: moment().endOf("day").local().toDate(),
-      },
+      // tum_tumdelivery_start_time: {
+      //   $gte: moment().startOf("day").local().toDate(),
+      //   $lt: moment().endOf("day").local().toDate(),
+      // },
       status: "Pending",
     });
     if (deliveryAssignments.length > 0) {
-      return res.status(400).json({
+      return res.status(200).json({
+        success: false,
+        message: "Delivery boy is assigned to an order cannot change status",
+      });
+    }
+    if (user.assigned_orders.length > 0) {
+      return res.status(200).json({
         success: false,
         message: "Delivery boy is assigned to an order cannot change status",
       });
@@ -2234,6 +2251,24 @@ exports.deliverFailedInstantOrder = async (req, res) => {
       });
       user.assigned_orders_with_mapUrl = null;
       const savedUser = await user.save();
+      const title = "Your Order Has Been Cancelled or Failed to be Delivered!";
+      const message = `Your order #${orderId} has been cancelled or failed to be delivered due to some reason. Thank you for shopping with us!`;
+      const redirectUrl = `/orders/${orderId}`; // Redirect user to their order page
+      const redirectType = "order"; // Redirect type (can be used for custom logic)
+      const extraData = { orderId };
+
+      // Send the notification
+      await generateAndSendNotificationService(
+        {
+          title,
+          message,
+          userId: order.user_ref, // User reference who placed the order
+          redirectUrl,
+          imageUrl: null, // Optional: Add image URL if required
+          redirectType,
+          extraData
+        }
+      );
       return res.status(200).json({
         success: true,
         message: "Order delivered successfully",
@@ -2260,7 +2295,7 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    const orders = await Order.find({ _id: { $in: orderIds },  order_status: { $in: ["Packing", "Order placed"] } });
+    const orders = await Order.find({ _id: { $in: orderIds }, order_status: { $in: ["Packing", "Order placed"] } });
     if (!orders) {
       return res
         .status(404)
@@ -2277,10 +2312,49 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
           status: "assigned",
         });
         user.deliveryboy_order_availability_status.instant.last_assigned_at = new Date();
+        const title = "Your Order Has Been Assigned to Delivery Partner!";
+        const message = `Your order #${order._id} has been assigned to a delivery partner. Thank you for shopping with us!`;
+        const redirectUrl = `/orders/${order._id}`; // Redirect user to their order page
+        const redirectType = "order"; // Redirect type (can be used for custom logic)
+        const extraData = { orderId: order._id };
+
+        // Send the notification
+        await generateAndSendNotificationService(
+          {
+            title,
+            message,
+            userId: order.user_ref, // User reference of the person who placed the order
+            redirectUrl,
+            imageUrl: null, // Optional: add image URL if needed
+            redirectType,
+            extraData
+          }
+        );
+        const delivery_title = "New Instant Order Assigned!";
+        const delivery_message = `The order #${order._id} has been assigned to you. Thank you for working with us!`;
+        const delivery_redirectUrl = `/orders/${order._id}`; // Redirect user to their order page
+        const delivery_redirectType = "order"; // Redirect type (can be used for custom logic)
+        const delivery_extraData = { orderId: order._id };
+
+        // Send the notification
+        await generateAndSendNotificationService(
+          {
+            title: delivery_title,
+            message: delivery_message,
+            userId: deliveryBoyId, // User reference of the person who placed the order
+            redirectUrl: null,
+            imageUrl: null, // Optional: add image URL if needed
+            redirectType: null,
+            extraData: delivery_extraData
+          }
+        );
         user = await user.save();
       }
 
     }));
+
+
+
 
     return res.status(200).json({
       success: true,
@@ -2292,7 +2366,7 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
     console.error("Error in assignOrdersToDeliveryBoy:", err);
     res.status(500).json({ message: "Internal server error", error: err.message });
   }
-};  
+};
 
 exports.getDeliveryBoyForInstantByWarehouseId = async (req, res) => {
   try {

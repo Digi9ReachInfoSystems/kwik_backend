@@ -9,6 +9,7 @@ const {
 } = require("../controller/notificationController");
 const Notification = require("../models/notifications_model");
 const Coupon = require("../models/coupon_model");
+const { generateAndSendNotificationService } = require("../utils/notificationService");
 
 
 
@@ -180,15 +181,18 @@ exports.verifyPayment = async (req, res) => {
                 }
             );
 
-            await generateAndSendNotificationNew(
-                title,
-                message,
-                userref1,
-                redirectUrl,
-                null, // Optional: add image URL if needed
-                redirectType,
-                extraData
-            );
+           let  notification = await generateAndSendNotificationService(
+                {
+                    title,
+                    message,
+                    userref1,
+                    userId: userref1,
+                    redirectUrl,
+                    imageUrl: null,
+                    redirectType,
+                    extraData
+                }
+            )
 
         } else if (req.body.event == "payment.failed") {
             console.log("Valid signature inside payment.failed", req.body);

@@ -9,6 +9,7 @@ const {
 } = require("../controller/notificationController");
 const Warehouse = require("../models/warehouse_model");
 const axios = require("axios");
+const { generateAndSendNotificationService } = require("../utils/notificationService");
 
 exports.getOrdersByDeliveryBoy = async (req, res) => {
   try {
@@ -32,24 +33,25 @@ exports.getOrdersByDeliveryBoy = async (req, res) => {
 
     const deliveryAssignments = await DeliveryAssignment.find({
       delivery_boy_ref: user._id,
-      tum_tumdelivery_start_time: {
-        // $gte: moment(
-        //   `${moment().format("YYYY-MM-DD")} ${time}`,
-        //   "YYYY-MM-DD h:mm A"
-        // )
-        //   .startOf("hour")
-        //   .local()
-        //   .toDate(),
-        // $lt: moment(
-        //   `${moment().format("YYYY-MM-DD")} ${time}`,
-        //   "YYYY-MM-DD h:mm A"
-        // )
-        //   .endOf("hour")
-        //   .local()
-        //   .toDate(),
-        $gte: utcStart.toDate(),
-        $lt: utcEnd.toDate()
-      },
+      //uncomment if they want today's order
+      // tum_tumdelivery_start_time: {
+      //   // $gte: moment(
+      //   //   `${moment().format("YYYY-MM-DD")} ${time}`,
+      //   //   "YYYY-MM-DD h:mm A"
+      //   // )
+      //   //   .startOf("hour")
+      //   //   .local()
+      //   //   .toDate(),
+      //   // $lt: moment(
+      //   //   `${moment().format("YYYY-MM-DD")} ${time}`,
+      //   //   "YYYY-MM-DD h:mm A"
+      //   // )
+      //   //   .endOf("hour")
+      //   //   .local()
+      //   //   .toDate(),
+      //   $gte: utcStart.toDate(),
+      //   $lt: utcEnd.toDate()
+      // },
       status: "Pending",
     })
       .populate({
@@ -169,14 +171,16 @@ exports.deliverOrder = async (req, res) => {
     const extraData = { orderId };
 
     // Send the notification
-    await generateAndSendNotificationNew(
-      title,
-      message,
-      userWhoPlacedOrder.UID, // User reference of the person who placed the order
-      redirectUrl,
-      null, // Optional: add image URL if needed
-      redirectType,
-      extraData
+    await generateAndSendNotificationService(
+      {
+        title,
+        message,
+        userId: userRef, // User reference of the person who placed the order
+        redirectUrl,
+        imageUrl: null, // Optional: add image URL if needed
+        redirectType,
+        extraData
+      }
     );
 
     return res.json({
@@ -223,7 +227,7 @@ exports.assignSingleOrder = async (req, res) => {
     let endTime;
     const destinations = order.map(order => {
       startTime = order.selected_time_slot;
-      endTime = order.selected_time_slot;
+      endTime = new Date(order.selected_time_slot.getTime() + 60 * 60 * 1000);
       return ({
         lat: order.user_location.lat,
         lng: order.user_location.lang,
@@ -307,6 +311,43 @@ exports.assignSingleOrder = async (req, res) => {
         if (order) {
           order.order_status = "Out for delivery";
           order.out_for_delivery_time = new Date();
+          const title = "Your Order is Out for Delivery!";
+          const message = `Your order #${order._id} is now out for delivery and will be with you shortly.`;
+          const redirectUrl = `/orders/${order._id}`;
+          const redirectType = "order";
+          const extraData = { orderId: order._id };
+
+          // Send the notification
+          await generateAndSendNotificationService(
+            {
+              title,
+              message,
+              userId: order.user_ref, // User reference who placed the order
+              redirectUrl,
+              imageUrl: null, // Optional: Add image URL if required
+              redirectType,
+              extraData
+            }
+          );
+
+          const delivery_title = "New Tum Tum Order Assigned!";
+          const delivery_message = `The order #${order._id} has been assigned to you. Thank you for working with us!`;
+          const delivery_redirectUrl = `/orders/${order._id}`; // Redirect user to their order page
+          const delivery_redirectType = "order"; // Redirect type (can be used for custom logic)
+          const delivery_extraData = { orderId: order._id };
+
+          // Send the notification
+          await generateAndSendNotificationService(
+            {
+              title: delivery_title,
+              message: delivery_message,
+              userId: deliveryBoyId, // User reference of the person who placed the order
+              redirectUrl: null,
+              imageUrl: null, // Optional: add image URL if needed
+              redirectType: null,
+              extraData: delivery_extraData
+            }
+          );
           order.save();
         }
       });
@@ -361,6 +402,42 @@ exports.assignSingleOrder = async (req, res) => {
       user.deliveryboy_order_availability_status.tum_tum = false;
       user.deliveryboy_order_availability_status.instant.status = false;
       await user.save();
+      const title = "Your Order is Out for Delivery!";
+      const message = `Your order #${foundOrder._id} is now out for delivery and will be with you shortly.`;
+      const redirectUrl = `/orders/${foundOrder._id}`;
+      const redirectType = "order";
+      const extraData = { orderId: foundOrder._id };
+
+      // Send the notification
+      await generateAndSendNotificationService(
+        {
+          title,
+          message,
+          userId: foundOrder.user_ref, // User reference who placed the order
+          redirectUrl,
+          imageUrl: null, // Optional: Add image URL if required
+          redirectType,
+          extraData
+        }
+      );
+      const delivery_title = "New Tum Tum Order Assigned!";
+      const delivery_message = `The order #${foundOrder._id} has been assigned to you. Thank you for working with us!`;
+      const delivery_redirectUrl = `/orders/${foundOrder._id}`; // Redirect user to their order page
+      const delivery_redirectType = "order"; // Redirect type (can be used for custom logic)
+      const delivery_extraData = { orderId: foundOrder._id };
+
+      // Send the notification
+      await generateAndSendNotificationService(
+        {
+          title: delivery_title,
+          message: delivery_message,
+          userId: deliveryBoyId, // User reference of the person who placed the order
+          redirectUrl: null,
+          imageUrl: null, // Optional: add image URL if needed
+          redirectType: null,
+          extraData: delivery_extraData
+        }
+      );
       return res.json({ success: true, message: "Order Assigned", assignment });
     }
 
@@ -448,21 +525,23 @@ exports.deliveryFailedOrder = async (req, res) => {
     }
 
     // Define notification details
-    const title = "Your Order Has Been Delivered!";
-    const message = `Your order #${orderId} has been successfully delivered. Thank you for shopping with us!`;
+    const title = "Your Order Has Been Cancelled or Failed to be Delivered!";
+    const message = `Your order #${orderId} has been cancelled or failed to be delivered due to some reason. Thank you for shopping with us!`;
     const redirectUrl = `/orders/${orderId}`; // Redirect user to their order page
     const redirectType = "order"; // Redirect type (can be used for custom logic)
     const extraData = { orderId };
 
     // Send the notification
-    await generateAndSendNotificationNew(
-      title,
-      message,
-      userWhoPlacedOrder.UID, // User reference of the person who placed the order
-      redirectUrl,
-      null, // Optional: add image URL if needed
-      redirectType,
-      extraData
+    await generateAndSendNotificationService(
+      {
+        title,
+        message,
+        userId: order.user_ref, // User reference who placed the order
+        redirectUrl,
+        imageUrl: null, // Optional: Add image URL if required
+        redirectType,
+        extraData
+      }
     );
 
     return res.json({

@@ -10,6 +10,7 @@ const ApplicationManagement = require("../models/applicationManagementModel");
 const {
   generateAndSendNotificationNew,
 } = require("../controller/notificationController");
+const { generateAndSendNotificationService } = require("../utils/notificationService");
 
 exports.createOrderRoute = async (req, res) => {
   try {
@@ -673,14 +674,16 @@ exports.assignDeliveryBoys = async (req, res) => {
           const extraData = { orderId };
 
           // Send the notification
-          await generateAndSendNotificationNew(
-            title,
-            message,
-            user.UID, // User reference who placed the order
-            redirectUrl,
-            null, // Optional: Add image URL if required
-            redirectType,
-            extraData
+          await generateAndSendNotificationService(
+            {
+              title,
+              message,
+              userId: user._id, // User reference who placed the order
+              redirectUrl,
+              imageUrl: null, // Optional: Add image URL if required
+              redirectType,
+              extraData
+            }
           );
         }
       })
