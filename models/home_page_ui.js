@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const homepageWidgetSchema = new mongoose.Schema({
   categorylist:  Object,
+  template1: Object,
   template2: Object,
   template3: Object,
   template4: Object,

@@ -19,6 +19,7 @@ const Coupon = require("../models/coupon_model");
 const {
   generateAndSendNotificationTest1,
 } = require("../controller/notificationController");
+const { generateAndSendNotificationService } = require("../utils/notificationService");
 // const haversine = require('haversine-distance');
 // const googleMapsClient = require('@googlemaps/google-maps-services-js').Client;
 // const haversine = require('haversine-distance').default;
@@ -90,6 +91,11 @@ exports.createOrder = async (req, res) => {
     }
     profit -= discount_price;
     total_amount -= discount_price;
+    total_amount -= (delivery_charge || type_of_delivery === "tum tum"
+      ? appSettings.delivery_charge_tum_tum
+      : appSettings.delivery_charge);
+    total_amount -= appSettings.handling_charge;
+    total_amount -= appSettings.high_demand_charge;
 
     let couponC;
     if (coupon_code !== "null") {
@@ -107,7 +113,7 @@ exports.createOrder = async (req, res) => {
       user_contact_number: userData.phone,
       user_location: userData.selected_Address.Location,
       otp,
-      order_placed_time:  new Date(),
+      order_placed_time: new Date(),
       payment_type,
       total_amount,
       total_saved,
@@ -137,6 +143,7 @@ exports.createOrder = async (req, res) => {
       userData.cart_products = [];
     }
     let razorpayOrder;
+    let notification;
     const savedOrder = await newOrder.save();
     const savedUser = await userData.save();
     if (payment_type === "Online payment") {
@@ -204,17 +211,29 @@ exports.createOrder = async (req, res) => {
       );
 
       // Call the generateAndSendNotification function to send the notification
-      await generateAndSendNotificationTest1(
+      // await generateAndSendNotificationTest1(
+      //   title,
+      //   message,
+      //   userref1,
+      //   redirectUrl,
+      //   null,
+      //   redirectType,
+      //   extraData
+      // );
+       notification = await generateAndSendNotificationService(
+      {
         title,
         message,
         userref1,
+        userId:userref1,
         redirectUrl,
-        null,
+        imageUrl:null,
         redirectType,
         extraData
-      );
+      }
+    )
     }
-
+    
     return res.status(201).json({
       success: true,
       message: "Order created successfully",
@@ -222,6 +241,7 @@ exports.createOrder = async (req, res) => {
       razorpayOrder: payment_type === "Online payment" ? razorpayOrder : null,
       razorpayOrderId:
         payment_type === "Online payment" ? razorpayOrder.id : null,
+      notification: payment_type === "COD" ? notification : null
     });
   } catch (error) {
     console.error("Error creating order:", error);
@@ -2431,7 +2451,7 @@ exports.checkNewOrders = async (req, res) => {
     const { checkTime } = req.body;
 
     const endTime = checkTime ? moment(checkTime) : moment();
-    const startTime = moment(endTime).subtract(10, 'seconds');
+    const startTime = moment(endTime).subtract(15, 'seconds');
 
     const query = {
       order_placed_time: {
