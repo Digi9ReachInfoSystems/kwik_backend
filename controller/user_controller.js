@@ -110,6 +110,11 @@ exports.editUser = async (req, res) => {
   try {
     const { userId } = req.params;
     const updates = req.body;
+    if (updates.selected_Address) {
+      if (!updates.current_pincode) {
+        updates.current_pincode = updates.selected_Address.pincode
+      }
+    }
 
     // Find the user and update their details
     const user = await User.findOneAndUpdate({ UID: userId }, updates, {
@@ -665,10 +670,12 @@ exports.userSelectedAddressChange = async (req, res) => {
     const Address = userData.Address.find((item) => item._id == AddressID);
     const user = await User.findOneAndUpdate(
       { UID: userId },
-      { selected_Address: Address },
+      {
+        selected_Address: Address,
+        current_pincode: Address.pincode
+      },
       { new: true }
     );
-
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
