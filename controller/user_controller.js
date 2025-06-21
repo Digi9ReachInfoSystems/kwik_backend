@@ -277,9 +277,9 @@ exports.getUserById = async (req, res) => {
 
     // Find the user by their ID
     const user = await User.findOne({ UID: userId })
-    .populate("assigned_warehouse")
-    .populate("selected_warehouse")
-    ;
+      .populate("assigned_warehouse")
+      .populate("selected_warehouse")
+      ;
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -912,13 +912,13 @@ exports.userStats = async (req, res) => {
   try {
     const user = await User.find();
     const orders = await Order.find();
-    const deliveredOrders= await Order.find({order_status:"Delivered"})
-    const deliveryFailedOrders= await Order.find({order_status:"Delivery failed"})
+    const deliveredOrders = await Order.find({ order_status: "Delivered" })
+    const deliveryFailedOrders = await Order.find({ order_status: "Delivery failed" })
     const allUsers = user.length;
     const totaUsers = await User.countDocuments({ isUser: true });
     const totalOrder = orders.length;
     const totalDeliveredOrder = deliveredOrders.length
-    const  totalProfit = deliveredOrders.reduce((acc, order) => acc + order.profit, 0);
+    const totalProfit = deliveredOrders.reduce((acc, order) => acc + order.profit, 0);
     const totalDeliveryBoy = await User.countDocuments({
       is_deliveryboy: true,
     });
@@ -1368,8 +1368,11 @@ exports.searchUsers = async (req, res) => {
   try {
     const { name } = req.query;
     const users = await User.find({
-      phone: { $regex: `${name}`, $options: "i" },
-      isUser: true,
+      $or: [
+        { name: { $regex: `${name}`, $options: "i" } },
+        { phone: { $regex: `${name}`, $options: "i" } }
+      ],
+      isUser: true
     });
     const finalData = await Promise.all(
       users.map(async (user) => {
@@ -2355,7 +2358,7 @@ exports.assignOrdersToDeliveryBoy = async (req, res) => {
           }
         );
         console.log("result2", result2);
-        
+
       }
 
     }));
