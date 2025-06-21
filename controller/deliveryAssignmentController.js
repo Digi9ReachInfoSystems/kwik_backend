@@ -311,6 +311,7 @@ exports.assignSingleOrder = async (req, res) => {
         if (order) {
           order.order_status = "Out for delivery";
           order.out_for_delivery_time = new Date();
+          order.save();
           const title = "Your Order is Out for Delivery!";
           const message = `Your order #${order._id} is now out for delivery and will be with you shortly.`;
           const redirectUrl = `/orders/${order._id}`;
@@ -348,7 +349,7 @@ exports.assignSingleOrder = async (req, res) => {
               extraData: delivery_extraData
             }
           );
-          order.save();
+          
         }
       });
 
