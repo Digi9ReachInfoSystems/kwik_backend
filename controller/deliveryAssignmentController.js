@@ -595,7 +595,9 @@ exports.checkNewAssignedOrders = async (req, res) => {
         ]
       })
       .exec();
-    const endTime = checkTime ? moment(checkTime) : moment();
+    // const endTime = checkTime ? moment(checkTime) : moment();
+    // const startTime = moment(endTime).subtract(15, 'seconds');
+    const endTime = moment(); // Current time when API is called
     const startTime = moment(endTime).subtract(15, 'seconds');
     if (!user) {
       return res
