@@ -349,7 +349,7 @@ exports.assignSingleOrder = async (req, res) => {
               extraData: delivery_extraData
             }
           );
-          
+
         }
       });
 
@@ -558,7 +558,43 @@ exports.deliveryFailedOrder = async (req, res) => {
 exports.checkNewAssignedOrders = async (req, res) => {
   try {
     const { deliveryBoyId, checkTime } = req.body;
-    const user = await User.findOne({ UID: deliveryBoyId }).populate("assigned_orders.order_ref");
+    const user = await User.findOne({ UID: deliveryBoyId })
+      .populate({
+        path: "assigned_orders",
+        populate: [{
+          path: "order_ref",
+        },
+        ]
+      })
+      .populate({
+        path: 'assigned_orders.order_ref',
+        populate: [
+          { path: 'user_ref', model: 'User' },
+          { path: 'warehouse_ref', model: 'Warehouse' },
+          {
+            path: 'products.product_ref',
+            model: 'Product'
+          }
+        ]
+      })
+      .populate({
+        path: "assigned_orders_with_mapUrl.orders.orderId",
+        populate: [
+          {
+            path: "warehouse_ref",
+            model: "Warehouse"
+          },
+          {
+            path: "user_ref",
+            model: "User"
+          },
+          {
+            path: "products.product_ref", // Assuming products is an array with product_ref
+            model: "Product"
+          }
+        ]
+      })
+      .exec();
     const endTime = checkTime ? moment(checkTime) : moment();
     const startTime = moment(endTime).subtract(15, 'seconds');
     if (!user) {
@@ -576,12 +612,28 @@ exports.checkNewAssignedOrders = async (req, res) => {
         $nin: ["Delivered", "Delivery failed"]
       }
     };
-    const activeOrdersTumTum = await Order.find(query).lean();
+    const activeOrdersTumTum = await Order.find(query)
+      .populate("warehouse_ref")
+      .populate("user_ref")
+      .populate({
+        path: "products.product_ref",
+        populate: [
+          { path: "category_ref", model: "Category" }, // Populate category for the product
+          {
+            path: "sub_category_ref",
+            model: "SubCategory",
+            populate: { path: "category_ref", model: "Category" }, // Populate category inside sub-category
+          },
+          { path: "Brand", model: "Brand" },
+        ],
+      })
+      .populate("delivery_boy")
+      .exec();
     const activeOrdersInstant = user.assigned_orders.filter(order => order.assigned_time >= startTime.toDate() && order.assigned_time <= endTime.toDate());
 
 
-     res.status(200).json({
-      success: activeOrdersTumTum.length > 0|| activeOrdersInstant.length > 0,
+    res.status(200).json({
+      success: activeOrdersTumTum.length > 0 || activeOrdersInstant.length > 0,
       count: activeOrdersTumTum.length + activeOrdersInstant.length,
       activeOrdersTumTum,
       activeOrdersInstant,
