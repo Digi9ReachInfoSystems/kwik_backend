@@ -2489,3 +2489,15 @@ exports.checkNewOrders = async (req, res) => {
     });
   }
 };
+exports.getOrderPlacedCountWarehouse = async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    const query = warehouseId ? { warehouse_ref: warehouseId } : {};
+    query.order_status = "Order placed";
+    const orders = await Order.find(query);
+    res.json({ success: true, count: orders.length, orders });
+  } catch (error) {
+    console.error("Error processing request:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
