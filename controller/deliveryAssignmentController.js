@@ -352,7 +352,6 @@ exports.assignSingleOrder = async (req, res) => {
 
         }
       });
-
       const assignment = new DeliveryAssignment({
         orderRoute_ref: null,
         route_id: null,
@@ -362,7 +361,7 @@ exports.assignSingleOrder = async (req, res) => {
         status: "Pending",
         delivery_boy_ref: user._id,
         map_url: mapsUrl
-      })
+      });
       await assignment.save();
       user.deliveryboy_order_availability_status.tum_tum = false;
       user.deliveryboy_order_availability_status.instant.status = false;
@@ -394,7 +393,7 @@ exports.assignSingleOrder = async (req, res) => {
           },
         ],
         tum_tumdelivery_start_time: foundOrder.selected_time_slot,
-        tumtumdelivery_end_time: foundOrder.selected_time_slot,
+        tumtumdelivery_end_time: new Date(foundOrder.selected_time_slot.getTime() + 60 * 60 * 1000),
         status: "Pending",
         delivery_boy_ref: user._id,
         map_url: mapUrl
