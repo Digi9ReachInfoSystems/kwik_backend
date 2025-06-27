@@ -405,7 +405,13 @@ exports.getWarehousesBypincode = async (req, res) => {
 };
 exports.getDeliveryServiceStatus = async (req, res) => {
   try {
-    const { pincode, destinationLat, destinationLon } = req.body;
+    const { pincode, destinationLat, destinationLon ,UID} = req.body;
+    const user = await User.findOne({UID : UID }).exec();
+    if(!user){
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    user.current_pincode = pincode;
+    await user.save();
     const warehouse = await Warehouse.findOne({ picode: pincode, isDeleted: false })
       .populate("deliveryboys")
       .exec();
