@@ -14,6 +14,17 @@ const tmpDir = os.tmpdir();
 const dumpDir = path.join(tmpDir, `dump-${Date.now()}`);
 const archivePath = path.join(tmpDir, `mongo-backup-${Date.now()}.tar.gz`);
 
+//local setup
+
+// const backupBaseDir = "D:/mongoDataBackup";
+
+// if (!fs.existsSync(backupBaseDir)) {
+//     fs.mkdirSync(backupBaseDir, { recursive: true });
+// }
+// const dumpDir = `D:/mongoDataBackup/dump-${Date.now()}`;
+// const archivePath = `D:/mongoDataBackup/mongo-backup-${Date.now()}.tar.gz`;
+
+
 exports.backupAndUpload = async () => {
     // console.log("dbUri", `"${mongoDumpPath}" --uri=\"${dbUri}\" --out=${dumpPath}`);
     // // Step 1: Dump MongoDB
@@ -61,8 +72,8 @@ exports.backupAndUpload = async () => {
         public: false,
     });
     // Step 4: Clean up temp files
-    fs.rmSync(dumpDir, { recursive: true, force: true });
-    fs.unlinkSync(archivePath);
+    // fs.rmSync(dumpDir, { recursive: true, force: true });
+    // fs.unlinkSync(archivePath);
 
 
     // // Step 4: Cleanup

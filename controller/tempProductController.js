@@ -9,28 +9,115 @@ const SubCategory = require('../models/sub_category_model');
 const Warehouse = require('../models/warehouse_model');
 const TempProduct = require('../models/tempProduct_model');
 const { uploadFileToFirebase } = require('../utils/firebaseServices');
+const AdmZip = require('adm-zip');
+
+async function processZipBuffer(zipBuffer, type = "photo") {
+    const zip = new AdmZip(zipBuffer);
+    const entries = zip.getEntries();
+    const uploads = {};
+
+    for (const entry of entries) {
+        if (entry.isDirectory) continue;
+
+        const fileName = entry.entryName;
+        const exData = fileName.split('/').pop();
+
+        // Extract SKU (for videos) or SKU + sequence (for photos)
+        const skuMatch = exData.match(/^([A-Za-z]+\d+)(?:_(\d{3}))?(?=\.\w+$)/i);
+        if (!skuMatch) continue;
+
+        const [_, SKU, sequenceNumber] = skuMatch;
+
+        // Validate file path based on type
+        const shouldProcess = (type === "photo" && fileName.startsWith(`upload_photos/${SKU}_`)) ||
+            (type === "video" && fileName === `upload_video/${SKU}.mp4`);
+        if (!shouldProcess) continue;
+
+        // Upload file
+        const fileBuffer = entry.getData();
+        const firebaseUrl = await uploadFileToFirebase(
+            fileBuffer,
+            fileName,
+            type === "video" ? "video/mp4" : "image/jpeg"
+        );
+
+        if (type === "video") {
+            // For videos: simple SKU-url mapping (overwrite if exists)
+            uploads[SKU] = {
+                SKU: SKU,
+                url: firebaseUrl
+            };
+        } else {
+            // For photos: versioned structure
+            const seqNum = sequenceNumber || '001';
+
+            if (!uploads[SKU]) {
+                uploads[SKU] = {
+                    SKU: SKU,
+                    versions: []
+                };
+            }
+
+            const existingIndex = uploads[SKU].versions.findIndex(v => v.sequence === parseInt(seqNum));
+            if (existingIndex >= 0) {
+                uploads[SKU].versions[existingIndex].url = firebaseUrl;
+            } else {
+                uploads[SKU].versions.push({
+                    sequence: parseInt(seqNum),
+                    url: firebaseUrl
+                });
+            }
+        }
+    }
+
+    // Prepare final output
+    const result = Object.values(uploads);
+
+    // Sort photo versions if they exist
+    result.forEach(item => {
+        if (item.versions) {
+            item.versions.sort((a, b) => a.sequence - b.sequence);
+        }
+    });
+
+    return result;
+}
 
 exports.bulkUploadProducts = async (req, res) => {
-    if (!req.file) {
+    // console.log('Received files:', req.files);
+    if (!req.files?.csv?.[0]) {
         return res.status(400).json({ message: 'Missing CSV file' });
     }
+    if (!req.files.upload_photos[0]) {
+        return res.status(400).json({ message: 'Missing photo zip file' });
+    }
+    if (!req.files.upload_video[0]) {
+        return res.status(400).json({ message: 'Missing video zip file' });
+    }
     try {
+        const csvFile = req.files?.csv?.[0];
+
+
         const publicUrl = await uploadFileToFirebase(
-            req.file.buffer,
-            req.file.originalname,
-            req.file.mimetype
+            csvFile.buffer,
+            csvFile.originalname,
+            csvFile.mimetype
         );
         console.log(`CSV uploaded to: ${publicUrl}`);
 
         const rows = [];
         await new Promise((resolve, reject) => {
             streamifier
-                .createReadStream(req.file.buffer)
+                .createReadStream(csvFile.buffer)
                 .pipe(csv())
                 .on('data', row => rows.push(row))
                 .on('end', resolve)
                 .on('error', reject);
         });
+
+        const photoResults = await processZipBuffer(req.files.upload_photos[0].buffer, 'photo');
+        const videoResults = await processZipBuffer(req.files.upload_video[0].buffer, 'video',);
+        console.log("images and video uploded", photoResults.length, videoResults.length);
         const failedRows = [];
         // fs.createReadStream(req.file.path)
         //     .pipe(csv())
@@ -44,8 +131,8 @@ exports.bulkUploadProducts = async (req, res) => {
                     sku,
                     product_name,
                     product_des,
-                    product_image,
-                    product_video,
+                    // product_image,
+                    // product_video,
                     brand_name,
                     category_name,
                     sub_category_name,
@@ -64,7 +151,10 @@ exports.bulkUploadProducts = async (req, res) => {
                     variationStockStockZone,
                     variationStockStockRack
                 } = row;
-
+                // const photoMap = await processZipBuffer(req.files.upload_photos[0].buffer, 'photo', sku);
+                // const videoMap = await processZipBuffer(req.files.upload_video[0].buffer, 'video', sku);
+                // console.log('Photo Map:', photoMap);
+             
                 // 1) Brand / Category / SubCategory lookups (omitted for brevity)
                 const brand = await Brand.findOne({ brand_name: brand_name.trim() });
                 const category = await Category.findOne({ category_name: category_name.trim() });
@@ -74,10 +164,19 @@ exports.bulkUploadProducts = async (req, res) => {
                     category_ref: category._id
                 });
                 const subCatIds = subCats.map(s => s._id);
-
+                // console.log("Photo Results:", photoResults);
+                const product_image = photoResults.find(p => p.SKU === sku).versions.map(p => p.url);
+                const product_video = videoResults.filter(p => p.SKU === sku).map(p => p.url)[0];
+                // console.log('Images:', product_image);
+                // console.log('Video:', product_video);
                 // 2) Normalize images
-                const images = (product_image || '')
-                    .split(',').map(u => u.trim()).filter(Boolean);
+                // const images = (product_image || '')
+                //     .split(',').map(u => u.trim()).filter(Boolean);
+                // const images = photoMap[sku] || [];
+                // const videoUrl = (videoMap[sku] && videoMap[sku][0]) || null;
+
+                // const product_image = images;
+                // const product_video = videoUrl;
 
                 // 3) Find or create product
                 let product = await TempProduct.findOne({ sku });
@@ -89,7 +188,7 @@ exports.bulkUploadProducts = async (req, res) => {
                         sku,
                         product_name,
                         product_des,
-                        product_image: images,
+                        product_image: product_image,
                         product_video: product_video,
                         Brand: brand._id,
                         category_ref: category._id,
@@ -102,7 +201,7 @@ exports.bulkUploadProducts = async (req, res) => {
                 } else {
                     product.product_image = Array.from(new Set([
                         ...product.product_image,
-                        ...images
+                        ...product_image
                     ]));
                     product.product_video = product_video;
                     product.Brand = brand._id;
@@ -210,7 +309,7 @@ exports.bulkUploadProducts = async (req, res) => {
                 await product.save();
             } catch (error) {
                 // Store the row and error details if something goes wrong
-                failedRows.push({ rowNumber: i + 2, row, error: error.message });
+                failedRows.push({ rowNumber: i + 2, row, error: error.message, });
             }
         }
         // fs.unlinkSync(req.file.path);
